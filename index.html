@@ -43,8 +43,9 @@
   }
   #summonBtn:active { transform:translateY(3px); box-shadow:0 1px 0 #b36200; }
   #summonBtn:disabled { filter:grayscale(.8); box-shadow:none; }
-  #sellBtn { padding:0 16px; background:#e05555; box-shadow:0 4px 0 #8f2f2f; display:none; }
-  .small { padding:0 14px; background:#3a4566; font-size:15px; }
+  #sellBtn { padding:7px 14px; background:#e05555; box-shadow:0 3px 0 #8f2f2f; display:none; margin-left:auto; font-size:14px; }
+  .small { padding:0 13px; background:#3a4566; font-size:15px; }
+  #pauseBtn.on { background:#66d36e; color:#0d3312; }
   #overlay {
     position:fixed; inset:0; background:rgba(10,14,26,.88);
     display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -75,10 +76,10 @@
 <canvas id="game"></canvas>
 
 <div id="bottombar">
-  <div id="unitinfo"><span id="uiHint">캐릭터를 누른 뒤: 같은 캐릭터=합성 🎲 · 빈 칸=이동 · 다른 캐릭터=교체</span></div>
+  <div id="unitinfo"><span id="uiHint">캐릭터를 누른 뒤: 같은 캐릭터=합성 🎲 · 빈 칸=이동 · 다른 캐릭터=교체</span><button id="sellBtn">판매</button></div>
   <div id="btnrow">
     <button id="summonBtn">🎲 소환 20G</button>
-    <button id="sellBtn">판매</button>
+    <button id="pauseBtn" class="small">⏸</button>
     <button id="speedBtn" class="small">x1</button>
     <button id="soundBtn" class="small">🔊</button>
   </div>
@@ -115,9 +116,10 @@ const GRADES = [
   { name:'일반', color:'#b0bec5' },
   { name:'희귀', color:'#4fc3f7' },
   { name:'영웅', color:'#ce93d8' },
+  { name:'신화', color:'#ef5350' },
   { name:'전설', color:'#ffd54f' },
 ];
-const GRADE_PROB = [0.55, 0.30, 0.12, 0.03]; // 소환 등급 확률
+const GRADE_PROB = [0.55, 0.30, 0.10, 0.04, 0.01]; // 소환 등급 확률
 
 // 캐릭터 도감 — img 필드에 그림 파일을 지정하면 이모지 대신 표시됨
 // atk: 공격 이펙트 종류 (slash=칼베기, arrow=화살, scythe=낫던지기,
@@ -136,15 +138,24 @@ const UNITS = [
   { type:'deathpierrot', grade:2, emoji:'🤡', name:'데스삐에로', dmg:55,  cd:0.80, range:140, atk:'punch',    img:'character/hero1.png' },
   { type:'lumberjack',   grade:2, emoji:'🪓', name:'나무꾼',     dmg:110, cd:1.00, range:100, atk:'axe',      img:'character/hero2.png' },
   { type:'darkrider',    grade:2, emoji:'🥷', name:'다크라이더', dmg:18,  cd:0.22, range:165, atk:'shuriken', img:'character/hero3.png' },
-  // 전설 — 아들 그림!
-  { type:'reddragon',  grade:3, emoji:'🐉', name:'레드드래곤', dmg:240, cd:1.50, range:320, splash:70, atk:'breath',  img:'character/legend1.png' },
-  { type:'dosa',       grade:3, emoji:'🧙', name:'도사',       dmg:90,  cd:0.40, range:180, atk:'fan',      img:'character/legend2.png' },
-  { type:'catmachine', grade:3, emoji:'🐱', name:'캣머신',     dmg:140, cd:0.50, range:110, splash:30, atk:'missile', img:'character/legend3.png' },
+  // 신화 — 아들 그림!
+  { type:'miner',    grade:3, emoji:'⛏️', name:'능력자광부',   dmg:30,  cd:0.30, range:130, atk:'drill',     special:'bomb',   img:'character/myth1.png' },
+  { type:'ricecake', grade:3, emoji:'🍡', name:'떡장수',       dmg:45,  cd:0.75, range:170, atk:'songpyeon', special:'multi4', img:'character/myth2.png' },
+  { type:'ronin',    grade:3, emoji:'🗡️', name:'낭인',         dmg:170, cd:1.10, range:120, atk:'ronin',     special:'baldo',  img:'character/myth3.png' },
+  { type:'angeldog', grade:3, emoji:'😇', name:'천사 도베르만', dmg:35,  cd:0.60, range:160, atk:'holy',      special:'smite',  img:'character/myth4.png' },
+  // 전설 — 아들 그림! (신화 등장에 맞춰 전반 상향)
+  { type:'reddragon',  grade:4, emoji:'🐉', name:'레드드래곤', dmg:300, cd:1.50, range:320, splash:70, atk:'breath',  img:'character/legend1.png' },
+  { type:'dosa',       grade:4, emoji:'🧙', name:'도사',       dmg:110, cd:0.40, range:180, atk:'fan',      img:'character/legend2.png' },
+  { type:'catmachine', grade:4, emoji:'🐱', name:'캣머신',     dmg:170, cd:0.50, range:110, splash:30, atk:'missile', img:'character/legend3.png' },
 ];
+// 신화 특수 능력
+const BOMB_CHANCE = 0.15, BOMB_DMG = 150, BOMB_RADIUS = 60, BOMB_FUSE = 1.0; // 능력자광부: 폭탄 설치
+const BALDO_CHANCE = 0.20, BALDO_RADIUS = 90;                                // 낭인: 발도술 광역
+const SMITE_CHANCE = 0.08, SMITE_BOSS_PCT = 0.03;                            // 천사 도베르만: 즉사 (보스는 최대체력 3% 추가)
 const FIREBALL_CHANCE = 0.25; // 원까태인 불꽃공 확률 (피해 3배 + 소범위)
-const PROJ_SPEED = { arrow:700, scythe:420, ball:560, fire:480, shell:320, shuriken:650, fan:560, missile:430, orb:500 };
-const INSTANT_ATK = new Set(['slash', 'bite', 'punch', 'axe', 'breath']); // 즉발(투사체 없는) 공격
-const INSTANT_DECAY = { bite:1.6, breath:1.4, axe:1.8, punch:2.2 };       // 이펙트 지속(작을수록 오래)
+const PROJ_SPEED = { arrow:700, scythe:420, ball:560, fire:480, shell:320, shuriken:650, fan:560, missile:430, drill:620, songpyeon:520, holy:560, orb:500 };
+const INSTANT_ATK = new Set(['slash', 'bite', 'punch', 'axe', 'breath', 'ronin']); // 즉발(투사체 없는) 공격
+const INSTANT_DECAY = { bite:1.6, breath:1.4, axe:1.8, punch:2.2, ronin:1.8 };     // 이펙트 지속(작을수록 오래)
 const MOBS = ['👾','🐌','👻','🦂','🤖','🧟'];
 
 // 그림 파일 미리 불러오기 (img 지정된 캐릭터용)
@@ -182,15 +193,18 @@ const S = {
   running: false, over: false,
   wave: 0, gold: 80, summonCost: SUMMON_BASE,
   roundT: 0, toSpawn: 0, spawnTimer: 0, spawnInterval: 1,
-  enemies: [], projectiles: [], texts: [], effects: [],
-  selected: null, speed: 1, muted: false, time: 0,
+  enemies: [], projectiles: [], texts: [], effects: [], bombs: [],
+  selected: null, speed: 1, muted: false, paused: false, time: 0,
 };
 
 function resetGame() {
   S.over = false; S.wave = 0; S.gold = 80; S.summonCost = SUMMON_BASE;
   S.roundT = 0; S.toSpawn = 0;
-  S.enemies = []; S.projectiles = []; S.texts = []; S.effects = [];
+  S.enemies = []; S.projectiles = []; S.texts = []; S.effects = []; S.bombs = [];
   S.selected = null;
+  S.paused = false;
+  $('pauseBtn').textContent = '⏸';
+  $('pauseBtn').classList.remove('on');
   for (const s of slots) s.unit = null;
   updateInfoPanel();
 }
@@ -269,6 +283,7 @@ function spawnEnemy() {
 // ---------- 소환 / 합성 / 판매 ----------
 function summon() {
   if (!S.running || S.over) return;
+  if (S.paused) { addText(WORLD_W/2, 460, '일시정지 중이에요!', '#ffd76e', 14); return; }
   if (S.gold < S.summonCost) { addText(WORLD_W/2, 460, '골드가 부족해요!', '#ff8a8a', 15); sfx('error'); return; }
   const empty = slots.filter(s => !s.unit);
   if (!empty.length) { addText(WORLD_W/2, 460, '빈 칸이 없어요! 합성하거나 판매하세요', '#ff8a8a', 14); sfx('error'); return; }
@@ -351,16 +366,31 @@ function update(dt) {
     if (u.moveT > 0) { u.moveT -= dt; continue; } // 이동 직후엔 공격 불가
     u.cdT -= dt;
     if (u.cdT > 0) continue;
-    let best = null;
-    for (const e of S.enemies) {
-      const p = posAt(e.d);
-      const dx = p.x - s.cx, dy = p.y - s.cy;
-      if (dx * dx + dy * dy <= u.range * u.range && (!best || e.trav > best.trav)) best = e;
+    const inRange = e => { const p = posAt(e.d); const dx = p.x - s.cx, dy = p.y - s.cy; return dx * dx + dy * dy <= u.range * u.range; };
+    let targets;
+    if (u.special === 'multi4') { // 떡장수: 보스는 무시하고 최대 4명 동시 공격
+      targets = S.enemies.filter(e => !e.boss && inRange(e)).sort((a, b) => b.trav - a.trav).slice(0, 4);
+    } else {
+      let best = null;
+      for (const e of S.enemies) if (inRange(e) && (!best || e.trav > best.trav)) best = e;
+      targets = best ? [best] : [];
     }
-    if (best) {
+    if (targets.length) {
       u.cdT = u.cd;
+      const best = targets[0];
       const bp = posAt(best.d);
-      if (INSTANT_ATK.has(u.atk)) {
+      if (u.special === 'bomb' && Math.random() < BOMB_CHANCE) {
+        // 능력자광부: 이번 공격 대신 폭탄 설치!
+        S.bombs.push({ x: bp.x, y: bp.y, t: BOMB_FUSE });
+      } else if (u.special === 'baldo' && Math.random() < BALDO_CHANCE) {
+        // 낭인: 발도술 — 주변 모든 적을 한 칼에 벤다
+        for (const e2 of S.enemies) {
+          const p2 = posAt(e2.d);
+          if (Math.hypot(p2.x - bp.x, p2.y - bp.y) <= BALDO_RADIUS) e2.hp -= u.dmg;
+        }
+        S.effects.push({ kind: 'baldo', x: bp.x, y: bp.y, r: BALDO_RADIUS, t: 1, decay: 1.3 });
+        addText(bp.x, bp.y - 24, '⚔️ 발도술!', '#b3e5fc', 15);
+      } else if (INSTANT_ATK.has(u.atk)) {
         // 즉발 공격: 곧바로 피해 + 전용 이펙트 (브레스 등 범위 공격 포함)
         if (u.splash) {
           for (const e2 of S.enemies) {
@@ -376,16 +406,20 @@ function update(dt) {
         }
         S.effects.push({ kind: u.atk, x: bp.x, y: bp.y, sx: s.cx, sy: s.cy, r: u.splash || 0, t: 1, decay: INSTANT_DECAY[u.atk] || 2.5 });
       } else {
-        let kind = u.atk || 'orb', dmg = u.dmg, splash = u.splash || 0;
-        if (u.special === 'fireball' && Math.random() < FIREBALL_CHANCE) {
-          kind = 'fire'; dmg = u.dmg * 3; splash = 35; // 불꽃공!
+        for (const tgt of targets) {
+          const tp = posAt(tgt.d);
+          let kind = u.atk || 'orb', dmg = u.dmg, splash = u.splash || 0;
+          if (u.special === 'fireball' && Math.random() < FIREBALL_CHANCE) {
+            kind = 'fire'; dmg = u.dmg * 3; splash = 35; // 불꽃공!
+          }
+          S.projectiles.push({
+            x: s.cx, y: s.cy, tgt, tx: tp.x, ty: tp.y,
+            dmg, splash, slow: u.slow || 0, kind,
+            spd: PROJ_SPEED[kind] || 500,
+            color: GRADES[u.grade].color,
+            smite: u.special === 'smite',
+          });
         }
-        S.projectiles.push({
-          x: s.cx, y: s.cy, tgt: best, tx: bp.x, ty: bp.y,
-          dmg, splash, slow: u.slow || 0, kind,
-          spd: PROJ_SPEED[kind] || 500,
-          color: GRADES[u.grade].color,
-        });
       }
     }
   }
@@ -408,13 +442,33 @@ function update(dt) {
           }
         }
       } else if (p.tgt.hp > 0) {
-        p.tgt.hp -= p.dmg;
+        if (p.smite && !p.tgt.boss && Math.random() < SMITE_CHANCE) {
+          // 천사 도베르만: 천벌 — 한 방에 사망!
+          p.tgt.hp = 0;
+          S.effects.push({ kind: 'smite', x: p.tx, y: p.ty, t: 1, decay: 1.5 });
+          addText(p.tx, p.ty - 22, '⚡ 천벌!', '#ffe082', 15);
+        } else {
+          p.tgt.hp -= p.dmg + (p.smite && p.tgt.boss ? p.tgt.maxhp * SMITE_BOSS_PCT : 0);
+        }
         if (p.slow) p.tgt.slowT = Math.max(p.tgt.slowT, p.slow);
       }
       S.projectiles.splice(i, 1);
     } else {
       p.x += dx / dist * step;
       p.y += dy / dist * step;
+    }
+  }
+  // 폭탄 (능력자광부)
+  for (let i = S.bombs.length - 1; i >= 0; i--) {
+    const b = S.bombs[i];
+    b.t -= dt;
+    if (b.t <= 0) {
+      for (const e of S.enemies) {
+        const p = posAt(e.d);
+        if (Math.hypot(p.x - b.x, p.y - b.y) <= BOMB_RADIUS) e.hp -= BOMB_DMG;
+      }
+      S.effects.push({ kind: 'boom', x: b.x, y: b.y, r: BOMB_RADIUS, t: 1, fire: true });
+      S.bombs.splice(i, 1);
     }
   }
   // 처치 정산
@@ -524,6 +578,17 @@ function draw() {
     ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1.5;
     ctx.stroke();
+  }
+
+  // 폭탄 (능력자광부) — 터지기 직전엔 빨갛게 깜빡임
+  for (const b of S.bombs) {
+    ctx.beginPath(); ctx.arc(b.x, b.y, 8, 0, Math.PI * 2);
+    ctx.fillStyle = b.t < 0.35 && Math.sin(S.time * 40) > 0 ? '#ef5350' : '#263238';
+    ctx.fill();
+    ctx.strokeStyle = '#8d6e63'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(b.x + 3, b.y - 7); ctx.quadraticCurveTo(b.x + 8, b.y - 12, b.x + 5, b.y - 15); ctx.stroke();
+    ctx.fillStyle = '#ffd54f';
+    ctx.beginPath(); ctx.arc(b.x + 5, b.y - 15, 2 + Math.sin(S.time * 30), 0, Math.PI * 2); ctx.fill();
   }
 
   // 적
@@ -645,6 +710,27 @@ function draw() {
       ctx.beginPath(); ctx.moveTo(5, -3); ctx.lineTo(11, 0); ctx.lineTo(5, 3); ctx.closePath(); ctx.fill();
       ctx.beginPath(); ctx.moveTo(-6, -3); ctx.lineTo(-10, -6); ctx.lineTo(-8, 0); ctx.closePath(); ctx.fill(); // 날개
       ctx.restore();
+    } else if (p.kind === 'drill') {    // 능력자광부: 드릴 촉
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(ang);
+      ctx.fillStyle = '#b0bec5'; ctx.strokeStyle = '#546e7a'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(9, 0); ctx.lineTo(-5, -5); ctx.lineTo(-5, 5); ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      const ph = Math.sin(S.time * 30) * 2;
+      ctx.strokeStyle = '#78909c'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(-3, -3 + ph); ctx.lineTo(5, -1 + ph); ctx.moveTo(-3, 3 - ph); ctx.lineTo(5, 1 - ph); ctx.stroke();
+      ctx.restore();
+    } else if (p.kind === 'songpyeon') { // 떡장수: 빙글빙글 송편
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(ang + S.time * 6);
+      ctx.fillStyle = '#dcedc8'; ctx.strokeStyle = '#8bc34a'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(0, 2, 7, Math.PI, 0); ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.restore();
+    } else if (p.kind === 'holy') {      // 천사 도베르만: 빛의 구슬
+      ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,213,79,0.3)'; ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff8e1'; ctx.fill();
+      ctx.strokeStyle = '#ffd54f'; ctx.lineWidth = 1.5; ctx.stroke();
     } else {                           // 기본: 등급색 구슬
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.splash ? 6 : 4, 0, Math.PI * 2);
@@ -755,7 +841,29 @@ function draw() {
       ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = '#ff5722'; ctx.lineWidth = 2.5;
       ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.stroke();
-    } else if (e.kind === 'boom') {    // 폭발 (포탄/불꽃공/범위공격)
+    } else if (e.kind === 'ronin') {   // 낭인: 묵직한 일섬
+      ctx.strokeStyle = '#b3e5fc'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(e.x, e.y, 17, -2.4 + (1 - e.t), -0.4 + (1 - e.t)); ctx.stroke();
+      ctx.strokeStyle = '#e1f5fe'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(e.x - 14, e.y + 8); ctx.lineTo(e.x + 14, e.y - 12); ctx.stroke();
+    } else if (e.kind === 'baldo') {   // 낭인: 발도술 — 원형 검격
+      const rr = e.r * (1 - e.t * 0.4);
+      ctx.fillStyle = 'rgba(129,212,250,0.18)';
+      ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#81d4fa'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.stroke();
+      const sw = (1 - e.t) * Math.PI * 2;
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(e.x, e.y, rr * 0.7, sw, sw + 1.2); ctx.stroke();
+    } else if (e.kind === 'smite') {   // 천사 도베르만: 천벌 빛기둥
+      const wpx = 16 * e.t + 6;
+      ctx.fillStyle = 'rgba(255,236,179,0.75)';
+      ctx.fillRect(e.x - wpx / 2, e.y - 120, wpx, 120);
+      ctx.fillStyle = '#fffde7';
+      ctx.beginPath(); ctx.arc(e.x, e.y, 14 * (1 - e.t) + 4, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#ffd54f'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(e.x, e.y, 20 * (1 - e.t) + 6, 0, Math.PI * 2); ctx.stroke();
+    } else if (e.kind === 'boom') {    // 폭발 (포탄/불꽃공/폭탄/범위공격)
       const rr = e.r * (1 - e.t) + 8;
       ctx.fillStyle = e.fire ? 'rgba(255,110,30,0.4)' : 'rgba(255,200,80,0.35)';
       ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.fill();
@@ -763,6 +871,23 @@ function draw() {
       ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.stroke();
     }
     ctx.globalAlpha = 1;
+  }
+
+  // 일시정지 화면
+  if (S.paused && S.running && !S.over) {
+    ctx.fillStyle = 'rgba(10,14,26,0.55)';
+    roundRectPath(4, 4, WORLD_W - 8, WORLD_H - 8, 18);
+    ctx.fill();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '800 30px sans-serif';
+    ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 5;
+    ctx.strokeText('⏸ 일시정지', WORLD_W / 2, WORLD_H / 2 - 16);
+    ctx.fillStyle = '#fff';
+    ctx.fillText('⏸ 일시정지', WORLD_W / 2, WORLD_H / 2 - 16);
+    ctx.font = '700 15px sans-serif';
+    ctx.strokeText('▶ 버튼을 누르면 계속!', WORLD_W / 2, WORLD_H / 2 + 20);
+    ctx.fillStyle = '#cdd6f4';
+    ctx.fillText('▶ 버튼을 누르면 계속!', WORLD_W / 2, WORLD_H / 2 + 20);
   }
 
   // 떠오르는 텍스트
@@ -798,7 +923,11 @@ function updateInfoPanel() {
     const u = S.selected.unit;
     const extra = (u.splash ? ' · 범위공격' : '') + (u.slow ? ' · 감속' : '')
       + (u.special === 'fireball' ? ' · 🔥25% 불꽃공(3배)' : '')
-      + ((u.atk === 'slash' || u.atk === 'bite' || u.atk === 'axe') ? ' · 근접' : '');
+      + (u.special === 'bomb' ? ' · 💣15% 폭탄 설치' : '')
+      + (u.special === 'multi4' ? ' · 4명 동시공격 · 보스 무시' : '')
+      + (u.special === 'baldo' ? ' · ⚔️20% 발도술(광역)' : '')
+      + (u.special === 'smite' ? ' · ⚡8% 즉사' : '')
+      + ((u.atk === 'slash' || u.atk === 'bite' || u.atk === 'axe' || u.atk === 'ronin') ? ' · 근접' : '');
     hint.innerHTML = `<span class="emoji">${u.emoji}</span> <b style="color:${GRADES[u.grade].color}">[${GRADES[u.grade].name}] ${u.name}</b>&nbsp; 공격 ${u.dmg} · 속도 ${u.cd}s${extra}`;
     sell.style.display = 'block';
     sell.textContent = `판매 +${8 + u.grade * 14}G`;
@@ -810,7 +939,7 @@ function updateInfoPanel() {
 
 // ---------- 입력 ----------
 canvas.addEventListener('pointerdown', ev => {
-  if (!S.running || S.over) return;
+  if (!S.running || S.over || S.paused) return;
   const rect = canvas.getBoundingClientRect();
   const wx = (ev.clientX - rect.left - view.ox) / view.s;
   const wy = (ev.clientY - rect.top - view.oy) / view.s;
@@ -838,6 +967,12 @@ canvas.addEventListener('pointerdown', ev => {
 });
 
 $('summonBtn').addEventListener('click', summon);
+$('pauseBtn').addEventListener('click', () => {
+  if (!S.running || S.over) return;
+  S.paused = !S.paused;
+  $('pauseBtn').textContent = S.paused ? '▶' : '⏸';
+  $('pauseBtn').classList.toggle('on', S.paused);
+});
 $('sellBtn').addEventListener('click', sellSelected);
 $('speedBtn').addEventListener('click', () => {
   S.speed = S.speed === 1 ? 2 : 1;
@@ -874,7 +1009,7 @@ let lastT = 0;
 function frame(t) {
   const dt = Math.min(0.05, (t - lastT) / 1000);
   lastT = t;
-  if (S.running && !S.over) {
+  if (S.running && !S.over && !S.paused) {
     update(dt * S.speed);
     updateTopbar();
     updateButtons();
