@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>행운 타워 디펜스</title>
+<title>타워 디펜스 777</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html, body { height:100%; overflow:hidden; overscroll-behavior:none; }
@@ -13,9 +13,14 @@
     display:flex; flex-direction:column; height:100dvh;
     user-select:none; -webkit-user-select:none; touch-action:manipulation;
   }
+  #studio {
+    background:#12182a; color:#7c89ad; font-size:10px; font-weight:700;
+    letter-spacing:2px; padding:4px 12px 0;
+    padding-top:max(4px, env(safe-area-inset-top));
+  }
   #topbar {
     display:flex; justify-content:space-between; align-items:center;
-    padding:8px 14px; background:#12182a; font-size:15px; font-weight:700;
+    padding:6px 14px 8px; background:#12182a; font-size:15px; font-weight:700;
     gap:8px; flex-wrap:nowrap;
   }
   #topbar .warn { color:#ff5a5a; }
@@ -46,7 +51,8 @@
     text-align:center; gap:14px; padding:24px; z-index:10;
   }
   #overlay h1 { font-size:34px; }
-  #overlay .big-emoji { font-size:44px; letter-spacing:6px; }
+  #overlay .big-emoji { font-size:44px; letter-spacing:6px; display:flex; gap:12px; align-items:center; justify-content:center; }
+  #overlay .big-emoji img { width:64px; height:64px; }
   #overlay p { color:#aab4d4; font-size:15px; line-height:1.7; }
   #overlay button {
     margin-top:8px; padding:16px 52px; font-size:20px;
@@ -58,6 +64,7 @@
 </head>
 <body>
 
+<div id="studio">구예준 STUDIO</div>
 <div id="topbar">
   <span id="tWave">웨이브 0</span>
   <span id="tTimer">⏱ 20s</span>
@@ -78,8 +85,8 @@
 </div>
 
 <div id="overlay">
-  <h1>🏰 행운 타워 디펜스</h1>
-  <div class="big-emoji">🐶🦊🦁🦄</div>
+  <h1>🏰 타워 디펜스 777</h1>
+  <div class="big-emoji"><img src="character/hero1.png" alt="데스삐에로"><img src="character/hero3.png" alt="다크라이더"><img src="character/legend2.png" alt="도사"><img src="character/legend1.png" alt="레드드래곤"></div>
   <p>골드로 랜덤 캐릭터를 소환하고<br>같은 캐릭터를 합성해서 더 강하게!<br>적이 <b>60마리</b> 쌓이면 패배해요.</p>
   <div class="record" id="ovRecord"></div>
   <button id="ovBtn">시작하기</button>
