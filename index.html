@@ -11,7 +11,7 @@
     font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
     background:#1c2333; color:#fff;
     display:flex; flex-direction:column; height:100dvh;
-    user-select:none; -webkit-user-select:none; touch-action:manipulation;
+    user-select:none; -webkit-user-select:none; touch-action:none;
   }
   #studio {
     background:#12182a; color:#7c89ad; font-size:10px; font-weight:700;
@@ -938,6 +938,20 @@ function updateInfoPanel() {
 }
 
 // ---------- 입력 ----------
+// 핀치 확대/더블탭 확대 차단 (iOS 사파리는 viewport 설정을 무시하므로 JS로 직접 막음)
+for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) {
+  document.addEventListener(ev, e => e.preventDefault());
+}
+document.addEventListener('touchmove', e => {
+  if (e.touches.length > 1 || (e.scale !== undefined && e.scale !== 1)) e.preventDefault();
+}, { passive: false });
+let lastTouchEnd = 0;
+canvas.addEventListener('touchend', e => { // 캔버스 위 더블탭 확대 방지 (버튼 연타는 방해하지 않음)
+  const now = Date.now();
+  if (now - lastTouchEnd < 300) e.preventDefault();
+  lastTouchEnd = now;
+}, { passive: false });
+
 canvas.addEventListener('pointerdown', ev => {
   if (!S.running || S.over || S.paused) return;
   const rect = canvas.getBoundingClientRect();
