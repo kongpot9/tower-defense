@@ -237,20 +237,38 @@ const STAGE_DEFS = [
   ['진리의 현자',           '📖', 'fall',   'cold',     ['🧙','📖','🔮','✨','🦉','⚗️']],
   ['재질좋은 우그하문',     '👑', 'desert', 'twinboss', ['🏺','👑','⚱️','🐫','💰','🐍']],
   ['마왕성',                '😈', 'devil',  'twinboss', ['😈','🧛','🧟‍♂️','💀','🦹','👿']],
+  // 📖 3장
+  ['이제야 끝이 보이는 초원', '🌅', 'grass',  'rush',     ['👾','🧟','😈','🦂','🤖','💀']],
+  ['진정한 끝일까',           '❓', 'dark',   'cold',     ['❓','🌫️','👻','🌑','🕯️','👤']],
+  ['직녀성',                  '🧵', 'space',  'cold',     ['👩‍🌾','🧵','⭐','🌌','🪐','✨']],
+  ['스톤엣지 큐비즘',         '🪨', 'gray',   'twinboss', ['🪨','🔷','⬛','🗿','🔶','🧱']],
+  ['별바다',                  '✨', 'sea',    'rush',     ['⭐','🌟','✨','🐟','🌊','💫']],
+  ['양아치 종교화',           '😎', 'redd',   'twinboss', ['😎','🕶️','⛪','📿','💢','👊']],
+  ['라스트 갱',               '🕶️', 'dark',   'rush',     ['🕶️','🃏','💰','🚗','💣','😈']],
+  ['팸 팸 너 고기 스팸',      '🥫', 'autumn', 'rush',     ['🥫','🥓','🍖','🐷','🍳','🧂']],
+  ['가울리즘',                '🎨', 'gray',   'cold',     ['🎨','🖌️','🌀','🗿','🎭','🖼️']],
+  ['금지령',                  '🚫', 'redd',   'cold',     ['🚫','⛔','📵','🙅','⚠️','👮']],
+  ['왕궁의 칙명',             '📜', 'desert', 'twinboss', ['👑','📜','🏰','💂','⚔️','🦁']],
+  ['드라이트론 우그하문',     '🛸', 'space',  'twinboss', ['🤖','🏺','⚙️','🛸','⚡','🐍']],
+  ['콩고기 반죽',             '🫘', 'autumn', 'rush',     ['🫘','🥩','🥣','🧆','🌱','🥄']],
+  ['아버지의 낚시터',         '🎣', 'water',  'cold',     ['🎣','🐟','🐠','🦈','🪱','⛵']],
+  ['면회시간',                '⏰', 'gray',   'twinboss', ['⏰','🚪','🪟','📋','🥲','👮']],
+  ['바가지 요금에 흐느끼는 밤','💸', 'devil',  'twinboss', ['💸','😭','🧾','💳','🌙','👛']],
 ];
-const CLEAR_WAVES = [15,15,16,16,17,17,18,18,19,19,20,20,21,22,  18,18,19,19,20,20,21,21,22,23,23,24];
+const CLEAR_WAVES = [15,15,16,16,17,17,18,18,19,19,20,20,21,22,  18,18,19,19,20,20,21,21,22,23,23,24,
+  21,21,22,22,22,23,23,23,24,24,24,25,25,25,26,26];
 const GIMMICK_TEXT = { rush:'몬스터가 점점 빨리 몰려옴', cold:'아군 공격속도 20% 감소', twinboss:'보스가 2마리씩 등장' };
 const STAGES = STAGE_DEFS.map((d, i) => {
   const t = THEMES[d[2]];
   return {
-    name: d[0], emoji: d[1], chapter: i < 14 ? 0 : 1,
+    name: d[0], emoji: d[1], chapter: i < 14 ? 0 : i < 26 ? 1 : 2,
     bg: t.bg, trackEdge: t.edge, trackFill: t.fill,
     mobs: d[4], gimmick: d[3] || undefined,
     gimmickText: d[3] ? GIMMICK_TEXT[d[3]] : '기본 스테이지',
     atkCdMul: d[3] === 'cold' ? 1.25 : 1,
-    // 갈수록 적 체급 상승: 체력·속도·보스 배율·골드 보상
-    hpMul: +(1 + i * 0.06).toFixed(2),
-    spdMul: +(1 + i * 0.012).toFixed(2),
+    // 갈수록 적 체급 상승: 체력·속도·보스 배율·골드 보상 (3장은 체력 증가 완만, 속도 상한)
+    hpMul: +(i < 26 ? 1 + i * 0.06 : 2.5 + (i - 25) * 0.035).toFixed(2),
+    spdMul: +Math.min(1 + i * 0.012, 1.35).toFixed(2),
     goldMul: +(1 + i * 0.04).toFixed(2),
     bossMul: 30 + Math.round(i * 0.5),
     clearWave: CLEAR_WAVES[i],
@@ -1171,7 +1189,7 @@ function showOverlay(mode) {
         sel.appendChild(h);
       }
       const locked = i > 0 && !clearedOf(i - 1);
-      const num = st.chapter === 0 ? i + 1 : i - 13;
+      const num = i - [0, 14, 26][st.chapter] + 1;
       const btn = document.createElement('button');
       btn.className = 'stagebtn' + (locked ? ' locked' : '') + (clearedOf(i) ? ' cleared' : '');
       btn.innerHTML =
