@@ -60,10 +60,37 @@
     background:linear-gradient(180deg,#66d36e,#3fa946); box-shadow:0 5px 0 #23702a;
   }
   #overlay .record { color:#ffd76e; font-weight:800; font-size:17px; }
-  #overlay #ovBtn2 {
+  #overlay #ovBtn2, #overlay #ovBtn3 {
     margin-top:0; padding:10px 28px; font-size:15px;
     background:#3a4566; box-shadow:0 4px 0 #232a42;
   }
+  #nickLine { color:#9fb0d8; font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px; }
+  #nickLine button { background:#3a4566; padding:5px 10px; font-size:12px; border-radius:8px; }
+  #nickModal {
+    position:fixed; inset:0; background:rgba(10,14,26,.9); z-index:30;
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  #nickBox {
+    background:#1c2333; border:2px solid #3a4566; border-radius:16px;
+    padding:22px; width:100%; max-width:320px; text-align:center;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  #nickBox h2 { font-size:20px; }
+  #nickBox p { color:#aab4d4; font-size:13px; }
+  #nickBox input {
+    padding:12px; border-radius:10px; border:2px solid #3a4566;
+    background:#12182a; color:#fff; font-size:16px; text-align:center;
+    font-family:inherit; font-weight:700;
+  }
+  #nickBox .row { display:flex; gap:8px; justify-content:center; }
+  #nickBox button { padding:10px 22px; background:linear-gradient(180deg,#66d36e,#3fa946); box-shadow:0 4px 0 #23702a; font-size:15px; }
+  #nickBox button.gray { background:#3a4566; box-shadow:0 4px 0 #232a42; }
+  .ranktab { padding:8px 16px; border-radius:10px; background:#22304f; border:2px solid #3a4566; color:#fff; font-size:14px; font-weight:800; }
+  .ranktab.on { background:#ffb300; color:#3a2500; border-color:#ffb300; }
+  .rankrow { display:flex; gap:8px; width:100%; background:#22304f; border-radius:10px; padding:8px 12px; font-size:14px; font-weight:700; align-items:center; }
+  .rankrow.me { border:2px solid #ffd54f; }
+  .rankrow .pos { color:#ffd76e; min-width:30px; }
+  .rankrow .nm { flex:1; text-align:left; }
   #stageSel {
     display:flex; gap:8px; justify-content:center; flex-wrap:wrap;
     max-height:46vh; overflow-y:auto; padding:4px; width:100%;
@@ -112,6 +139,20 @@
   <div class="record" id="ovRecord"></div>
   <button id="ovBtn">시작하기</button>
   <button id="ovBtn2" class="hidden">스테이지 선택</button>
+  <button id="ovBtn3" class="hidden">🏆 랭킹</button>
+  <div id="nickLine" class="hidden">👤 <span id="nickName"></span> <button id="nickEdit">✏️ 바꾸기</button></div>
+</div>
+
+<div id="nickModal" class="hidden">
+  <div id="nickBox">
+    <h2>👤 닉네임 정하기</h2>
+    <p>랭킹판에 올라갈 이름이에요! (최대 8글자)</p>
+    <input id="nickInput" maxlength="8" placeholder="예: 예준짱">
+    <div class="row">
+      <button id="nickSave">저장</button>
+      <button id="nickLater" class="gray">나중에</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -420,6 +461,7 @@ function stageClear() { // 스테이지 클리어! 다음 스테이지 잠금 �
   const key = 'ltd_best_' + S.stage;
   localStorage.setItem(key, Math.max(stg.clearWave, +(localStorage.getItem(key) || 0)));
   sfx('jackpot');
+  submitStoryScore();
   showOverlay('clear');
 }
 
@@ -646,10 +688,79 @@ function gameOver() {
   sfx('over');
   if (S.mode === 'story') {
     localStorage.setItem('ltd_best_' + S.stage, Math.max(S.wave, bestOf(S.stage)));
+    submitStoryScore();
   } else { // 일반 모드는 기존 통합 기록 그대로
     localStorage.setItem('ltd_best', Math.max(S.wave, +(localStorage.getItem('ltd_best') || 0)));
+    submitClassicScore(S.wave);
   }
   showOverlay('gameover');
+}
+
+// ---------- 닉네임 & 온라인 랭킹 ----------
+let RANK_DB = ''; // Firebase Realtime Database 주소를 넣으면 랭킹이 켜져요
+const getNick = () => localStorage.getItem('ltd_nick') || '';
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
+function openNickModal() {
+  const inp = document.getElementById('nickInput');
+  inp.value = getNick();
+  document.getElementById('nickModal').classList.remove('hidden');
+  setTimeout(() => inp.focus(), 60);
+}
+async function submitScore(kind, data, isBetter) {
+  const nick = getNick();
+  if (!nick || !RANK_DB) return;
+  try {
+    const url = `${RANK_DB}/rank/${kind}/${encodeURIComponent(nick)}.json`;
+    const cur = await (await fetch(url)).json();
+    if (!cur || isBetter(cur)) {
+      await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    }
+  } catch (e) { /* 오프라인이면 조용히 넘어감 */ }
+}
+function submitClassicScore(wave) {
+  submitScore('classic', { wave, t: Date.now() }, cur => wave > (cur.wave || 0));
+}
+function submitStoryScore() {
+  let stars = 0;
+  for (let i = 0; i < STAGES.length; i++) if (clearedOf(i)) stars++;
+  if (stars > 0) submitScore('story', { stars, t: Date.now() }, cur => stars > (cur.stars || 0));
+}
+let rankTab = 'classic';
+async function renderRank() {
+  const sel = $('stageSel');
+  sel.style.display = 'flex';
+  const tabs = `<div style="display:flex;gap:8px;width:100%;justify-content:center;">
+    <button class="ranktab ${rankTab === 'classic' ? 'on' : ''}" id="rtC">🎮 일반 모드</button>
+    <button class="ranktab ${rankTab === 'story' ? 'on' : ''}" id="rtS">🗺️ 레전드 스토리</button></div>`;
+  const bindTabs = () => {
+    $('rtC').onclick = () => { rankTab = 'classic'; renderRank(); };
+    $('rtS').onclick = () => { rankTab = 'story'; renderRank(); };
+  };
+  if (!RANK_DB) {
+    sel.innerHTML = tabs + `<div style="color:#9fb0d8;font-size:14px;padding:18px 8px;">랭킹 서버가 아직 연결되지 않았어요.<br>곧 열릴 예정!</div>`;
+    bindTabs();
+    return;
+  }
+  sel.innerHTML = tabs + `<div style="color:#9fb0d8;font-size:14px;padding:16px;">불러오는 중...</div>`;
+  bindTabs();
+  try {
+    const data = await (await fetch(`${RANK_DB}/rank/${rankTab}.json`)).json() || {};
+    const rows = Object.entries(data).map(([nick, v]) => ({ nick, ...v }));
+    rows.sort(rankTab === 'classic'
+      ? (a, b) => (b.wave || 0) - (a.wave || 0) || (a.t || 0) - (b.t || 0)
+      : (a, b) => (b.stars || 0) - (a.stars || 0) || (a.t || 0) - (b.t || 0));
+    const me = getNick();
+    const list = rows.slice(0, 20).map((r2, idx) =>
+      `<div class="rankrow${r2.nick === me ? ' me' : ''}">
+        <span class="pos">${idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : (idx + 1) + '위'}</span>
+        <span class="nm">${escapeHtml(r2.nick)}</span>
+        <span>${rankTab === 'classic' ? '웨이브 ' + (r2.wave || 0) : '⭐ ' + (r2.stars || 0) + ' / ' + STAGES.length}</span>
+      </div>`).join('');
+    sel.innerHTML = tabs + (list || `<div style="color:#9fb0d8;font-size:14px;padding:16px;">아직 기록이 없어요 — 1등을 노려보자!</div>`);
+  } catch (e) {
+    sel.innerHTML = tabs + `<div style="color:#ff8a8a;font-size:14px;padding:16px;">랭킹을 불러오지 못했어요 😢<br>인터넷 연결을 확인해주세요.</div>`;
+  }
+  bindTabs();
 }
 
 // ---------- 그리기 ----------
@@ -1161,7 +1272,9 @@ function showOverlay(mode) {
   const ov = $('overlay');
   ov.classList.remove('hidden');
   const stg = STAGES[S.stage];
-  const sel = $('stageSel'), b1 = $('ovBtn'), b2 = $('ovBtn2');
+  const sel = $('stageSel'), b1 = $('ovBtn'), b2 = $('ovBtn2'), b3 = $('ovBtn3');
+  b3.classList.add('hidden');
+  $('nickLine').classList.add('hidden');
   if (mode === 'home') { // 첫 화면: 모드 선택
     ov.querySelector('h1').textContent = '🏰 타워 디펜스 777';
     $('ovChars').style.display = '';
@@ -1171,8 +1284,22 @@ function showOverlay(mode) {
     b1.classList.remove('hidden');
     b2.textContent = '🗺️ 레전드 스토리';
     b2.classList.remove('hidden');
+    b3.classList.remove('hidden');
+    $('nickLine').classList.remove('hidden');
+    $('nickName').textContent = getNick() || '닉네임 없음';
     const best = +(localStorage.getItem('ltd_best') || 0);
     $('ovRecord').textContent = best > 0 ? `🏆 일반 모드 최고 기록: 웨이브 ${best}` : '';
+  } else if (mode === 'rank') { // 🏆 랭킹
+    ov.querySelector('h1').textContent = '🏆 랭킹';
+    $('ovChars').style.display = 'none';
+    $('ovMsg').innerHTML = getNick()
+      ? `👤 <b>${escapeHtml(getNick())}</b> — 최고 기록만 올라가요!`
+      : '닉네임을 정하면 랭킹에 오를 수 있어요!';
+    b1.classList.add('hidden');
+    b2.textContent = '← 처음으로';
+    b2.classList.remove('hidden');
+    $('ovRecord').textContent = '';
+    renderRank();
   } else if (mode === 'stages') { // 레전드 스토리: 스테이지 선택
     ov.querySelector('h1').textContent = '🗺️ 레전드 스토리';
     $('ovChars').style.display = 'none';
@@ -1270,13 +1397,25 @@ $('ovBtn').addEventListener('click', () => {
 });
 $('ovBtn2').addEventListener('click', () => {
   if (ovMode === 'home') { showOverlay('stages'); return; }
-  if (ovMode === 'stages') { showOverlay('home'); return; }
+  if (ovMode === 'stages' || ovMode === 'rank') { showOverlay('home'); return; }
   // 게임오버/클리어 화면에서: 목록으로 돌아가기
   S.running = false;
   S.clearWait = false;
   S.over = false;
   showOverlay(S.mode === 'story' ? 'stages' : 'home');
 });
+$('ovBtn3').addEventListener('click', () => showOverlay('rank'));
+$('nickEdit').addEventListener('click', openNickModal);
+$('nickSave').addEventListener('click', () => {
+  const inp = $('nickInput');
+  const n = inp.value.trim().replace(/[.#$/\[\]]/g, '').slice(0, 8);
+  if (!n) { inp.value = ''; inp.placeholder = '한 글자 이상 적어줘!'; return; }
+  localStorage.setItem('ltd_nick', n);
+  $('nickModal').classList.add('hidden');
+  if (ovMode === 'home' || ovMode === 'rank') showOverlay(ovMode);
+});
+$('nickLater').addEventListener('click', () => $('nickModal').classList.add('hidden'));
+$('nickInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('nickSave').click(); });
 
 // ---------- 메인 루프 ----------
 let lastT = 0;
@@ -1294,10 +1433,12 @@ function frame(t) {
 
 resize();
 showOverlay('home');
+if (!getNick()) openNickModal(); // 첫 방문이면 닉네임부터!
 requestAnimationFrame(frame);
 
 // 개발/테스트용 훅 (콘솔에서 게임 상태 확인용)
-window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, moveUnit, swapUnits, draw, startStage, STAGES, posAt };
+window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, moveUnit, swapUnits, draw, startStage, STAGES, posAt,
+  renderRank, submitClassicScore, submitStoryScore, showOverlay, setRankDb: u => { RANK_DB = u; } };
 </script>
 </body>
 </html>
