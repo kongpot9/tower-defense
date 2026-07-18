@@ -697,7 +697,7 @@ function gameOver() {
 }
 
 // ---------- 닉네임 & 온라인 랭킹 ----------
-let RANK_DB = ''; // Firebase Realtime Database 주소를 넣으면 랭킹이 켜져요
+let RANK_DB = 'https://tower-defense-777-default-rtdb.asia-southeast1.firebasedatabase.app'; // 랭킹 서버 (Firebase)
 const getNick = () => localStorage.getItem('ltd_nick') || '';
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
 function openNickModal() {
