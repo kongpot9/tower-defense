@@ -170,7 +170,7 @@ const TRACK_WIDTH = 34;
 const GRID_COLS = 3, GRID_ROWS = 5;          // 캐릭터 배치 칸
 const ENEMY_LIMIT = 60;                      // 이 수만큼 쌓이면 패배
 const ROUND_LEN = 20;                        // 한 웨이브 길이(초)
-const SUMMON_BASE = 20, SUMMON_INC = 2;      // 소환 비용과 증가폭
+const SUMMON_BASE = 20, SUMMON_INC = 1;      // 소환 비용과 증가폭
 const JACKPOT_CHANCE = 0.05;                 // 합성 시 2단계 점프 확률 (대박!)
 const MOVE_LOCK = 1;                         // 이동/교체 후 공격 불가 시간(초)
 
@@ -181,7 +181,7 @@ const GRADES = [
   { name:'신화', color:'#ef5350' },
   { name:'전설', color:'#ffd54f' },
 ];
-const GRADE_PROB = [0.55, 0.30, 0.10, 0.04, 0.01]; // 소환 등급 확률
+const GRADE_PROB = [0.54, 0.30, 0.10, 0.045, 0.015]; // 소환 등급 확률
 
 // 캐릭터 도감 — img 필드에 그림 파일을 지정하면 이모지 대신 표시됨
 // atk: 공격 이펙트 종류 (slash=칼베기, arrow=화살, scythe=낫던지기,
@@ -209,6 +209,16 @@ const UNITS = [
   { type:'reddragon',  grade:4, emoji:'🐉', name:'레드드래곤', dmg:300, cd:1.50, range:320, splash:70, atk:'breath',  img:'character/legend1.png' },
   { type:'dosa',       grade:4, emoji:'🧙', name:'도사',       dmg:110, cd:0.40, range:180, atk:'fan',      img:'character/legend2.png' },
   { type:'catmachine', grade:4, emoji:'🐱', name:'캣머신',     dmg:170, cd:0.50, range:110, splash:30, atk:'missile', img:'character/legend3.png' },
+  { type:'royalchef',  grade:4, emoji:'👨‍🍳', name:'로얄 셰프', dmg:0,   cd:30,   range:0,   support:'chef', disabled:true }, // 서포터! (그림 완성되면 disabled 제거하고 공개)
+];
+// 로얄 셰프의 요리 (기획: 구예준) — 30초마다 5가지 중 랜덤
+const CHEF_CD = 30, FOOD_BUFF_TIME = 10;
+const FOODS = [
+  { id:'pancake', emoji:'🥞', name:'팬케이크', msg:'공격력 30% UP!' },
+  { id:'cupcake', emoji:'🧁', name:'컵케이크', msg:'공격속도 50% UP!' },
+  { id:'soup',    emoji:'🍲', name:'수프',     msg:'아군 분신 소환!' },
+  { id:'udon',    emoji:'🍜', name:'우동',     msg:'골드 2배!' },
+  { id:'candy',   emoji:'🍬', name:'사탕',     msg:'달콤한 대폭발!' },
 ];
 // 신화 특수 능력
 const BOMB_CHANCE = 0.15, BOMB_DMG = 150, BOMB_RADIUS = 60, BOMB_FUSE = 1.0; // 능력자광부: 폭탄 설치
@@ -358,6 +368,7 @@ const S = {
   wave: 0, gold: 80, summonCost: SUMMON_BASE,
   roundT: 0, toSpawn: 0, spawnTimer: 0, spawnInterval: 1,
   enemies: [], projectiles: [], texts: [], effects: [], bombs: [],
+  buffT: { dmg: 0, spd: 0, gold: 0, ghost: 0 }, // 로얄 셰프 요리 버프 남은 시간
   selected: null, speed: 1, muted: false, paused: false, time: 0,
   stage: 0, cleared: false, clearWait: false,
 };
@@ -366,6 +377,7 @@ function resetGame() {
   S.over = false; S.wave = 0; S.gold = 80; S.summonCost = SUMMON_BASE;
   S.roundT = 0; S.toSpawn = 0;
   S.enemies = []; S.projectiles = []; S.texts = []; S.effects = []; S.bombs = [];
+  S.buffT = { dmg: 0, spd: 0, gold: 0, ghost: 0 };
   S.selected = null;
   S.paused = false;
   S.cleared = false;
@@ -397,6 +409,7 @@ function sfx(kind) {
     else if (kind === 'jackpot') { tone(523, 0, .10); tone(659, .09, .10); tone(784, .18, .25); }
     else if (kind === 'sell')    { tone(300, 0, .08, 'triangle'); }
     else if (kind === 'move')    { tone(380, 0, .07, 'triangle'); tone(480, .06, .08, 'triangle'); }
+    else if (kind === 'food')    { tone(660, 0, .09); tone(880, .08, .09); tone(1100, .16, .14); }
     else if (kind === 'boss')    { tone(110, 0, .5, 'sawtooth', .18); }
     else if (kind === 'over')    { tone(330, 0, .3, 'triangle'); tone(220, .28, .5, 'triangle'); }
     else if (kind === 'error')   { tone(160, 0, .12, 'sawtooth', .08); }
@@ -410,14 +423,14 @@ function rollGrade() {
   for (let i = 0; i < GRADE_PROB.length; i++) { acc += GRADE_PROB[i]; if (r < acc) return i; }
   return 0;
 }
-function unitsOfGrade(g) { return UNITS.filter(u => u.grade === g); }
+function unitsOfGrade(g) { return UNITS.filter(u => u.grade === g && !u.disabled); }
 function addText(x, y, txt, color = '#fff', size = 13) {
   S.texts.push({ x, y, txt, color, size, t: 1 });
   if (S.texts.length > 40) S.texts.shift();
 }
 
 // ---------- 웨이브 ----------
-function hpFor(w) { return Math.round(14 * Math.pow(1.21, w - 1) + (w - 1) * 4); }
+function hpFor(w) { return Math.round(14 * Math.pow(1.195, w - 1) + (w - 1) * 4); }
 function startWave() {
   const stg = STAGES[S.stage];
   if (S.mode === 'story' && S.wave === stg.clearWave && !S.cleared) { stageClear(); return; } // 클리어 웨이브까지 버팀!
@@ -431,7 +444,8 @@ function startWave() {
   const spawnWindow = rush ? Math.max(5, 12 - S.wave * 0.35) : 12;
   S.spawnInterval = spawnWindow / S.toSpawn;
   S.spawnTimer = 0;
-  const bonus = 15 + S.wave * 3;
+  let bonus = 15 + S.wave * 3;
+  if (S.buffT.gold > 0) bonus *= 2; // 우동 효과
   S.gold += bonus;
   addText(WORLD_W / 2, 260, `웨이브 ${S.wave} 시작! +${bonus}G`, '#ffd76e', 18);
   if (boss) {
@@ -449,9 +463,36 @@ function spawnEnemy() {
     speed: (isBoss ? 34 : Math.min(50 + w * 0.6, 78)) * stg.spdMul,
     boss: isBoss,
     emoji: isBoss ? '👹' : stg.mobs[(w - 1) % stg.mobs.length],
-    gold: Math.max(1, Math.round((isBoss ? 60 + w * 5 : 1 + Math.floor(w / 4)) * stg.goldMul)),
+    gold: Math.max(1, Math.round((isBoss ? 60 + w * 5 : 1 + Math.floor(w / 3)) * stg.goldMul)),
     slowT: 0, r: isBoss ? 20 : 12,
   });
+}
+function throwFood(s) { // 로얄 셰프의 요리 타임! 5가지 중 랜덤
+  const f = rand(FOODS);
+  addText(s.cx, s.cy - 30, f.emoji, '#fff', 24);
+  addText(WORLD_W / 2, 250, `${f.emoji} ${f.name}! ${f.msg}`, '#ffd76e', 18);
+  sfx('food');
+  if (f.id === 'pancake') S.buffT.dmg = FOOD_BUFF_TIME;
+  else if (f.id === 'cupcake') S.buffT.spd = FOOD_BUFF_TIME;
+  else if (f.id === 'udon') S.buffT.gold = FOOD_BUFF_TIME;
+  else if (f.id === 'soup') {
+    // 빈 칸마다 아군 분신(유령) 등장 — 10초간 함께 싸운다!
+    const real = slots.filter(x => x.unit && !x.unit.ghost && !x.unit.support);
+    let n = 0;
+    if (real.length) {
+      for (const sl of slots) if (!sl.unit) { sl.unit = { ...rand(real).unit, ghost: true, cdT: 0, popT: 0.4, moveT: 0 }; n++; }
+    }
+    if (n > 0) S.buffT.ghost = FOOD_BUFF_TIME;
+    else addText(WORLD_W / 2, 275, '빈 칸이 없어 수프가 식었다...', '#9fb0d8', 13);
+  } else if (f.id === 'candy') {
+    // 모든 적에게 달콤한 광역 피해 (웨이브·스테이지에 비례)
+    const dmg = Math.round(hpFor(S.wave) * (STAGES[S.stage].hpMul || 1) * 0.8);
+    let shown = 0;
+    for (const e of S.enemies) {
+      e.hp -= dmg;
+      if (shown++ < 8) { const p = posAt(e.d); S.effects.push({ kind: 'boom', x: p.x, y: p.y, r: 26, t: 1, fire: false }); }
+    }
+  }
 }
 function stageClear() { // 스테이지 클리어! 다음 스테이지 잠금 해제
   const stg = STAGES[S.stage];
@@ -551,6 +592,11 @@ function update(dt) {
     if (u.moveT > 0) { u.moveT -= dt; continue; } // 이동 직후엔 공격 불가
     u.cdT -= dt;
     if (u.cdT > 0) continue;
+    if (u.support === 'chef') { // 로얄 셰프: 요리 타임!
+      u.cdT = CHEF_CD;
+      throwFood(s);
+      continue;
+    }
     const inRange = e => { const p = posAt(e.d); const dx = p.x - s.cx, dy = p.y - s.cy; return dx * dx + dy * dy <= u.range * u.range; };
     let targets;
     if (u.special === 'multi4') { // 떡장수: 보스는 무시하고 최대 4명 동시 공격
@@ -561,7 +607,9 @@ function update(dt) {
       targets = best ? [best] : [];
     }
     if (targets.length) {
-      u.cdT = u.cd * (STAGES[S.stage].atkCdMul || 1); // 얼음 왕국: 추위로 공격속도 감소
+      // 얼음 왕국 감속 ÷ 컵케이크 가속
+      u.cdT = u.cd * (STAGES[S.stage].atkCdMul || 1) / (S.buffT.spd > 0 ? 1.5 : 1);
+      const D = S.buffT.dmg > 0 ? Math.round(u.dmg * 1.3) : u.dmg; // 팬케이크 공격력 버프
       const best = targets[0];
       const bp = posAt(best.d);
       if (u.special === 'bomb' && Math.random() < BOMB_CHANCE) {
@@ -571,7 +619,7 @@ function update(dt) {
         // 낭인: 발도술 — 주변 모든 적을 한 칼에 벤다
         for (const e2 of S.enemies) {
           const p2 = posAt(e2.d);
-          if (Math.hypot(p2.x - bp.x, p2.y - bp.y) <= BALDO_RADIUS) e2.hp -= u.dmg;
+          if (Math.hypot(p2.x - bp.x, p2.y - bp.y) <= BALDO_RADIUS) e2.hp -= D;
         }
         S.effects.push({ kind: 'baldo', x: bp.x, y: bp.y, r: BALDO_RADIUS, t: 1, decay: 1.3 });
         addText(bp.x, bp.y - 24, '⚔️ 발도술!', '#b3e5fc', 15);
@@ -581,21 +629,21 @@ function update(dt) {
           for (const e2 of S.enemies) {
             const p2 = posAt(e2.d);
             if (Math.hypot(p2.x - bp.x, p2.y - bp.y) <= u.splash) {
-              e2.hp -= u.dmg;
+              e2.hp -= D;
               if (u.slow) e2.slowT = Math.max(e2.slowT, u.slow);
             }
           }
         } else {
-          best.hp -= u.dmg;
+          best.hp -= D;
           if (u.slow) best.slowT = Math.max(best.slowT, u.slow);
         }
         S.effects.push({ kind: u.atk, x: bp.x, y: bp.y, sx: s.cx, sy: s.cy, r: u.splash || 0, t: 1, decay: INSTANT_DECAY[u.atk] || 2.5 });
       } else {
         for (const tgt of targets) {
           const tp = posAt(tgt.d);
-          let kind = u.atk || 'orb', dmg = u.dmg, splash = u.splash || 0;
+          let kind = u.atk || 'orb', dmg = D, splash = u.splash || 0;
           if (u.special === 'fireball' && Math.random() < FIREBALL_CHANCE) {
-            kind = 'fire'; dmg = u.dmg * 3; splash = 35; // 불꽃공!
+            kind = 'fire'; dmg = D * 3; splash = 35; // 불꽃공!
           }
           S.projectiles.push({
             x: s.cx, y: s.cy, tgt, tx: tp.x, ty: tp.y,
@@ -660,9 +708,10 @@ function update(dt) {
   for (let i = S.enemies.length - 1; i >= 0; i--) {
     const e = S.enemies[i];
     if (e.hp <= 0) {
-      S.gold += e.gold;
+      const reward = S.buffT.gold > 0 ? e.gold * 2 : e.gold; // 우동: 골드 2배
+      S.gold += reward;
       const p = posAt(e.d);
-      if (e.gold > 0) addText(p.x, p.y, `+${e.gold}`, '#ffd76e', e.boss ? 18 : 11);
+      if (reward > 0) addText(p.x, p.y, `+${reward}`, '#ffd76e', e.boss ? 18 : 11);
       if (e.boss) addText(WORLD_W / 2, 260, '👑 보스 처치!', '#ffd76e', 20);
       S.enemies.splice(i, 1);
     }
@@ -676,6 +725,15 @@ function update(dt) {
   for (let i = S.effects.length - 1; i >= 0; i--) {
     S.effects[i].t -= dt * (S.effects[i].decay || 2.5);
     if (S.effects[i].t <= 0) S.effects.splice(i, 1);
+  }
+  // 로얄 셰프 요리 버프 타이머
+  for (const k of ['dmg', 'spd', 'gold']) if (S.buffT[k] > 0) S.buffT[k] -= dt;
+  if (S.buffT.ghost > 0) {
+    S.buffT.ghost -= dt;
+    if (S.buffT.ghost <= 0) { // 수프 시간 끝 — 분신들 퇴장
+      for (const sl of slots) if (sl.unit && sl.unit.ghost) sl.unit = null;
+      if (S.selected && S.selected.unit && S.selected.unit.ghost) S.selected = null;
+    }
   }
   // 패배 판정
   if (S.enemies.length >= ENEMY_LIMIT) gameOver();
@@ -882,10 +940,11 @@ function draw() {
     const pop = u.popT > 0 ? 1 + u.popT * 0.9 : 1;
     const locked = u.moveT > 0;
     if (locked) ctx.globalAlpha = 0.55; // 이동 직후엔 반투명
-    // 등급 테두리
+    if (u.ghost) ctx.globalAlpha = 0.5; // 수프 분신은 유령처럼
+    // 등급 테두리 (분신은 하늘색)
     ctx.beginPath();
     ctx.arc(sl.cx, sl.cy, 24 * pop, 0, Math.PI * 2);
-    ctx.strokeStyle = GRADES[u.grade].color; ctx.lineWidth = 3;
+    ctx.strokeStyle = u.ghost ? '#81d4fa' : GRADES[u.grade].color; ctx.lineWidth = 3;
     ctx.fillStyle = 'rgba(0,0,0,0.18)';
     ctx.fill(); ctx.stroke();
     const img = IMAGES[u.type];
@@ -896,6 +955,7 @@ function draw() {
       ctx.font = `${Math.round(30 * pop)}px sans-serif`;
       ctx.fillText(u.emoji, sl.cx, sl.cy + 1);
     }
+    ctx.globalAlpha = 1;
     if (locked) {
       ctx.globalAlpha = 1;
       // 남은 공격 불가 시간을 노란 원호로 표시
@@ -1141,6 +1201,22 @@ function draw() {
     ctx.globalAlpha = 1;
   }
 
+  // 로얄 셰프 버프 표시 (판 위쪽)
+  let bx = 14;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  for (const [k, em] of [['dmg', '🥞'], ['spd', '🧁'], ['gold', '🍜'], ['ghost', '🍲']]) {
+    if (S.buffT[k] > 0) {
+      const label = `${em}${Math.ceil(S.buffT[k])}`;
+      ctx.font = '800 13px sans-serif';
+      ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 3;
+      ctx.strokeText(label, bx, 18);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(label, bx, 18);
+      bx += 48;
+    }
+  }
+  ctx.textAlign = 'center';
+
   // 일시정지 화면
   if (S.paused && S.running && !S.over) {
     ctx.fillStyle = 'rgba(10,14,26,0.55)';
@@ -1196,7 +1272,9 @@ function updateInfoPanel() {
       + (u.special === 'baldo' ? ' · ⚔️20% 발도술(광역)' : '')
       + (u.special === 'smite' ? ' · ⚡8% 즉사' : '')
       + ((u.atk === 'slash' || u.atk === 'bite' || u.atk === 'axe' || u.atk === 'ronin') ? ' · 근접' : '');
-    hint.innerHTML = `<span class="emoji">${u.emoji}</span> <b style="color:${GRADES[u.grade].color}">[${GRADES[u.grade].name}] ${u.name}</b>&nbsp; 공격 ${u.dmg} · 속도 ${u.cd}s${extra}`;
+    hint.innerHTML = u.support === 'chef'
+      ? `<span class="emoji">${u.emoji}</span> <b style="color:${GRADES[u.grade].color}">[${GRADES[u.grade].name}] ${u.name}</b>&nbsp; 30초마다 5가지 요리 중 하나를 랜덤 서빙! 🍳`
+      : `<span class="emoji">${u.emoji}</span> <b style="color:${GRADES[u.grade].color}">[${GRADES[u.grade].name}] ${u.name}</b>&nbsp; 공격 ${u.dmg} · 속도 ${u.cd}s${extra}`;
     sell.style.display = 'block';
     sell.textContent = `판매 +${8 + u.grade * 14}G`;
   } else {
@@ -1236,6 +1314,10 @@ canvas.addEventListener('pointerdown', ev => {
   let hit = null;
   for (const sl of slots) {
     if (Math.abs(wx - sl.cx) <= CELL_W/2 && Math.abs(wy - sl.cy) <= CELL_H/2) { hit = sl; break; }
+  }
+  if (hit && hit.unit && hit.unit.ghost) { // 수프 분신은 만질 수 없어요
+    addText(hit.cx, hit.cy - 24, '분신이에요!', '#81d4fa', 12);
+    return;
   }
   if (hit && hit.unit) {
     if (S.selected && S.selected !== hit && S.selected.unit) {
@@ -1446,7 +1528,7 @@ requestAnimationFrame(frame);
 
 // 개발/테스트용 훅 (콘솔에서 게임 상태 확인용)
 window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, moveUnit, swapUnits, draw, startStage, STAGES, posAt,
-  renderRank, submitClassicScore, submitStoryScore, showOverlay, setRankDb: u => { RANK_DB = u; } };
+  renderRank, submitClassicScore, submitStoryScore, showOverlay, throwFood, FOODS, setRankDb: u => { RANK_DB = u; } };
 </script>
 </body>
 </html>
