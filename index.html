@@ -43,6 +43,13 @@
   }
   #summonBtn:active { transform:translateY(3px); box-shadow:0 1px 0 #b36200; }
   #summonBtn:disabled { filter:grayscale(.8); box-shadow:none; }
+  #upBtn {
+    flex:1; padding:14px 0; font-size:15px;
+    background:linear-gradient(180deg,#9575cd,#673ab7); color:#fff;
+    box-shadow:0 4px 0 #3f2481; transition:transform .05s;
+  }
+  #upBtn:active { transform:translateY(3px); box-shadow:0 1px 0 #3f2481; }
+  #upBtn:disabled { filter:grayscale(.8); box-shadow:none; }
   #sellBtn { padding:7px 14px; background:#e05555; box-shadow:0 3px 0 #8f2f2f; display:none; margin-left:auto; font-size:14px; }
   .small { padding:0 13px; background:#3a4566; font-size:15px; }
   #pauseBtn.on { background:#66d36e; color:#0d3312; }
@@ -125,6 +132,7 @@
   <div id="unitinfo"><span id="uiHint">캐릭터를 누른 뒤: 같은 캐릭터=합성 🎲 · 빈 칸=이동 · 다른 캐릭터=교체</span><button id="sellBtn">판매</button></div>
   <div id="btnrow">
     <button id="summonBtn">🎲 소환 20G</button>
+    <button id="upBtn">⚔️ 강화 100G</button>
     <button id="pauseBtn" class="small">⏸</button>
     <button id="speedBtn" class="small">x1</button>
     <button id="soundBtn" class="small">🔊</button>
@@ -364,7 +372,7 @@ for (let r = 0; r < GRID_ROWS; r++)
 
 // ---------- 게임 상태 ----------
 const S = {
-  running: false, over: false, mode: 'classic',
+  running: false, over: false, mode: 'classic', atkLv: 0,
   wave: 0, gold: 80, summonCost: SUMMON_BASE,
   roundT: 0, toSpawn: 0, spawnTimer: 0, spawnInterval: 1,
   enemies: [], projectiles: [], texts: [], effects: [], bombs: [],
@@ -378,6 +386,7 @@ function resetGame() {
   S.roundT = 0; S.toSpawn = 0;
   S.enemies = []; S.projectiles = []; S.texts = []; S.effects = []; S.bombs = [];
   S.buffT = { dmg: 0, spd: 0, gold: 0, ghost: 0 };
+  S.atkLv = 0;
   S.selected = null;
   S.paused = false;
   S.cleared = false;
@@ -386,6 +395,7 @@ function resetGame() {
   $('pauseBtn').classList.remove('on');
   for (const s of slots) s.unit = null;
   updateInfoPanel();
+  updateButtons();
 }
 
 // ---------- 사운드 (WebAudio 간단 효과음) ----------
@@ -609,7 +619,8 @@ function update(dt) {
     if (targets.length) {
       // 얼음 왕국 감속 ÷ 컵케이크 가속
       u.cdT = u.cd * (STAGES[S.stage].atkCdMul || 1) / (S.buffT.spd > 0 ? 1.5 : 1);
-      const D = S.buffT.dmg > 0 ? Math.round(u.dmg * 1.3) : u.dmg; // 팬케이크 공격력 버프
+      // 강화(⚔️ +10%씩 복리) × 팬케이크(+30%) 적용 공격력
+      const D = Math.round(u.dmg * Math.pow(1.1, S.atkLv) * (S.buffT.dmg > 0 ? 1.3 : 1));
       const best = targets[0];
       const bp = posAt(best.d);
       if (u.special === 'bomb' && Math.random() < BOMB_CHANCE) {
@@ -698,7 +709,7 @@ function update(dt) {
     if (b.t <= 0) {
       for (const e of S.enemies) {
         const p = posAt(e.d);
-        if (Math.hypot(p.x - b.x, p.y - b.y) <= BOMB_RADIUS) e.hp -= BOMB_DMG;
+        if (Math.hypot(p.x - b.x, p.y - b.y) <= BOMB_RADIUS) e.hp -= Math.round(BOMB_DMG * Math.pow(1.1, S.atkLv));
       }
       S.effects.push({ kind: 'boom', x: b.x, y: b.y, r: BOMB_RADIUS, t: 1, fire: true });
       S.bombs.splice(i, 1);
@@ -1257,9 +1268,12 @@ function updateTopbar() {
   te.textContent = `👾 ${S.enemies.length}/${ENEMY_LIMIT}`;
   te.className = S.enemies.length >= ENEMY_LIMIT * 0.75 ? 'warn' : '';
 }
+function upgradeCost() { return 100 + S.atkLv * 30; }
 function updateButtons() {
   $('summonBtn').textContent = `🎲 소환 ${S.summonCost}G`;
   $('summonBtn').disabled = S.gold < S.summonCost;
+  $('upBtn').textContent = S.atkLv > 0 ? `⚔️+${S.atkLv * 10}% ${upgradeCost()}G` : `⚔️ 강화 ${upgradeCost()}G`;
+  $('upBtn').disabled = S.gold < upgradeCost();
 }
 function updateInfoPanel() {
   const hint = $('uiHint'), sell = $('sellBtn');
@@ -1339,6 +1353,17 @@ canvas.addEventListener('pointerdown', ev => {
 });
 
 $('summonBtn').addEventListener('click', summon);
+$('upBtn').addEventListener('click', () => {
+  if (!S.running || S.over) return;
+  if (S.paused) { addText(WORLD_W / 2, 460, '일시정지 중이에요!', '#ffd76e', 14); return; }
+  const cost = upgradeCost();
+  if (S.gold < cost) { addText(WORLD_W / 2, 460, '골드가 부족해요!', '#ff8a8a', 15); sfx('error'); return; }
+  S.gold -= cost;
+  S.atkLv++;
+  addText(WORLD_W / 2, 300, `⚔️ 아군 공격력 +10%! (총 +${S.atkLv * 10}%)`, '#b39ddb', 17);
+  sfx('merge');
+  updateButtons();
+});
 $('pauseBtn').addEventListener('click', () => {
   if (!S.running || S.over) return;
   S.paused = !S.paused;
