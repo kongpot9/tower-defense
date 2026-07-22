@@ -51,6 +51,13 @@
   #upBtn:active { transform:translateY(3px); box-shadow:0 1px 0 #3f2481; }
   #upBtn:disabled { filter:grayscale(.8); box-shadow:none; }
   #sellBtn { padding:7px 14px; background:#e05555; box-shadow:0 3px 0 #8f2f2f; display:none; margin-left:auto; font-size:14px; }
+  #hyperBtn {
+    padding:7px 12px; display:none; margin-left:auto; font-size:14px;
+    background:linear-gradient(180deg,#4fc3f7,#0288d1); box-shadow:0 3px 0 #01579b;
+    animation:hyperpulse 0.9s infinite alternate;
+  }
+  #hyperBtn + #sellBtn { margin-left:8px; }
+  @keyframes hyperpulse { from { filter:brightness(1); } to { filter:brightness(1.35); } }
   .small { padding:0 13px; background:#3a4566; font-size:15px; }
   #pauseBtn.on { background:#66d36e; color:#0d3312; }
   #overlay {
@@ -129,7 +136,7 @@
 <canvas id="game"></canvas>
 
 <div id="bottombar">
-  <div id="unitinfo"><span id="uiHint">캐릭터를 누른 뒤: 같은 캐릭터=합성 🎲 · 빈 칸=이동 · 다른 캐릭터=교체</span><button id="sellBtn">판매</button></div>
+  <div id="unitinfo"><span id="uiHint">캐릭터를 누른 뒤: 같은 캐릭터=합성 🎲 · 빈 칸=이동 · 다른 캐릭터=교체</span><button id="hyperBtn">⚡ 하이퍼차지 발동!</button><button id="sellBtn">판매</button></div>
   <div id="btnrow">
     <button id="summonBtn">🎲 소환 20G</button>
     <button id="upBtn">⚔️ 강화 100G</button>
@@ -199,7 +206,7 @@ const UNITS = [
   // 일반
   { type:'swordsman',  grade:0, emoji:'⚔️', name:'검사',  dmg:11, cd:0.80, range:95,  atk:'slash',  img:'character/normal1.png' },
   { type:'archer',     grade:0, emoji:'🏹', name:'궁수',  dmg:5,  cd:0.55, range:170, atk:'arrow',  img:'character/normal2.png' },
-  { type:'farmer',     grade:0, emoji:'🌾', name:'농부',  dmg:7,  cd:0.80, range:130, atk:'scythe', img:'character/normal3.png' },
+  { type:'farmer',     grade:0, emoji:'🌾', name:'농부',  dmg:7,  cd:0.80, range:130, atk:'scythe', hyper:'얼어버리는 일륜도', img:'character/normal3.png' },
   // 희귀
   { type:'jurasaurus', grade:1, emoji:'🦕', name:'쥬라사우르스', dmg:29, cd:0.85, range:100, atk:'bite', img:'character/rare1.png' },
   { type:'wonkkataein',grade:1, emoji:'⚾', name:'원까태인', dmg:10, cd:0.50, range:175, atk:'ball', special:'fireball', img:'character/rare2.png' },
@@ -221,6 +228,8 @@ const UNITS = [
 ];
 // 로얄 셰프의 요리 (기획: 구예준) — 30초마다 5가지 중 랜덤
 const CHEF_CD = 30, FOOD_BUFF_TIME = 10;
+// 하이퍼차지 (기획: 구예준) — 20웨이브마다 1개, 하이퍼차지 보유 캐릭터로 발동
+const HYPER_EVERY = 20, HYPER_TIME = 10, HYPER_DMG_MUL = 3;
 const FOODS = [
   { id:'pancake', emoji:'🥞', name:'팬케이크', msg:'공격력 30% UP!' },
   { id:'cupcake', emoji:'🧁', name:'컵케이크', msg:'공격속도 50% UP!' },
@@ -376,7 +385,8 @@ const S = {
   wave: 0, gold: 80, summonCost: SUMMON_BASE,
   roundT: 0, toSpawn: 0, spawnTimer: 0, spawnInterval: 1,
   enemies: [], projectiles: [], texts: [], effects: [], bombs: [],
-  buffT: { dmg: 0, spd: 0, gold: 0, ghost: 0 }, // 로얄 셰프 요리 버프 남은 시간
+  buffT: { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0 }, // 셰프 요리 + 하이퍼차지 버프 남은 시간
+  hyperCharges: 0, // ⚡ 하이퍼차지 보유 개수 (20웨이브마다 +1)
   selected: null, speed: 1, muted: false, paused: false, time: 0,
   stage: 0, cleared: false, clearWait: false,
 };
@@ -385,8 +395,9 @@ function resetGame() {
   S.over = false; S.wave = 0; S.gold = 80; S.summonCost = SUMMON_BASE;
   S.roundT = 0; S.toSpawn = 0;
   S.enemies = []; S.projectiles = []; S.texts = []; S.effects = []; S.bombs = [];
-  S.buffT = { dmg: 0, spd: 0, gold: 0, ghost: 0 };
+  S.buffT = { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0 };
   S.atkLv = 0;
+  S.hyperCharges = 0;
   S.selected = null;
   S.paused = false;
   S.cleared = false;
@@ -446,6 +457,11 @@ function startWave() {
   if (S.mode === 'story' && S.wave === stg.clearWave && !S.cleared) { stageClear(); return; } // 클리어 웨이브까지 버팀!
   S.wave++;
   S.roundT = ROUND_LEN;
+  if (S.wave % HYPER_EVERY === 0) { // 20웨이브마다 하이퍼차지 지급!
+    S.hyperCharges++;
+    addText(WORLD_W / 2, 320, '⚡ 하이퍼차지 획득!', '#4fc3f7', 18);
+    sfx('jackpot');
+  }
   const boss = S.wave % 5 === 0;
   S.bossWave = boss;
   S.bossLeft = boss ? (stg.gimmick === 'twinboss' ? 2 : 1) : 0;
@@ -566,6 +582,18 @@ function swapUnits(a, b) { // 서로 다른 캐릭터 자리 맞교환 (무료, 
   S.selected = null;
   updateInfoPanel();
 }
+function castHyper() { // ⚡ 하이퍼차지 발동!
+  const sl = S.selected;
+  if (!sl || !sl.unit || !sl.unit.hyper || S.hyperCharges <= 0) return;
+  S.hyperCharges--;
+  S.buffT.hyper = HYPER_TIME;
+  for (const e of S.enemies) e.frozenT = HYPER_TIME; // 적 전원 빙결
+  addText(WORLD_W / 2, 230, `⚡ ${sl.unit.hyper}!! ⚡`, '#4fc3f7', 20);
+  addText(WORLD_W / 2, 262, '적 전원 빙결 + 아군 공격력 3배! (10초)', '#e1f5fe', 14);
+  addText(sl.cx, sl.cy - 30, '❄️⚔️', '#fff', 24);
+  sfx('jackpot');
+  updateInfoPanel();
+}
 function sellSelected() {
   if (!S.selected || !S.selected.unit) return;
   const price = 8 + S.selected.unit.grade * 14;
@@ -589,6 +617,7 @@ function update(dt) {
   }
   // 적 이동
   for (const e of S.enemies) {
+    if (e.frozenT > 0) { e.frozenT -= dt; continue; } // 얼어버리는 일륜도: 꽁꽁 정지
     const eff = e.slowT > 0 ? 0.55 : 1;
     e.slowT -= dt;
     const mv = e.speed * eff * dt;
@@ -620,7 +649,7 @@ function update(dt) {
       // 얼음 왕국 감속 ÷ 컵케이크 가속
       u.cdT = u.cd * (STAGES[S.stage].atkCdMul || 1) / (S.buffT.spd > 0 ? 1.5 : 1);
       // 강화(⚔️ +10%씩 복리) × 팬케이크(+30%) 적용 공격력
-      const D = Math.round(u.dmg * Math.pow(1.1, S.atkLv) * (S.buffT.dmg > 0 ? 1.3 : 1));
+      const D = Math.round(u.dmg * Math.pow(1.1, S.atkLv) * (S.buffT.dmg > 0 ? 1.3 : 1) * (S.buffT.hyper > 0 ? HYPER_DMG_MUL : 1));
       const best = targets[0];
       const bp = posAt(best.d);
       if (u.special === 'bomb' && Math.random() < BOMB_CHANCE) {
@@ -738,7 +767,7 @@ function update(dt) {
     if (S.effects[i].t <= 0) S.effects.splice(i, 1);
   }
   // 로얄 셰프 요리 버프 타이머
-  for (const k of ['dmg', 'spd', 'gold']) if (S.buffT[k] > 0) S.buffT[k] -= dt;
+  for (const k of ['dmg', 'spd', 'gold', 'hyper']) if (S.buffT[k] > 0) S.buffT[k] -= dt;
   if (S.buffT.ghost > 0) {
     S.buffT.ghost -= dt;
     if (S.buffT.ghost <= 0) { // 수프 시간 끝 — 분신들 퇴장
@@ -934,6 +963,12 @@ function draw() {
     const p = posAt(e.d);
     ctx.font = `${e.boss ? 38 : 22}px sans-serif`;
     ctx.fillText(e.emoji, p.x, p.y);
+    if (e.frozenT > 0) { // 얼음 속에 갇힌 적
+      ctx.globalAlpha = 0.8;
+      ctx.font = `${e.boss ? 44 : 27}px sans-serif`;
+      ctx.fillText('🧊', p.x, p.y);
+      ctx.globalAlpha = 1;
+    }
     // HP 바
     const bw = e.boss ? 44 : 22, bh = e.boss ? 6 : 4;
     const yy = p.y - (e.boss ? 30 : 18);
@@ -1215,7 +1250,14 @@ function draw() {
   // 로얄 셰프 버프 표시 (판 위쪽)
   let bx = 14;
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  for (const [k, em] of [['dmg', '🥞'], ['spd', '🧁'], ['gold', '🍜'], ['ghost', '🍲']]) {
+  if (S.hyperCharges > 0) { // 보유 하이퍼차지 표시
+    ctx.font = '800 13px sans-serif';
+    ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 3;
+    ctx.strokeText(`⚡×${S.hyperCharges}`, WORLD_W - 52, 18);
+    ctx.fillStyle = '#4fc3f7';
+    ctx.fillText(`⚡×${S.hyperCharges}`, WORLD_W - 52, 18);
+  }
+  for (const [k, em] of [['dmg', '🥞'], ['spd', '🧁'], ['gold', '🍜'], ['ghost', '🍲'], ['hyper', '⚡']]) {
     if (S.buffT[k] > 0) {
       const label = `${em}${Math.ceil(S.buffT[k])}`;
       ctx.font = '800 13px sans-serif';
@@ -1276,16 +1318,18 @@ function updateButtons() {
   $('upBtn').disabled = S.gold < upgradeCost();
 }
 function updateInfoPanel() {
-  const hint = $('uiHint'), sell = $('sellBtn');
+  const hint = $('uiHint'), sell = $('sellBtn'), hyp = $('hyperBtn');
   if (S.selected && S.selected.unit) {
     const u = S.selected.unit;
+    hyp.style.display = (u.hyper && S.hyperCharges > 0) ? 'block' : 'none';
     const extra = (u.splash ? ' · 범위공격' : '') + (u.slow ? ' · 감속' : '')
       + (u.special === 'fireball' ? ' · 🔥25% 불꽃공(3배)' : '')
       + (u.special === 'bomb' ? ' · 💣15% 폭탄 설치' : '')
       + (u.special === 'multi4' ? ' · 4명 동시공격 · 보스 무시' : '')
       + (u.special === 'baldo' ? ' · ⚔️20% 발도술(광역)' : '')
       + (u.special === 'smite' ? ' · ⚡8% 즉사' : '')
-      + ((u.atk === 'slash' || u.atk === 'bite' || u.atk === 'axe' || u.atk === 'ronin') ? ' · 근접' : '');
+      + ((u.atk === 'slash' || u.atk === 'bite' || u.atk === 'axe' || u.atk === 'ronin') ? ' · 근접' : '')
+      + (u.hyper ? ` · ⚡${u.hyper}` : '');
     hint.innerHTML = u.support === 'chef'
       ? `<span class="emoji">${u.emoji}</span> <b style="color:${GRADES[u.grade].color}">[${GRADES[u.grade].name}] ${u.name}</b>&nbsp; 30초마다 5가지 요리 중 하나를 랜덤 서빙! 🍳`
       : `<span class="emoji">${u.emoji}</span> <b style="color:${GRADES[u.grade].color}">[${GRADES[u.grade].name}] ${u.name}</b>&nbsp; 공격 ${u.dmg} · 속도 ${u.cd}s${extra}`;
@@ -1294,6 +1338,7 @@ function updateInfoPanel() {
   } else {
     hint.textContent = '캐릭터를 누른 뒤: 같은 캐릭터=합성 🎲 · 빈 칸=이동 · 다른 캐릭터=교체';
     sell.style.display = 'none';
+    hyp.style.display = 'none';
   }
 }
 
@@ -1371,6 +1416,7 @@ $('pauseBtn').addEventListener('click', () => {
   $('pauseBtn').classList.toggle('on', S.paused);
 });
 $('sellBtn').addEventListener('click', sellSelected);
+$('hyperBtn').addEventListener('click', castHyper);
 $('speedBtn').addEventListener('click', () => {
   S.speed = S.speed === 1 ? 2 : 1;
   $('speedBtn').textContent = `x${S.speed}`;
@@ -1537,6 +1583,8 @@ let lastT = 0;
 function frame(t) {
   const dt = Math.min(0.05, (t - lastT) / 1000);
   lastT = t;
+  // 백그라운드 탭에서 로드되면 캔버스 크기가 0으로 계산돼 터치가 먹통이 되는 문제 방어
+  if (!view.s || Math.abs(canvas.clientWidth * view.dpr - canvas.width) > 1) resize();
   if (S.running && !S.over && !S.paused && !S.clearWait) {
     update(dt * S.speed);
     updateTopbar();
@@ -1553,7 +1601,7 @@ requestAnimationFrame(frame);
 
 // 개발/테스트용 훅 (콘솔에서 게임 상태 확인용)
 window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, moveUnit, swapUnits, draw, startStage, STAGES, posAt,
-  renderRank, submitClassicScore, submitStoryScore, showOverlay, throwFood, FOODS, setRankDb: u => { RANK_DB = u; } };
+  renderRank, submitClassicScore, submitStoryScore, showOverlay, throwFood, FOODS, castHyper, setRankDb: u => { RANK_DB = u; } };
 </script>
 </body>
 </html>
