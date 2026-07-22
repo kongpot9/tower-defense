@@ -121,6 +121,41 @@
   #devPick .pick span { font-size:22px; }
   #devPick h2 { color:#b388ff; }
   #devPick .close { background:#4a2a70; padding:10px 30px; font-size:15px; border-radius:10px; }
+  #holly {
+    position:fixed; inset:0; background:#2c0a16; z-index:24; padding:18px 14px calc(14px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; align-items:center; gap:8px; overflow:hidden;
+  }
+  #holly h2 { color:#ff8a9e; font-size:24px; }
+  #holly .sub { color:#d8a0ac; font-size:12px; }
+  .htabs { display:flex; gap:8px; }
+  .htab { padding:8px 14px; border-radius:10px; background:#4a1626; border:2px solid #7a2a42; color:#ffd7de; font-size:14px; font-weight:800; }
+  .htab.on { background:#ff8a9e; color:#3d0f1f; border-color:#ff8a9e; }
+  #hollyBody {
+    flex:1; width:100%; max-width:420px; overflow-y:auto;
+    display:flex; flex-direction:column; gap:8px; padding:4px;
+  }
+  .hcard {
+    background:#3d1322; border:1px solid #6a2238; border-radius:12px;
+    padding:10px 12px; color:#ffe3e8; font-size:13px; text-align:left;
+  }
+  .hcard .hname { font-weight:800; font-size:15px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .hcard .hstat { color:#d8a0ac; font-size:12px; margin-top:3px; }
+  .hcard .heval { color:#ffc4cd; font-size:12px; margin-top:4px; font-style:italic; }
+  .hbadge { font-size:10px; padding:2px 7px; border-radius:8px; font-weight:800; }
+  #holly .close { background:#7a2a42; padding:11px 30px; font-size:15px; border-radius:10px; }
+  #orgol {
+    position:fixed; inset:0; background:#0e1420; z-index:24; padding:24px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  #orgolBox {
+    background:#16203a; border:2px solid #3a5a8c; border-radius:16px;
+    padding:28px 22px; max-width:320px; text-align:center;
+    display:flex; flex-direction:column; gap:12px;
+  }
+  #orgolBox h2 { color:#8ab8ff; }
+  #orgolBox p { color:#b8cbe8; font-size:14px; line-height:1.7; }
+  #orgolBox .dim { color:#5a708f; font-size:12px; }
+  #orgolBox .close { background:#3a5a8c; padding:10px 26px; font-size:14px; border-radius:10px; }
   .ranktab { padding:8px 16px; border-radius:10px; background:#22304f; border:2px solid #3a4566; color:#fff; font-size:14px; font-weight:800; }
   .ranktab.on { background:#ffb300; color:#3a2500; border-color:#ffb300; }
   .rankrow { display:flex; gap:8px; width:100%; background:#22304f; border-radius:10px; padding:8px 12px; font-size:14px; font-weight:700; align-items:center; }
@@ -206,6 +241,27 @@
   <h2>🌑 캐릭터 직접 소환</h2>
   <div class="grid" id="devPickGrid"></div>
   <button class="close" id="devPickClose">닫기</button>
+</div>
+
+<div id="holly" class="hidden">
+  <h2>🍓 홀리베리 서버</h2>
+  <p class="sub">모든 스탯과 픽률, 평가와 덱이 이곳에 — 정정당당하게!</p>
+  <div class="htabs">
+    <button class="htab on" data-t="units">아군 도감</button>
+    <button class="htab" data-t="enemy">적 도감</button>
+    <button class="htab" data-t="decks">덱 도감</button>
+  </div>
+  <div id="hollyBody"></div>
+  <button class="close" id="hollyClose">서버 나가기</button>
+</div>
+
+<div id="orgol" class="hidden">
+  <div id="orgolBox">
+    <h2>🎼 오르골 서버</h2>
+    <p>다크 카카오의 문 너머,<br>조용한 음악상자의 방에 도착했다.</p>
+    <p class="dim">이 방에 무엇이 채워질지는<br>아직 개발자만이 알고 있다...</p>
+    <button class="close" id="orgolClose">조용히 나가기</button>
+  </div>
 </div>
 
 <script>
@@ -585,6 +641,7 @@ function summon() {
   const proto = rand(unitsOfGrade(g));
   const slot = rand(empty);
   slot.unit = { ...proto, cdT: 0, popT: 0.35, moveT: 0 };
+  trackPick(proto.type);
   addText(slot.cx, slot.cy - 26, GRADES[g].name + '!', GRADES[g].color, g >= 2 ? 18 : 13);
   sfx(g >= 2 ? 'jackpot' : 'summon');
   updateButtons();
@@ -598,6 +655,7 @@ function tryMerge(target) {
   const proto = rand(unitsOfGrade(ng));
   a.unit = null;
   b.unit = { ...proto, cdT: 0, popT: 0.5, moveT: 0 };
+  trackPick(proto.type);
   addText(b.cx, b.cy - 26, jackpot ? '🎉 대박!! 2단계 점프!' : '✨ 합성!', jackpot ? '#ff6bd6' : '#9fe8ff', jackpot ? 17 : 14);
   addText(b.cx, b.cy - 44, `${GRADES[ng].name} ${proto.name}`, GRADES[ng].color, 13);
   sfx(jackpot ? 'jackpot' : 'merge');
@@ -1640,6 +1698,7 @@ $('studio').addEventListener('click', () => {
     $('devPower').classList.remove('active');
     $('studio').textContent = DEV ? '🌑 DARK KAKAO 서버' : '구예준 STUDIO';
     $('studio').style.color = DEV ? '#b388ff' : '';
+    try { if (DEV) localStorage.setItem('ltd_dkk', '1'); else localStorage.removeItem('ltd_dkk'); } catch (e) {} // 오르골 서버로 가는 문
     addText(WORLD_W / 2, 260, DEV ? '🌑 DARK KAKAO 서버 접속!' : '본서버로 복귀!', '#b388ff', 18);
     sfx('jackpot');
   }
@@ -1682,6 +1741,104 @@ $('devPickBtn').addEventListener('click', () => {
 });
 $('devPickClose').addEventListener('click', () => $('devPick').classList.add('hidden'));
 
+// ---------- 🍓 홀리베리 서버 & 🎼 오르골 서버 (비밀 서버 2·3호, 기획: 구예준) ----------
+// 홀리베리: 빠른 새로고침 10번 → 전체 스탯·픽률·평가·덱 도감 열람
+// 오르골: DARK KAKAO 입장 후 새로고침 1번 → ??? (기획 대기 중)
+let HOLLY_IN = false, ORGOL_IN = false;
+try {
+  if (localStorage.getItem('ltd_dkk') === '1') { // 다크 카카오 상태에서 새로고침 → 오르골
+    localStorage.removeItem('ltd_dkk');
+    ORGOL_IN = true;
+  } else {
+    const now = Date.now();
+    const rec = JSON.parse(localStorage.getItem('ltd_rf') || '{"c":0,"t":0}');
+    const c = now - rec.t < 20000 ? rec.c + 1 : 1;
+    localStorage.setItem('ltd_rf', JSON.stringify({ c, t: now }));
+    if (c >= 10) { localStorage.setItem('ltd_rf', '{"c":0,"t":0}'); HOLLY_IN = true; }
+  }
+} catch (e) {}
+
+function trackPick(type) { // 픽률 집계 (이 기기 기준, DARK KAKAO 제외)
+  if (DEV) return;
+  try {
+    const m = JSON.parse(localStorage.getItem('ltd_use') || '{}');
+    m[type] = (m[type] || 0) + 1;
+    localStorage.setItem('ltd_use', JSON.stringify(m));
+  } catch (e) {}
+}
+const HOLLY_EVAL = {
+  swordsman: '첫 3웨이브의 왕, 이후엔 귀한 합성 재료',
+  archer: '하층민으로 격상 — 어디서든 일하는 성실함',
+  farmer: '만년 연습생에서 일륜도의 주인공으로 대반전',
+  jurasaurus: '쥬라코인 대떡상! 보스 사냥꾼 겸 공장 주력',
+  wonkkataein: '4번 중 1번, 불꽃의 도박사',
+  tankboy: '늙지 않는 광역 노장 — 물량전의 보험',
+  deathpierrot: '자리 안 가리는 안정딜, 90의 사나이',
+  lumberjack: '명당만 주면 신화급 밥값을 하는 도끼',
+  darkrider: '수리검 비를 내리는 잔몹 청소부',
+  miner: '폭탄 설치의 낭만, 싸이클덱의 엔진',
+  ricecake: '물량전의 왕이자 보스전의 실업자',
+  ronin: '모든 걸 잘하지만 1등이 없는 만능 이류',
+  angeldog: '이론상 최강 운영덱의 심장 — 8%의 기적',
+  reddragon: '전개덱의 심장, 브레스 한 방에 화면 청소',
+  dosa: '배신 없는 공무원 딜러',
+  catmachine: '최고 화력, 최고 임대료',
+  royalchef: '출시 대기 중인 비밀 병기 — 홀리베리에서만 미리 공개!',
+};
+const HOLLY_DECKS = [
+  ['🐉 전개덱', '드래곤을 겁나 모으고 강화 때리기 — 광역×강화의 화끈한 정공법'],
+  ['😇 운영덱', '도베르만·광부로 최소 자원, 극한의 이득 — 이론상 무상성'],
+  ['🤡 예능덱', '설명이 필요없지?'],
+  ['⛏️ 싸이클덱', '운영 카드를 연속 소환하는 경제 순환형 (운영 파생)'],
+  ['🦕 애정덱', '좋아하는 캐릭터로 진지하게 이기러 간다 — 대표작 쥬라공장 (예능 파생)'],
+  ['🐸 안티메타덱', '드래곤 메타를 무시하는 청개구리 — 다음 메타의 연구실'],
+];
+function renderHolly(tab) {
+  document.querySelectorAll('.htab').forEach(b => b.classList.toggle('on', b.dataset.t === tab));
+  const body = $('hollyBody');
+  if (tab === 'units') {
+    let use = {};
+    try { use = JSON.parse(localStorage.getItem('ltd_use') || '{}'); } catch (e) {}
+    const total = Object.values(use).reduce((a, n) => a + n, 0);
+    body.innerHTML = UNITS.map(u => {
+      const dps = u.support ? '서포터' : (u.dmg / u.cd).toFixed(1);
+      const pick = total ? ((use[u.type] || 0) / total * 100).toFixed(1) + '%' : '기록 없음';
+      const extra = [u.splash ? `범위 ${u.splash}` : '', u.slow ? '감속' : '',
+        u.special === 'fireball' ? '25% 불꽃공' : '', u.special === 'bomb' ? '15% 폭탄' : '',
+        u.special === 'multi4' ? '4연발·보스무시' : '', u.special === 'baldo' ? '20% 발도술' : '',
+        u.special === 'smite' ? '8% 즉사' : '', u.support ? '30초 랜덤 요리' : '',
+        u.hyper ? `⚡${u.hyper}` : ''].filter(Boolean).join(' · ');
+      return `<div class="hcard">
+        <div class="hname">${u.emoji} ${u.name}
+          <span class="hbadge" style="background:${GRADES[u.grade].color};color:#2c0a16">${GRADES[u.grade].name}</span>
+          ${u.disabled ? '<span class="hbadge" style="background:#5a708f;color:#fff">미출시</span>' : ''}</div>
+        <div class="hstat">공격 ${u.dmg} · 속도 ${u.cd}s · 사거리 ${u.range} · DPS ${dps}${extra ? ' · ' + extra : ''}</div>
+        <div class="hstat">픽률(이 기기): ${pick}</div>
+        <div class="heval">"${HOLLY_EVAL[u.type] || ''}"</div>
+      </div>`;
+    }).join('');
+  } else if (tab === 'enemy') {
+    const rows = [1, 5, 10, 20, 30, 40, 52].map(w => `<div class="hstat">웨이브 ${w}: 체력 ${hpFor(w).toLocaleString()} / 보스 ${(hpFor(w) * 30).toLocaleString()}</div>`).join('');
+    body.innerHTML = `
+      <div class="hcard"><div class="hname">👾 몬스터 체력 곡선 (기본 스테이지 기준)</div>${rows}</div>
+      <div class="hcard"><div class="hname">👹 보스 규칙</div>
+        <div class="hstat">5웨이브마다 등장 · 체력 = 일반 몹의 30배 (스테이지 뒤로 갈수록 최대 51배)</div>
+        <div class="hstat">쌍둥이 보스 스테이지에선 2마리씩!</div></div>
+      <div class="hcard"><div class="hname">🗺️ 레전드 스토리 체급 상승</div>
+        <div class="hstat">뒤로 갈수록 체력 최대 ×3.06 · 속도 최대 ×1.35 · 골드 보상 최대 ×2.64</div>
+        <div class="hstat">기믹 3종: 몬스터 러시 / 혹한(아군 공속 -20%) / 쌍둥이 보스</div></div>
+      <div class="hcard"><div class="hname">⚔️ 패배 조건</div>
+        <div class="hstat">필드에 적 60마리 누적 시 게임 오버</div></div>`;
+  } else {
+    body.innerHTML = `<div class="hcard"><div class="hname">📊 구예준의 메타 리포트 — 6대 유파</div></div>` +
+      HOLLY_DECKS.map(d => `<div class="hcard"><div class="hname">${d[0]}</div><div class="hstat">${d[1]}</div></div>`).join('');
+  }
+}
+document.querySelectorAll('.htab').forEach(b => b.addEventListener('click', () => renderHolly(b.dataset.t)));
+$('hollyClose').addEventListener('click', () => $('holly').classList.add('hidden'));
+$('orgolClose').addEventListener('click', () => $('orgol').classList.add('hidden'));
+function openHolly() { $('holly').classList.remove('hidden'); renderHolly('units'); }
+
 // ---------- 메인 루프 ----------
 let lastT = 0;
 function frame(t) {
@@ -1701,6 +1858,8 @@ function frame(t) {
 resize();
 showOverlay('home');
 if (!getNick()) openNickModal(); // 첫 방문이면 닉네임부터!
+if (HOLLY_IN) openHolly();                                  // 🍓 새로고침 10번의 주인공
+else if (ORGOL_IN) $('orgol').classList.remove('hidden');   // 🎼 다크 카카오 문 너머
 requestAnimationFrame(frame);
 
 // 개발/테스트용 훅 (콘솔에서 게임 상태 확인용)
