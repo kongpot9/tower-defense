@@ -99,6 +99,28 @@
   #nickBox .row { display:flex; gap:8px; justify-content:center; }
   #nickBox button { padding:10px 22px; background:linear-gradient(180deg,#66d36e,#3fa946); box-shadow:0 4px 0 #23702a; font-size:15px; }
   #nickBox button.gray { background:#3a4566; box-shadow:0 4px 0 #232a42; }
+  #devbar {
+    display:none; align-items:center; gap:5px; margin-bottom:8px;
+    background:#1a0f24; border:1px solid #6a3fa0; border-radius:10px; padding:5px 8px;
+    overflow-x:auto;
+  }
+  #devbar.on { display:flex; }
+  #devTag { color:#b388ff; font-size:11px; font-weight:800; white-space:nowrap; letter-spacing:1px; }
+  .devbtn { background:#4a2a70; padding:6px 9px; font-size:12px; border-radius:8px; white-space:nowrap; }
+  .devbtn.active { background:#b388ff; color:#1a0f24; }
+  #devPick {
+    position:fixed; inset:0; background:rgba(10,5,18,.93); z-index:25; padding:24px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
+  }
+  #devPick .grid { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:360px; max-height:60vh; overflow-y:auto; }
+  #devPick .pick {
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    background:#2a1a40; border:2px solid #6a3fa0; border-radius:10px;
+    padding:8px 10px; font-size:11px; font-weight:800; color:#fff; min-width:70px;
+  }
+  #devPick .pick span { font-size:22px; }
+  #devPick h2 { color:#b388ff; }
+  #devPick .close { background:#4a2a70; padding:10px 30px; font-size:15px; border-radius:10px; }
   .ranktab { padding:8px 16px; border-radius:10px; background:#22304f; border:2px solid #3a4566; color:#fff; font-size:14px; font-weight:800; }
   .ranktab.on { background:#ffb300; color:#3a2500; border-color:#ffb300; }
   .rankrow { display:flex; gap:8px; width:100%; background:#22304f; border-radius:10px; padding:8px 12px; font-size:14px; font-weight:700; align-items:center; }
@@ -137,6 +159,15 @@
 
 <div id="bottombar">
   <div id="unitinfo"><span id="uiHint">캐릭터를 누른 뒤: 같은 캐릭터=합성 🎲 · 빈 칸=이동 · 다른 캐릭터=교체</span><button id="hyperBtn">⚡ 하이퍼차지 발동!</button><button id="sellBtn">판매</button></div>
+  <div id="devbar">
+    <span id="devTag">🌑 DARK KAKAO</span>
+    <button class="devbtn" id="devGold">💰+1만</button>
+    <button class="devbtn" id="devPickBtn">🎲소환</button>
+    <button class="devbtn" id="devHyper">⚡+1</button>
+    <button class="devbtn" id="devWave">⏭️+5</button>
+    <button class="devbtn" id="devKill">💀전멸</button>
+    <button class="devbtn" id="devGod">🛡️무적</button>
+  </div>
   <div id="btnrow">
     <button id="summonBtn">🎲 소환 20G</button>
     <button id="upBtn">⚔️ 강화 100G</button>
@@ -168,6 +199,12 @@
       <button id="nickLater" class="gray">나중에</button>
     </div>
   </div>
+</div>
+
+<div id="devPick" class="hidden">
+  <h2>🌑 캐릭터 직접 소환</h2>
+  <div class="grid" id="devPickGrid"></div>
+  <button class="close" id="devPickClose">닫기</button>
 </div>
 
 <script>
@@ -524,11 +561,13 @@ function stageClear() { // 스테이지 클리어! 다음 스테이지 잠금 �
   const stg = STAGES[S.stage];
   S.cleared = true;
   S.clearWait = true;
-  localStorage.setItem('ltd_clear_' + S.stage, '1');
-  const key = 'ltd_best_' + S.stage;
-  localStorage.setItem(key, Math.max(stg.clearWave, +(localStorage.getItem(key) || 0)));
+  if (!DEV) { // 🌑 DARK KAKAO에서는 클리어도 저장되지 않는다
+    localStorage.setItem('ltd_clear_' + S.stage, '1');
+    const key = 'ltd_best_' + S.stage;
+    localStorage.setItem(key, Math.max(stg.clearWave, +(localStorage.getItem(key) || 0)));
+    submitStoryScore();
+  }
   sfx('jackpot');
-  submitStoryScore();
   showOverlay('clear');
 }
 
@@ -775,8 +814,8 @@ function update(dt) {
       if (S.selected && S.selected.unit && S.selected.unit.ghost) S.selected = null;
     }
   }
-  // 패배 판정
-  if (S.enemies.length >= ENEMY_LIMIT) gameOver();
+  // 패배 판정 (DARK KAKAO 무적 모드는 예외)
+  if (S.enemies.length >= ENEMY_LIMIT && !DEV_GOD) gameOver();
 }
 
 function bestOf(i) { return +(localStorage.getItem('ltd_best_' + i) || 0); } // 스토리 스테이지별 최고 기록
@@ -784,12 +823,14 @@ function clearedOf(i) { return localStorage.getItem('ltd_clear_' + i) === '1'; }
 function gameOver() {
   S.over = true;
   sfx('over');
-  if (S.mode === 'story') {
-    localStorage.setItem('ltd_best_' + S.stage, Math.max(S.wave, bestOf(S.stage)));
-    submitStoryScore();
-  } else { // 일반 모드는 기존 통합 기록 그대로
-    localStorage.setItem('ltd_best', Math.max(S.wave, +(localStorage.getItem('ltd_best') || 0)));
-    submitClassicScore(S.wave);
+  if (!DEV) { // 🌑 DARK KAKAO 서버 기록은 저장·제출되지 않는다
+    if (S.mode === 'story') {
+      localStorage.setItem('ltd_best_' + S.stage, Math.max(S.wave, bestOf(S.stage)));
+      submitStoryScore();
+    } else { // 일반 모드는 기존 통합 기록 그대로
+      localStorage.setItem('ltd_best', Math.max(S.wave, +(localStorage.getItem('ltd_best') || 0)));
+      submitClassicScore(S.wave);
+    }
   }
   showOverlay('gameover');
 }
@@ -806,7 +847,7 @@ function openNickModal() {
 }
 async function submitScore(kind, data, isBetter) {
   const nick = getNick();
-  if (!nick || !RANK_DB) return;
+  if (!nick || !RANK_DB || DEV) return; // DARK KAKAO 기록은 랭킹에 못 올라감
   try {
     const url = `${RANK_DB}/rank/${kind}/${encodeURIComponent(nick)}.json`;
     const cur = await (await fetch(url)).json();
@@ -1303,7 +1344,7 @@ function draw() {
 // ---------- 상단바 / 하단바 UI ----------
 const $ = id => document.getElementById(id);
 function updateTopbar() {
-  $('tWave').textContent = (S.mode === 'story' ? STAGES[S.stage].emoji + ' ' : '') + `웨이브 ${S.wave}`;
+  $('tWave').textContent = (DEV ? '🌑 ' : '') + (S.mode === 'story' ? STAGES[S.stage].emoji + ' ' : '') + `웨이브 ${S.wave}`;
   $('tTimer').textContent = `⏱ ${Math.max(0, Math.ceil(S.roundT))}s`;
   $('tGold').textContent = `💰 ${S.gold}`;
   const te = $('tEnemy');
@@ -1508,6 +1549,7 @@ function showOverlay(mode) {
     b1.textContent = '다시하기';
     b1.classList.remove('hidden');
     b2.classList.remove('hidden');
+    if (DEV) $('ovRecord').textContent = '🌑 DARK KAKAO 서버 — 기록은 저장되지 않아요';
   } else if (mode === 'clear') {
     ov.querySelector('h1').textContent = '🎉 스테이지 클리어!';
     $('ovChars').style.display = 'none';
@@ -1577,6 +1619,58 @@ $('nickSave').addEventListener('click', () => {
 });
 $('nickLater').addEventListener('click', () => $('nickModal').classList.add('hidden'));
 $('nickInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('nickSave').click(); });
+
+// ---------- 🌑 DARK KAKAO 서버 (개발자 전용 — 여기선 뭐든지 된다) ----------
+// 입장: 홈 화면의 "구예준 STUDIO" 로고를 5연타. 기록·랭킹은 절대 저장되지 않는다.
+let DEV = false, DEV_GOD = false;
+let studioTaps = 0, studioTapT = 0;
+$('studio').addEventListener('click', () => {
+  const now = Date.now();
+  if (now - studioTapT > 2500) studioTaps = 0;
+  studioTapT = now;
+  if (++studioTaps >= 5) {
+    studioTaps = 0;
+    DEV = !DEV;
+    DEV_GOD = false;
+    $('devbar').classList.toggle('on', DEV);
+    $('devGod').classList.remove('active');
+    $('studio').textContent = DEV ? '🌑 DARK KAKAO 서버' : '구예준 STUDIO';
+    $('studio').style.color = DEV ? '#b388ff' : '';
+    addText(WORLD_W / 2, 260, DEV ? '🌑 DARK KAKAO 서버 접속!' : '본서버로 복귀!', '#b388ff', 18);
+    sfx('jackpot');
+  }
+});
+$('devGold').addEventListener('click', () => { if (!DEV) return; S.gold += 10000; addText(WORLD_W / 2, 300, '💰 +10,000G', '#ffd76e', 16); });
+$('devHyper').addEventListener('click', () => { if (!DEV) return; S.hyperCharges++; addText(WORLD_W / 2, 300, '⚡ 하이퍼차지 +1', '#4fc3f7', 15); });
+$('devWave').addEventListener('click', () => { if (!DEV) return; S.wave += 4; S.roundT = 0.01; addText(WORLD_W / 2, 300, '⏭️ 웨이브 점프!', '#b388ff', 15); });
+$('devKill').addEventListener('click', () => { if (!DEV) return; for (const e of S.enemies) e.hp = 0; addText(WORLD_W / 2, 300, '💀 전멸!', '#ff8a8a', 16); });
+$('devGod').addEventListener('click', () => {
+  if (!DEV) return;
+  DEV_GOD = !DEV_GOD;
+  $('devGod').classList.toggle('active', DEV_GOD);
+  addText(WORLD_W / 2, 300, DEV_GOD ? '🛡️ 무적 ON' : '🛡️ 무적 OFF', '#b388ff', 15);
+});
+$('devPickBtn').addEventListener('click', () => {
+  if (!DEV) return;
+  const grid = $('devPickGrid');
+  grid.innerHTML = '';
+  for (const u of UNITS) { // 로얄 셰프 포함 전 캐릭터 (DARK KAKAO 특권!)
+    const b = document.createElement('button');
+    b.className = 'pick';
+    b.innerHTML = `<span>${u.emoji}</span>${u.name}<small style="color:${GRADES[u.grade].color}">${GRADES[u.grade].name}</small>`;
+    b.addEventListener('click', () => {
+      const empty = slots.filter(s => !s.unit);
+      if (!empty.length) { addText(WORLD_W / 2, 300, '빈 칸이 없어요!', '#ff8a8a', 14); return; }
+      const slot = rand(empty);
+      slot.unit = { ...u, cdT: 0, popT: 0.4, moveT: 0 };
+      addText(slot.cx, slot.cy - 26, `${u.name}!`, GRADES[u.grade].color, 13);
+      sfx('summon');
+    });
+    grid.appendChild(b);
+  }
+  $('devPick').classList.remove('hidden');
+});
+$('devPickClose').addEventListener('click', () => $('devPick').classList.add('hidden'));
 
 // ---------- 메인 루프 ----------
 let lastT = 0;
