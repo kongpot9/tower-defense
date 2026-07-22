@@ -57,6 +57,7 @@
     animation:hyperpulse 0.9s infinite alternate;
   }
   #hyperBtn + #sellBtn { margin-left:8px; }
+  #giftBtn { padding:7px 12px; background:#d81b60; box-shadow:0 3px 0 #880e4f; display:none; margin-left:8px; font-size:14px; }
   @keyframes hyperpulse { from { filter:brightness(1); } to { filter:brightness(1.35); } }
   .small { padding:0 13px; background:#3a4566; font-size:15px; }
   #pauseBtn.on { background:#66d36e; color:#0d3312; }
@@ -216,7 +217,7 @@
 <canvas id="game"></canvas>
 
 <div id="bottombar">
-  <div id="unitinfo"><span id="uiHint">캐릭터를 누른 뒤: 같은 캐릭터=합성 🎲 · 빈 칸=이동 · 다른 캐릭터=교체</span><button id="hyperBtn">⚡ 하이퍼차지 발동!</button><button id="sellBtn">판매</button></div>
+  <div id="unitinfo"><span id="uiHint">캐릭터를 누른 뒤: 같은 캐릭터=합성 🎲 · 빈 칸=이동 · 다른 캐릭터=교체</span><button id="hyperBtn">⚡ 하이퍼차지 발동!</button><button id="sellBtn">판매</button><button id="giftBtn">💝50G</button></div>
   <div id="devbar">
     <span id="devTag">🌑 DARK KAKAO</span>
     <button class="devbtn" id="devGold">💰+1만</button>
@@ -283,7 +284,7 @@
   <div id="duoBox">
     <h2>👥 더블큐</h2>
     <div id="duoHome">
-      <p class="dim">친구와 한 판을 같이 지켜라!<br>한 보드 · 공동 골드 · 공동 운명</p>
+      <p class="dim">친구와 함께 버텨라!<br>각자의 필드 · 각자의 골드 · 운명은 하나</p>
       <button id="duoCreateBtn">🎪 파티 만들기</button>
       <div class="row">
         <input id="duoCodeInput" maxlength="4" placeholder="파티 코드">
@@ -680,7 +681,6 @@ function stageClear() { // 스테이지 클리어! 다음 스테이지 잠금 �
 // ---------- 소환 / 합성 / 판매 ----------
 function summon() {
   if (!S.running || S.over) return;
-  if (DUO.on && DUO.role === 'guest') { duoSend({ a: 'summon' }); return; } // 게스트는 호스트에게 명령
   if (S.paused) { addText(WORLD_W/2, 460, '일시정지 중이에요!', '#ffd76e', 14); return; }
   if (S.gold < S.summonCost) { addText(WORLD_W/2, 460, '골드가 부족해요!', '#ff8a8a', 15); sfx('error'); return; }
   const empty = slots.filter(s => !s.unit);
@@ -733,7 +733,6 @@ function swapUnits(a, b) { // 서로 다른 캐릭터 자리 맞교환 (무료, 
 function castHyper(slot) { // ⚡ 하이퍼차지 발동! (캐릭터마다 다른 필살기)
   const sl = slot || S.selected;
   if (!sl || !sl.unit || !sl.unit.hyper || (S.hyperCharges <= 0 && !ORGOL)) return;
-  if (!slot && DUO.on && DUO.role === 'guest') { duoSend({ a: 'hyper', s: slots.indexOf(sl) }); return; }
   if (!ORGOL) S.hyperCharges--; // 🎼 오르골 서버는 무한 발동!
   addText(WORLD_W / 2, 230, `⚡ ${sl.unit.hyper}!! ⚡`, '#4fc3f7', 20);
   if (sl.unit.type === 'farmer') { // 얼어버리는 일륜도
@@ -762,27 +761,18 @@ function sellSlot(sl) { // 판매 실행 (듀오 명령에서도 사용)
 }
 function sellSelected() {
   if (!S.selected || !S.selected.unit) return;
-  if (DUO.on && DUO.role === 'guest') {
-    duoSend({ a: 'sell', s: slots.indexOf(S.selected) });
-    S.selected = null;
-    updateInfoPanel();
-    return;
-  }
   sellSlot(S.selected);
 }
 
 // ---------- 업데이트 ----------
 function update(dt) {
   S.time += dt;
-  // 웨이브 진행 (듀오 게스트는 미러 — 호스트만 웨이브·스폰 권한)
-  const duoGuest = DUO.on && DUO.role === 'guest';
+  // 웨이브 진행
   S.roundT -= dt;
-  if (!duoGuest) {
-    if (S.roundT <= 0) startWave();
-    if (S.toSpawn > 0) {
-      S.spawnTimer -= dt;
-      if (S.spawnTimer <= 0) { S.spawnTimer = S.spawnInterval; S.toSpawn--; spawnEnemy(); }
-    }
+  if (S.roundT <= 0) startWave();
+  if (S.toSpawn > 0) {
+    S.spawnTimer -= dt;
+    if (S.spawnTimer <= 0) { S.spawnTimer = S.spawnInterval; S.toSpawn--; spawnEnemy(); }
   }
   // 적 이동
   for (const e of S.enemies) {
@@ -949,7 +939,7 @@ function update(dt) {
     }
   }
   // 패배 판정 (DARK KAKAO 무적 모드는 예외)
-  if (S.enemies.length >= ENEMY_LIMIT && !DEV_GOD && !duoGuest) gameOver();
+  if (S.enemies.length >= ENEMY_LIMIT && !DEV_GOD) gameOver();
 }
 
 function bestOf(i) { return +(localStorage.getItem('ltd_best_' + i) || 0); } // 스토리 스테이지별 최고 기록
@@ -957,7 +947,7 @@ function clearedOf(i) { return localStorage.getItem('ltd_clear_' + i) === '1'; }
 function gameOver() {
   S.over = true;
   sfx('over');
-  if (DUO.on && DUO.role === 'host') duoGameOver(); // 👥 듀오: 마지막 방송 + 팀 기록 제출
+  if (DUO.on) { duoPushStatus(); if (DUO.role === 'host') duoGameOver(); } // 👥 듀오: 파트너에게 즉시 알림 + 호스트가 팀 기록 제출
   if (!DEV && !ORGOL && !DUO.on) { // 🌑 DARK KAKAO·🎼 오르골 기록은 저장·제출되지 않는다 (듀오는 듀오 랭킹으로)
     if (S.mode === 'story') {
       localStorage.setItem('ltd_best_' + S.stage, Math.max(S.wave, bestOf(S.stage)));
@@ -1491,9 +1481,12 @@ function updateTopbar() {
   const te = $('tEnemy');
   te.textContent = `👾 ${S.enemies.length}/${ENEMY_LIMIT}`;
   te.className = S.enemies.length >= ENEMY_LIMIT * 0.75 ? 'warn' : '';
-  if (DUO.on && DUO.playing) { // 듀오 상태 표시
-    const stale = DUO.role === 'guest' && Date.now() - DUO.lastSnap > 4000;
-    $('studio').textContent = stale ? '👥 연결 대기 중...' : `👥 ${DUO.partner}와 더블큐`;
+  if (DUO.on && DUO.playing) { // 듀오: 파트너 현황 실시간 표시
+    const p = DUO.pState;
+    const stale = Date.now() - DUO.lastSnap > 5000;
+    $('studio').textContent = stale
+      ? `👥 ${DUO.partner} 연결 대기 중...`
+      : p ? `👥 ${DUO.partner}: 웨이브 ${p.w} · 👾${p.en}/60 · 💰${p.g}` : `👥 ${DUO.partner}와 더블큐`;
     $('studio').style.color = stale ? '#ff8a8a' : '#ffd76e';
   }
 }
@@ -1568,19 +1561,16 @@ canvas.addEventListener('pointerdown', ev => {
   if (hit && hit.unit) {
     if (S.selected && S.selected !== hit && S.selected.unit) {
       if (S.selected.unit.type === hit.unit.type && S.selected.unit.grade === hit.unit.grade) {
-        if (DUO.on && DUO.role === 'guest') { duoSend({ a: 'merge', f: slots.indexOf(S.selected), t2: slots.indexOf(hit) }); S.selected = null; updateInfoPanel(); }
-        else tryMerge(hit);   // 같은 캐릭터 → 합성
+        tryMerge(hit);   // 같은 캐릭터 → 합성
       } else {
-        if (DUO.on && DUO.role === 'guest') { duoSend({ a: 'swap', f: slots.indexOf(S.selected), t2: slots.indexOf(hit) }); S.selected = null; updateInfoPanel(); }
-        else swapUnits(S.selected, hit); // 다른 캐릭터 → 자리 교체
+        swapUnits(S.selected, hit); // 다른 캐릭터 → 자리 교체
       }
     } else {
       S.selected = hit;
       updateInfoPanel();
     }
   } else if (hit && S.selected && S.selected.unit) {
-    if (DUO.on && DUO.role === 'guest') { duoSend({ a: 'move', f: slots.indexOf(S.selected), t2: slots.indexOf(hit) }); S.selected = null; updateInfoPanel(); }
-    else moveUnit(S.selected, hit); // 빈 칸 → 이동
+    moveUnit(S.selected, hit); // 빈 칸 → 이동
   } else {
     S.selected = null;
     updateInfoPanel();
@@ -1599,10 +1589,7 @@ function tryUpgrade() { // ⚔️ 강화 실행 (듀오 명령에서도 사용)
   sfx('merge');
   updateButtons();
 }
-$('upBtn').addEventListener('click', () => {
-  if (DUO.on && DUO.role === 'guest') { duoSend({ a: 'up' }); return; }
-  tryUpgrade();
-});
+$('upBtn').addEventListener('click', tryUpgrade);
 $('pauseBtn').addEventListener('click', () => {
   if (!S.running || S.over) return;
   S.paused = !S.paused;
@@ -1999,97 +1986,53 @@ function openHolly() { $('holly').classList.remove('hidden'); renderHolly('units
 // 게스트는 SSE로 미러링하며 소환·합성 등을 명령으로 전송한다.
 const DUO = { on: false, role: null, code: null, partner: null, myNick: '', playing: false,
   es: null, cmdEs: null, bc: null, applied: {}, lastSnap: 0 };
-function duoSend(c) { // 게스트 → 호스트 명령
-  if (!DUO.on || !DUO.code) return;
-  fetch(`${RANK_DB}/party/${DUO.code}/cmd.json`, { method: 'POST', body: JSON.stringify({ ...c, t: Date.now() }) }).catch(() => {});
+// v2: 각자 필드·각자 골드로 각자 시뮬레이션, 가벼운 현황 교환 + 공동 운명 + 💝선물
+function duoPushStatus() { // 내 현황 방송 (1초마다 + 게임오버 즉시)
+  if (!DUO.on || !DUO.playing || !DUO.code) return;
+  fetch(`${RANK_DB}/party/${DUO.code}/p/${DUO.role}.json`, {
+    method: 'PUT',
+    body: JSON.stringify({ w: S.wave, en: S.enemies.length, g: S.gold, over: S.over, t: Date.now() }),
+  }).catch(() => {});
 }
-function duoSnapshot() {
-  return {
-    phase: 'play', t: Date.now(), over: S.over,
-    w: S.wave, g: S.gold, rt: +S.roundT.toFixed(1), c: S.summonCost, lv: S.atkLv, hc: S.hyperCharges,
-    buff: { dmg: +S.buffT.dmg.toFixed(1), spd: +S.buffT.spd.toFixed(1), gold: +S.buffT.gold.toFixed(1),
-            ghost: +S.buffT.ghost.toFixed(1), hyper: +S.buffT.hyper.toFixed(1), jura: +(S.buffT.jura || 0).toFixed(1) },
-    en: S.enemies.map(e => [e.id || 0, Math.round(e.d), Math.round(e.hp), Math.round(e.maxhp), e.emoji,
-      e.boss ? 1 : 0, Math.round(e.speed), +Math.max(0, e.slowT || 0).toFixed(1), +Math.max(0, e.frozenT || 0).toFixed(1),
-      e.gold, Math.round(e.trav)]),
-    un: slots.map(sl => sl.unit ? [sl.unit.type, sl.unit.ghost ? 1 : 0] : 0),
-  };
-}
-function duoBroadcast() {
-  if (!DUO.on || DUO.role !== 'host' || !DUO.playing) return;
-  fetch(`${RANK_DB}/party/${DUO.code}/state.json`, { method: 'PUT', body: JSON.stringify(duoSnapshot()) }).catch(() => {});
-}
-function applySnap(st) { // 게스트: 호스트 상태로 보정
-  if (!st || DUO.role !== 'guest') return;
-  DUO.lastSnap = Date.now();
-  const wasWave = S.wave;
-  S.wave = st.w; S.gold = st.g; S.roundT = st.rt; S.summonCost = st.c;
-  S.atkLv = st.lv; S.hyperCharges = st.hc;
-  if (st.buff) S.buffT = st.buff;
-  if (st.w > wasWave && wasWave > 0) { addText(WORLD_W / 2, 260, `웨이브 ${st.w}!`, '#ffd76e', 16); }
-  const map = {};
-  for (const e of S.enemies) if (e.id != null) map[e.id] = e;
-  S.enemies = (st.en || []).map(row => {
-    const [id, d, hp, mh, em, b, sp, sl2, fz, g2, tv] = row;
-    let e = map[id];
-    if (e) { e.d = d; e.hp = hp; e.maxhp = mh; e.slowT = sl2; e.frozenT = fz; e.speed = sp; e.trav = tv; }
-    else e = { id, d, trav: tv, hp, maxhp: mh, emoji: em, boss: !!b, speed: sp, gold: g2, slowT: sl2, frozenT: fz, r: b ? 20 : 12 };
-    return e;
-  });
-  (st.un || []).forEach((u2, i) => {
-    const sl3 = slots[i];
-    if (!sl3) return;
-    if (!u2) { if (sl3.unit) sl3.unit = null; return; }
-    const type = u2[0], gh = !!u2[1];
-    if (!sl3.unit || sl3.unit.type !== type || !!sl3.unit.ghost !== gh) {
-      const proto = UNITS.find(x => x.type === type);
-      if (proto) sl3.unit = { ...proto, ghost: gh || undefined, cdT: 0, popT: 0.2, moveT: 0 };
-    }
-  });
-  if (st.over && !S.over) { S.over = true; sfx('over'); showOverlay('gameover'); }
-  updateTopbar(); updateButtons();
-}
-function applyCmd(c) { // 호스트: 게스트 명령 실행
-  if (!S.running || S.over || !c) return;
-  if (c.a === 'summon') summon();
-  else if (c.a === 'up') tryUpgrade();
-  else if (c.a === 'sell') sellSlot(slots[c.s]);
-  else if (c.a === 'hyper') {
-    const sl = slots[c.s];
-    if (sl && sl.unit && sl.unit.hyper) castHyper(sl);
-  } else if (c.a === 'merge' || c.a === 'swap' || c.a === 'move') {
-    const A = slots[c.f], B = slots[c.t2];
-    if (!A || !B || !A.unit || A.unit.ghost) return;
-    const keep = (S.selected === A || S.selected === B) ? null : S.selected;
-    if (c.a === 'merge') {
-      if (B.unit && !B.unit.ghost && B.unit.type === A.unit.type && B.unit.grade === A.unit.grade) { S.selected = A; tryMerge(B); }
-    } else if (c.a === 'swap') {
-      if (B.unit && !B.unit.ghost) { S.selected = A; swapUnits(A, B); }
-    } else {
-      if (!B.unit) { S.selected = A; moveUnit(A, B); }
-    }
-    S.selected = keep;
-    updateInfoPanel();
-  }
-}
-function duoListenCmd() { // 호스트: 명령 스트림 구독
-  DUO.cmdEs = new EventSource(`${RANK_DB}/party/${DUO.code}/cmd.json`);
-  const handle = (id, c) => {
-    if (!c || DUO.applied[id]) return;
-    DUO.applied[id] = 1;
-    applyCmd(c);
-    fetch(`${RANK_DB}/party/${DUO.code}/cmd/${id}.json`, { method: 'DELETE' }).catch(() => {});
-  };
-  const onData = ev => {
+function duoListenPartner() { // 파트너 현황 구독 + 공동 운명
+  const other = DUO.role === 'host' ? 'guest' : 'host';
+  DUO.es2 = new EventSource(`${RANK_DB}/party/${DUO.code}/p/${other}.json`);
+  DUO.es2.addEventListener('put', ev => {
     try {
-      const { path, data } = JSON.parse(ev.data);
+      const { data } = JSON.parse(ev.data);
       if (!data) return;
-      if (path === '/') { for (const [id, c] of Object.entries(data)) handle(id, c); }
-      else handle(path.slice(1).split('/')[0], data);
+      DUO.pState = data;
+      DUO.lastSnap = Date.now();
+      if (data.over && !S.over && S.running) { // 파트너 필드가 뚫림 → 함께 종료
+        addText(WORLD_W / 2, 250, `💥 ${DUO.partner}의 필드가 뚫렸다!`, '#ff8a8a', 16);
+        gameOver();
+      }
     } catch (e) {}
-  };
-  DUO.cmdEs.addEventListener('put', onData);
-  DUO.cmdEs.addEventListener('patch', onData);
+  });
+}
+function duoListenGift() { // 💝 선물 수신
+  DUO.es3 = new EventSource(`${RANK_DB}/party/${DUO.code}/gift/${DUO.role}.json`);
+  DUO.es3.addEventListener('put', ev => {
+    try {
+      const { data } = JSON.parse(ev.data);
+      if (!data || !data.amt) return;
+      S.gold += data.amt;
+      addText(WORLD_W / 2, 280, `💝 ${DUO.partner}의 선물 +${data.amt}G!`, '#ff9ecb', 16);
+      sfx('jackpot');
+      fetch(`${RANK_DB}/party/${DUO.code}/gift/${DUO.role}.json`, { method: 'DELETE' }).catch(() => {});
+    } catch (e) {}
+  });
+}
+function sendGift() { // 💝 파트너에게 50G 보내기
+  if (!DUO.on || !DUO.playing || S.over) return;
+  if (S.gold < 50) { addText(WORLD_W / 2, 460, '보낼 골드가 부족해요!', '#ff8a8a', 14); return; }
+  S.gold -= 50;
+  const other = DUO.role === 'host' ? 'guest' : 'host';
+  fetch(`${RANK_DB}/party/${DUO.code}/gift/${other}.json`, {
+    method: 'PUT', body: JSON.stringify({ amt: 50, t: Date.now() }),
+  }).catch(() => {});
+  addText(WORLD_W / 2, 280, `💝 ${DUO.partner}에게 50G 선물!`, '#ff9ecb', 14);
+  updateButtons();
 }
 function duoCodeGen() {
   const cs = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -2122,7 +2065,6 @@ async function duoCreate(fromRandom) {
       }
     } catch (e) {}
   });
-  duoListenCmd();
   return code;
 }
 async function duoJoin(codeRaw) {
@@ -2143,7 +2085,6 @@ async function duoJoin(codeRaw) {
       const { data } = JSON.parse(ev.data);
       if (data && data.phase === 'play') {
         if (!DUO.playing) { DUO.playing = true; duoStartGame(); }
-        applySnap(data);
       }
     } catch (e) {}
   });
@@ -2160,7 +2101,7 @@ async function duoRandom() {
     await fetch(`${RANK_DB}/duoqueue/waiting.json`, { method: 'PUT', body: JSON.stringify({ nick: getNick(), code, t: Date.now() }) });
   }
 }
-function duoStartGame() { // 양쪽 공통 게임 개시
+function duoStartGame() { // 양쪽 각자 필드에서 동시 시작!
   S.mode = 'classic'; S.stage = 0;
   setStagePath(STAGES[0].path);
   $('overlay').classList.add('hidden');
@@ -2168,17 +2109,20 @@ function duoStartGame() { // 양쪽 공통 게임 개시
   resetGame();
   S.running = true;
   S.speed = 1; $('speedBtn').textContent = 'x1';
-  $('pauseBtn').disabled = true; $('speedBtn').disabled = true; // 듀오에선 일시정지·배속 금지
-  if (DUO.role === 'host') {
-    startWave();
-    DUO.bc = setInterval(duoBroadcast, 250);
-  }
+  $('pauseBtn').disabled = true; $('speedBtn').disabled = true; // 웨이브 박자 유지 위해 금지
+  startWave();
+  DUO.pState = null;
+  DUO.lastSnap = Date.now();
+  DUO.bc = setInterval(duoPushStatus, 1000);
+  duoListenPartner();
+  duoListenGift();
+  $('giftBtn').style.display = 'block';
   addText(WORLD_W / 2, 230, `👥 ${DUO.partner}와 함께 방어 시작!`, '#ffd76e', 16);
+  addText(WORLD_W / 2, 258, '한쪽 필드가 뚫리면 둘 다 끝! 💝로 골드를 나눠주자', '#cdd6f4', 12);
   sfx('summon');
 }
-async function duoGameOver() { // 호스트: 팀 기록 제출 + 마지막 방송
+async function duoGameOver() { // 호스트: 팀 기록 제출
   try {
-    duoBroadcast();
     if (!DUO.partner) return;
     const key = [DUO.myNick, DUO.partner].sort().join('+').replace(/[.#$/\[\]]/g, '').slice(0, 20);
     const url = `${RANK_DB}/rank/duo/${encodeURIComponent(key)}.json`;
@@ -2192,15 +2136,17 @@ async function duoGameOver() { // 호스트: 팀 기록 제출 + 마지막 방�
 function duoCleanup() {
   if (!DUO.on) return;
   try { DUO.es && DUO.es.close(); } catch (e) {}
-  try { DUO.cmdEs && DUO.cmdEs.close(); } catch (e) {}
+  try { DUO.es2 && DUO.es2.close(); } catch (e) {}
+  try { DUO.es3 && DUO.es3.close(); } catch (e) {}
   if (DUO.bc) clearInterval(DUO.bc);
   if (DUO.role === 'host' && DUO.code) {
     fetch(`${RANK_DB}/party/${DUO.code}.json`, { method: 'DELETE' }).catch(() => {});
     fetch(`${RANK_DB}/duoqueue/waiting.json`, { method: 'DELETE' }).catch(() => {});
   }
   DUO.on = false; DUO.role = null; DUO.code = null; DUO.partner = null;
-  DUO.playing = false; DUO.bc = null; DUO.es = null; DUO.cmdEs = null;
+  DUO.playing = false; DUO.bc = null; DUO.es = null; DUO.es2 = null; DUO.es3 = null; DUO.pState = null;
   $('pauseBtn').disabled = false; $('speedBtn').disabled = false;
+  $('giftBtn').style.display = 'none';
   $('studio').textContent = DEV ? '🌑 DARK KAKAO 서버' : '구예준 STUDIO';
   $('studio').style.color = DEV ? '#b388ff' : '';
 }
@@ -2219,8 +2165,9 @@ $('duoRandomBtn').addEventListener('click', () => duoRandom());
 $('duoStartBtn').addEventListener('click', () => {
   if (DUO.role !== 'host' || !DUO.partner) return;
   DUO.playing = true;
+  // 게스트에게 시작 신호
+  fetch(`${RANK_DB}/party/${DUO.code}/state.json`, { method: 'PUT', body: JSON.stringify({ phase: 'play', t: Date.now() }) }).catch(() => {});
   duoStartGame();
-  duoBroadcast();
 });
 $('duoCancelBtn').addEventListener('click', () => {
   duoCleanup();
@@ -2229,6 +2176,7 @@ $('duoCancelBtn').addEventListener('click', () => {
   $('duoStartBtn').classList.add('hidden');
 });
 $('duoExitBtn').addEventListener('click', () => $('duo').classList.add('hidden'));
+$('giftBtn').addEventListener('click', sendGift);
 
 // ---------- 메인 루프 ----------
 let lastT = 0;
@@ -2260,7 +2208,7 @@ requestAnimationFrame(frame);
 // 개발/테스트용 훅 (콘솔에서 게임 상태 확인용)
 window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, moveUnit, swapUnits, draw, startStage, STAGES, posAt,
   renderRank, submitClassicScore, submitStoryScore, showOverlay, throwFood, FOODS, castHyper,
-  DUO, duoCreate, duoJoin, duoRandom, duoSnapshot, applySnap, applyCmd, duoCleanup, setRankDb: u => { RANK_DB = u; } };
+  DUO, duoCreate, duoJoin, duoRandom, duoPushStatus, duoStartGame, sendGift, duoCleanup, setRankDb: u => { RANK_DB = u; } };
 </script>
 </body>
 </html>
