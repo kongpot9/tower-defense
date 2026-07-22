@@ -167,6 +167,7 @@
     <button class="devbtn" id="devWave">⏭️+5</button>
     <button class="devbtn" id="devKill">💀전멸</button>
     <button class="devbtn" id="devGod">🛡️무적</button>
+    <button class="devbtn" id="devPower">💪공10만</button>
   </div>
   <div id="btnrow">
     <button id="summonBtn">🎲 소환 20G</button>
@@ -688,7 +689,8 @@ function update(dt) {
       // 얼음 왕국 감속 ÷ 컵케이크 가속
       u.cdT = u.cd * (STAGES[S.stage].atkCdMul || 1) / (S.buffT.spd > 0 ? 1.5 : 1);
       // 강화(⚔️ +10%씩 복리) × 팬케이크(+30%) 적용 공격력
-      const D = Math.round(u.dmg * Math.pow(1.1, S.atkLv) * (S.buffT.dmg > 0 ? 1.3 : 1) * (S.buffT.hyper > 0 ? HYPER_DMG_MUL : 1));
+      const D = DEV_POWER ? 100000 // 🌑 DARK KAKAO: 기본 공격력 10만
+        : Math.round(u.dmg * Math.pow(1.1, S.atkLv) * (S.buffT.dmg > 0 ? 1.3 : 1) * (S.buffT.hyper > 0 ? HYPER_DMG_MUL : 1));
       const best = targets[0];
       const bp = posAt(best.d);
       if (u.special === 'bomb' && Math.random() < BOMB_CHANCE) {
@@ -1398,7 +1400,7 @@ document.addEventListener('touchend', e => {
   const now = Date.now();
   if (now - lastTouchEnd < 350) {
     e.preventDefault(); // 확대 차단 (기본 클릭 생성도 함께 막힘)
-    const btn = e.target.closest && e.target.closest('button');
+    const btn = e.target.closest && e.target.closest('button, #studio'); // 스튜디오 로고 연타(DARK KAKAO 입장)도 살림
     if (btn && !btn.disabled) btn.click();          // 버튼 연타는 직접 클릭 발생
     else if (e.target.tagName === 'INPUT') e.target.focus(); // 입력창은 포커스 유지
   }
@@ -1622,7 +1624,7 @@ $('nickInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('nick
 
 // ---------- 🌑 DARK KAKAO 서버 (개발자 전용 — 여기선 뭐든지 된다) ----------
 // 입장: 홈 화면의 "구예준 STUDIO" 로고를 5연타. 기록·랭킹은 절대 저장되지 않는다.
-let DEV = false, DEV_GOD = false;
+let DEV = false, DEV_GOD = false, DEV_POWER = false;
 let studioTaps = 0, studioTapT = 0;
 $('studio').addEventListener('click', () => {
   const now = Date.now();
@@ -1632,8 +1634,10 @@ $('studio').addEventListener('click', () => {
     studioTaps = 0;
     DEV = !DEV;
     DEV_GOD = false;
+    DEV_POWER = false;
     $('devbar').classList.toggle('on', DEV);
     $('devGod').classList.remove('active');
+    $('devPower').classList.remove('active');
     $('studio').textContent = DEV ? '🌑 DARK KAKAO 서버' : '구예준 STUDIO';
     $('studio').style.color = DEV ? '#b388ff' : '';
     addText(WORLD_W / 2, 260, DEV ? '🌑 DARK KAKAO 서버 접속!' : '본서버로 복귀!', '#b388ff', 18);
@@ -1649,6 +1653,12 @@ $('devGod').addEventListener('click', () => {
   DEV_GOD = !DEV_GOD;
   $('devGod').classList.toggle('active', DEV_GOD);
   addText(WORLD_W / 2, 300, DEV_GOD ? '🛡️ 무적 ON' : '🛡️ 무적 OFF', '#b388ff', 15);
+});
+$('devPower').addEventListener('click', () => {
+  if (!DEV) return;
+  DEV_POWER = !DEV_POWER;
+  $('devPower').classList.toggle('active', DEV_POWER);
+  addText(WORLD_W / 2, 300, DEV_POWER ? '💪 기본 공격력 10만!!' : '💪 공격력 원상복구', '#b388ff', 15);
 });
 $('devPickBtn').addEventListener('click', () => {
   if (!DEV) return;
