@@ -1740,6 +1740,7 @@ function showOverlay(mode) {
   const sel = $('stageSel'), b1 = $('ovBtn'), b2 = $('ovBtn2'), b3 = $('ovBtn3');
   b3.classList.add('hidden');
   $('ovBtn4').classList.add('hidden');
+  $('ovBtn5').classList.add('hidden');
   $('nickLine').classList.add('hidden');
   if (mode === 'home') { // 첫 화면: 모드 선택
     ov.querySelector('h1').textContent = '🏰 타워 디펜스 777';
@@ -1752,6 +1753,7 @@ function showOverlay(mode) {
     b2.classList.remove('hidden');
     b3.classList.remove('hidden');
     $('ovBtn4').classList.remove('hidden');
+    $('ovBtn5').classList.remove('hidden');
     if (DUO.on) duoCleanup(); // 홈으로 오면 듀오 종료
     $('nickLine').classList.remove('hidden');
     $('nickName').textContent = getNick() || '닉네임 없음';
@@ -1887,6 +1889,7 @@ $('nickSave').addEventListener('click', () => {
   if (!n) { inp.value = ''; inp.placeholder = '한 글자 이상 적어줘!'; return; }
   localStorage.setItem('ltd_nick', n);
   $('nickModal').classList.add('hidden');
+  startPresence(); // 닉네임 생기면 접속 신호 시작
   if (ovMode === 'home' || ovMode === 'rank') showOverlay(ovMode);
 });
 $('nickLater').addEventListener('click', () => $('nickModal').classList.add('hidden'));
@@ -2113,6 +2116,118 @@ $('hollyClose').addEventListener('click', () => $('holly').classList.add('hidden
 $('orgolClose').addEventListener('click', () => $('orgol').classList.add('hidden'));
 function openHolly() { $('holly').classList.remove('hidden'); renderHolly('units'); }
 
+// ---------- 💬 채팅방 & 접속 상태 (기획: 구예준) ----------
+// 저장 경로는 이미 열려 있는 party 아래를 사용 (규칙 추가 불필요)
+const CHAT_PATH = () => `${RANK_DB}/party/_chat`;
+const PRESENCE_PATH = () => `${RANK_DB}/party/_presence`;
+const ONLINE_MS = 70000; // 이 시간 안에 신호가 있으면 온라인
+let chatEs = null, presenceEs = null, presenceTimer = null, lastChatSend = 0, chatSeen = {};
+function myStatus() { // 지금 뭐 하는 중인지
+  if (DUO.on && DUO.playing) return `👥 더블큐 웨이브 ${S.wave}`;
+  if (S.running && !S.over) return S.mode === 'story' ? `🗺️ ${STAGES[S.stage].name} 웨이브 ${S.wave}` : `🎮 웨이브 ${S.wave}`;
+  return '🏠 로비';
+}
+function pingPresence() {
+  const nick = getNick();
+  if (!nick || !RANK_DB) return;
+  fetch(`${PRESENCE_PATH()}/${encodeURIComponent(nick)}.json`, {
+    method: 'PUT', body: JSON.stringify({ t: Date.now(), st: myStatus() }),
+  }).catch(() => {});
+}
+function startPresence() { // 접속 신호는 게임 내내 켜둔다
+  if (presenceTimer || !getNick()) return;
+  pingPresence();
+  presenceTimer = setInterval(pingPresence, 20000);
+}
+function renderPresence(data) {
+  const box = $('onlineList');
+  const now = Date.now();
+  const rows = Object.entries(data || {}).map(([nick, v]) => ({ nick, t: v.t || 0, st: v.st || '' }))
+    .filter(u => now - u.t < 24 * 3600000)
+    .sort((a, b) => b.t - a.t);
+  const on = rows.filter(u => now - u.t < ONLINE_MS);
+  const off = rows.filter(u => now - u.t >= ONLINE_MS).slice(0, 12);
+  const ago = t => { const m = Math.floor((now - t) / 60000); return m < 60 ? `${m}분 전` : `${Math.floor(m / 60)}시간 전`; };
+  box.innerHTML =
+    `<div style="width:100%;font-size:11px;color:#8ecbff;font-weight:800">🟢 접속 중 ${on.length}명</div>` +
+    (on.map(u => `<span class="onchip">🟢 ${escapeHtml(u.nick)}<small style="color:#8a96b8">${escapeHtml(u.st)}</small></span>`).join('') || '<span class="onchip">아무도 없어요...</span>') +
+    (off.length ? `<div style="width:100%;font-size:11px;color:#5a708f;font-weight:800;margin-top:2px">⚪ 오프라인</div>` +
+      off.map(u => `<span class="onchip off">⚪ ${escapeHtml(u.nick)}<small>${ago(u.t)}</small></span>`).join('') : '');
+}
+function addChatMsg(m) {
+  const log = $('chatLog');
+  const mine = m.n === getNick();
+  const div = document.createElement('div');
+  div.className = 'msg ' + (mine ? 'mine' : 'other');
+  div.innerHTML = (mine ? '' : `<span class="who">${escapeHtml(m.n)}</span>`) + escapeHtml(m.m);
+  log.appendChild(div);
+  while (log.children.length > 80) log.removeChild(log.firstChild);
+  log.scrollTop = log.scrollHeight;
+}
+function openChat() {
+  $('chat').classList.remove('hidden');
+  $('chatLog').innerHTML = '';
+  chatSeen = {};
+  startPresence();
+  pingPresence();
+  if (!RANK_DB) { $('onlineList').innerHTML = '<span class="onchip">서버가 연결되지 않았어요</span>'; return; }
+  // 접속 목록 실시간 구독
+  presenceEs = new EventSource(`${PRESENCE_PATH()}.json`);
+  const onPres = () => fetch(`${PRESENCE_PATH()}.json`).then(r => r.json()).then(renderPresence).catch(() => {});
+  presenceEs.addEventListener('put', onPres);
+  presenceEs.addEventListener('patch', onPres);
+  // 메시지 실시간 구독
+  chatEs = new EventSource(`${CHAT_PATH()}/msgs.json`);
+  const handle = (id, m) => {
+    if (!m || !m.m || chatSeen[id]) return;
+    chatSeen[id] = 1;
+    addChatMsg(m);
+  };
+  const onData = ev => {
+    try {
+      const { path, data } = JSON.parse(ev.data);
+      if (!data) return;
+      if (path === '/') {
+        const list = Object.entries(data).sort((a, b) => (a[1].t || 0) - (b[1].t || 0)).slice(-40);
+        for (const [id, m] of list) handle(id, m);
+      } else handle(path.slice(1).split('/')[0], data);
+    } catch (e) {}
+  };
+  chatEs.addEventListener('put', onData);
+  chatEs.addEventListener('patch', onData);
+}
+function closeChat() {
+  $('chat').classList.add('hidden');
+  try { chatEs && chatEs.close(); } catch (e) {}
+  try { presenceEs && presenceEs.close(); } catch (e) {}
+  chatEs = presenceEs = null;
+}
+async function sendChat() {
+  const inp = $('chatInput');
+  const text = inp.value.trim().slice(0, 60);
+  if (!text || !RANK_DB) return;
+  if (Date.now() - lastChatSend < 2000) { inp.placeholder = '조금만 천천히! (2초)'; return; }
+  lastChatSend = Date.now();
+  inp.value = '';
+  inp.placeholder = '메시지 입력... (60자)';
+  try {
+    await fetch(`${CHAT_PATH()}/msgs.json`, { method: 'POST', body: JSON.stringify({ n: getNick(), m: text, t: Date.now() }) });
+    pingPresence();
+    // 오래된 메시지 정리 (100개 넘으면 앞쪽 삭제)
+    const all = await (await fetch(`${CHAT_PATH()}/msgs.json?shallow=false`)).json();
+    const ids = Object.entries(all || {}).sort((a, b) => (a[1].t || 0) - (b[1].t || 0)).map(e => e[0]);
+    if (ids.length > 100) for (const id of ids.slice(0, ids.length - 80))
+      fetch(`${CHAT_PATH()}/msgs/${id}.json`, { method: 'DELETE' }).catch(() => {});
+  } catch (e) {}
+}
+$('ovBtn5').addEventListener('click', () => {
+  if (!getNick()) { openNickModal(); return; } // 닉네임이 있어야 채팅 가능
+  openChat();
+});
+$('chatClose').addEventListener('click', closeChat);
+$('chatSend').addEventListener('click', sendChat);
+$('chatInput').addEventListener('keydown', ev => { if (ev.key === 'Enter') sendChat(); });
+
 // ---------- 👥 더블큐 (한 보드 협동, 기획: 구예준) ----------
 // 호스트가 진짜 시뮬레이션을 돌리고 250ms마다 상태 방송(REST PUT),
 // 게스트는 SSE로 미러링하며 소환·합성 등을 명령으로 전송한다.
@@ -2329,6 +2444,7 @@ function frame(t) {
 resize();
 showOverlay('home');
 if (!getNick()) openNickModal(); // 첫 방문이면 닉네임부터!
+else startPresence();            // 닉네임이 있으면 접속 신호 시작
 if (HOLLY_IN) openHolly();                                  // 🍓 새로고침 10번의 주인공
 else if (ORGOL_IN) {                                        // 🎼 다크 카카오 문 너머
   $('orgol').classList.remove('hidden');
