@@ -1019,7 +1019,7 @@ function clearedOf(i) { return localStorage.getItem('ltd_clear_' + i) === '1'; }
 function gameOver() {
   S.over = true;
   sfx('over');
-  if (DUO.on) { duoPushStatus(); if (DUO.role === 'host') duoGameOver(); } // 👥 듀오: 파트너에게 즉시 알림 + 호스트가 팀 기록 제출
+  if (DUO.on) { duoPushStatus(); duoGameOver(); } // 👥 듀오: 파트너에게 유산 전달 + 팀 기록 제출(더 오래 버틴 쪽이 갱신)
   if (!DEV && !ORGOL && !DUO.on) { // 🌑 DARK KAKAO·🎼 오르골 기록은 저장·제출되지 않는다 (듀오는 듀오 랭킹으로)
     if (S.mode === 'story') {
       localStorage.setItem('ltd_best_' + S.stage, Math.max(S.wave, bestOf(S.stage)));
@@ -1607,10 +1607,11 @@ function updateTopbar() {
   if (DUO.on && DUO.playing) { // 듀오: 파트너 현황 실시간 표시
     const p = DUO.pState;
     const stale = Date.now() - DUO.lastSnap > 5000;
-    $('studio').textContent = stale
-      ? `👥 ${DUO.partner} 연결 대기 중...`
+    $('studio').textContent = DUO.alone
+      ? `🪦 ${DUO.partner} 전사 — 혼자 버티는 중!`
+      : stale ? `👥 ${DUO.partner} 연결 대기 중...`
       : p ? `👥 ${DUO.partner}: 웨이브 ${p.w} · 👾${p.en}/60 · 💰${p.g}` : `👥 ${DUO.partner}와 더블큐`;
-    $('studio').style.color = stale ? '#ff8a8a' : '#ffd76e';
+    $('studio').style.color = DUO.alone ? '#ffab91' : stale ? '#ff8a8a' : '#ffd76e';
   }
 }
 function upgradeCost() { return 100 + S.atkLv * 30; }
@@ -1820,10 +1821,15 @@ function showOverlay(mode) {
     b1.classList.remove('hidden');
     b2.classList.remove('hidden');
     if (DEV) $('ovRecord').textContent = '🌑 DARK KAKAO 서버 — 기록은 저장되지 않아요';
-    if (DUO.on) { // 듀오: 함께 끝났다 — 재시작 대신 처음으로
+    if (DUO.on) { // 듀오: 재시작 대신 처음으로
       b1.classList.add('hidden');
       b2.textContent = '처음으로';
-      $('ovMsg').innerHTML = `👥 <b>${escapeHtml(DUO.myNick)} + ${escapeHtml(DUO.partner || '?')}</b><br><b style="font-size:22px;color:#fff">웨이브 ${S.wave}</b> 까지 함께 버텼어요!`;
+      const partnerAlive = DUO.pState && !DUO.pState.over;
+      $('ovMsg').innerHTML = `👥 <b>${escapeHtml(DUO.myNick)} + ${escapeHtml(DUO.partner || '?')}</b><br>` +
+        `<b style="font-size:22px;color:#fff">웨이브 ${S.wave}</b> 까지 버텼어요!` +
+        (partnerAlive
+          ? `<br>🔥 ${escapeHtml(DUO.partner)}가 아직 싸우고 있어요!<br>내 골드 <b>${S.gold}G</b>를 유산으로 넘겼습니다`
+          : DUO.alone ? '<br>🪦 마지막까지 홀로 버텨낸 최후의 생존자' : '');
       $('ovRecord').textContent = '🏆 듀오 랭킹에 등재됐어요!';
     }
   } else if (mode === 'clear') {
@@ -2240,7 +2246,8 @@ function duoPushStatus() { // 내 현황 방송 (1초마다 + 게임오버 즉�
   if (!DUO.on || !DUO.playing || !DUO.code) return;
   fetch(`${RANK_DB}/party/${DUO.code}/p/${DUO.role}.json`, {
     method: 'PUT',
-    body: JSON.stringify({ w: S.wave, en: S.enemies.length, g: S.gold, over: S.over, t: Date.now() }),
+    // 전사하면 남은 골드를 유산(legacy)으로 남긴다 — 살아있는 팀원이 물려받는다
+    body: JSON.stringify({ w: S.wave, en: S.enemies.length, g: S.gold, over: S.over, legacy: S.over ? S.gold : 0, t: Date.now() }),
   }).catch(() => {});
 }
 function duoListenPartner() { // 파트너 현황 구독 + 공동 운명
@@ -2252,9 +2259,17 @@ function duoListenPartner() { // 파트너 현황 구독 + 공동 운명
       if (!data) return;
       DUO.pState = data;
       DUO.lastSnap = Date.now();
-      if (data.over && !S.over && S.running) { // 파트너 필드가 뚫림 → 함께 종료
-        addText(WORLD_W / 2, 250, `💥 ${DUO.partner}의 필드가 뚫렸다!`, '#ff8a8a', 16);
-        gameOver();
+      if (data.over && !DUO.legacyTaken) { // 파트너 전사 — 유산을 물려받고 혼자서 계속!
+        DUO.legacyTaken = true;
+        DUO.alone = true;
+        if (!S.over && S.running) {
+          const gift = Math.max(0, Math.round(data.legacy || 0));
+          S.gold += gift;
+          addText(WORLD_W / 2, 240, `💥 ${DUO.partner} 전사...`, '#ff8a8a', 17);
+          addText(WORLD_W / 2, 268, `🪦 유산 +${gift}G — 끝까지 버텨라!`, '#ffd76e', 15);
+          sfx('jackpot');
+          updateButtons();
+        }
       }
     } catch (e) {}
   });
@@ -2362,6 +2377,8 @@ function duoStartGame() { // 양쪽 각자 필드에서 동시 시작!
   startWave();
   DUO.pState = null;
   DUO.lastSnap = Date.now();
+  DUO.legacyTaken = false;
+  DUO.alone = false;
   DUO.bc = setInterval(duoPushStatus, 1000);
   duoListenPartner();
   duoListenGift();
@@ -2370,7 +2387,7 @@ function duoStartGame() { // 양쪽 각자 필드에서 동시 시작!
   addText(WORLD_W / 2, 258, '한쪽 필드가 뚫리면 둘 다 끝! 💝로 골드를 나눠주자', '#cdd6f4', 12);
   sfx('summon');
 }
-async function duoGameOver() { // 호스트: 팀 기록 제출
+async function duoGameOver() { // 팀 기록 제출 (양쪽 모두 시도 — 더 높은 웨이브만 남는다)
   try {
     if (!DUO.partner) return;
     const key = [DUO.myNick, DUO.partner].sort().join('+').replace(/[.#$/\[\]]/g, '').slice(0, 20);
@@ -2394,6 +2411,7 @@ function duoCleanup() {
   }
   DUO.on = false; DUO.role = null; DUO.code = null; DUO.partner = null;
   DUO.playing = false; DUO.bc = null; DUO.es = null; DUO.es2 = null; DUO.es3 = null; DUO.pState = null;
+  DUO.legacyTaken = false; DUO.alone = false;
   $('pauseBtn').disabled = false; $('speedBtn').disabled = false;
   $('giftBtn').style.display = 'none';
   $('studio').textContent = DEV ? '🌑 DARK KAKAO 서버' : '구예준 STUDIO';
@@ -2458,7 +2476,7 @@ requestAnimationFrame(frame);
 // 개발/테스트용 훅 (콘솔에서 게임 상태 확인용)
 window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, moveUnit, swapUnits, draw, startStage, STAGES, posAt,
   renderRank, submitClassicScore, submitStoryScore, showOverlay, throwFood, FOODS, castHyper,
-  DUO, duoCreate, duoJoin, duoRandom, duoPushStatus, duoStartGame, sendGift, duoCleanup, setRankDb: u => { RANK_DB = u; } };
+  DUO, duoCreate, duoJoin, duoRandom, duoPushStatus, duoStartGame, sendGift, duoCleanup, updateTopbar, setRankDb: u => { RANK_DB = u; } };
 </script>
 </body>
 </html>
