@@ -388,25 +388,25 @@ const GRADE_PROB = [0.54, 0.30, 0.10, 0.045, 0.015]; // 소환 등급 확률
 // 일반·희귀 등급은 아들이 그린 캐릭터! (character 폴더)
 const UNITS = [
   // 일반
-  { type:'swordsman',  grade:0, emoji:'⚔️', name:'검사',  dmg:11, cd:0.80, range:95,  atk:'slash',  img:'character/normal1.png' },
+  { type:'swordsman',  grade:0, emoji:'⚔️', name:'검사',  dmg:11, cd:0.90, range:95,  atk:'slash',  img:'character/normal1.png' },
   { type:'archer',     grade:0, emoji:'🏹', name:'궁수',  dmg:5,  cd:0.55, range:170, atk:'arrow',  img:'character/normal2.png' },
   { type:'farmer',     grade:0, emoji:'🌾', name:'농부',  dmg:7,  cd:0.80, range:130, atk:'scythe', hyper:'얼어버리는 일륜도', img:'character/normal3.png' },
   // 희귀
-  { type:'jurasaurus', grade:1, emoji:'🦕', name:'쥬라사우르스', dmg:29, cd:0.85, range:100, atk:'bite', hyper:'하이퍼 사우르스', img:'character/rare1.png' },
-  { type:'wonkkataein',grade:1, emoji:'⚾', name:'원까태인', dmg:10, cd:0.50, range:175, atk:'ball', special:'fireball', img:'character/rare2.png' },
-  { type:'tankboy',    grade:1, emoji:'🚜', name:'탱크보이', dmg:45, cd:1.80, range:165, splash:50, atk:'shell', img:'character/rare3.png' },
+  { type:'jurasaurus', grade:1, emoji:'🦕', name:'쥬라사우르스', dmg:32, cd:0.85, range:100, atk:'bite', hyper:'하이퍼 사우르스', img:'character/rare1.png' },
+  { type:'wonkkataein',grade:1, emoji:'⚾', name:'원까태인', dmg:14, cd:0.50, range:175, atk:'ball', special:'fireball', img:'character/rare2.png' },
+  { type:'tankboy',    grade:1, emoji:'🚜', name:'탱크보이', dmg:45, cd:2.10, range:165, splash:50, atk:'shell', img:'character/rare3.png' },
   // 영웅 — 아들 그림!
   { type:'deathpierrot', grade:2, emoji:'🤡', name:'데스삐에로', dmg:72,  cd:0.80, range:140, atk:'punch',    img:'character/hero1.png' },
   { type:'lumberjack',   grade:2, emoji:'🪓', name:'나무꾼',     dmg:110, cd:1.00, range:100, atk:'axe',      img:'character/hero2.png' },
-  { type:'darkrider',    grade:2, emoji:'🥷', name:'다크라이더', dmg:18,  cd:0.22, range:165, atk:'shuriken', img:'character/hero3.png' },
+  { type:'darkrider',    grade:2, emoji:'🥷', name:'다크라이더', dmg:16,  cd:0.22, range:165, atk:'shuriken', img:'character/hero3.png' },
   // 신화 — 아들 그림!
   { type:'miner',    grade:3, emoji:'⛏️', name:'능력자광부',   dmg:30,  cd:0.30, range:130, atk:'drill',     special:'bomb',   img:'character/myth1.png' },
   { type:'ricecake', grade:3, emoji:'🍡', name:'떡장수',       dmg:45,  cd:0.75, range:170, atk:'songpyeon', special:'multi4', img:'character/myth2.png' },
   { type:'ronin',    grade:3, emoji:'🗡️', name:'낭인',         dmg:170, cd:1.10, range:120, atk:'ronin',     special:'baldo',  img:'character/myth3.png' },
   { type:'angeldog', grade:3, emoji:'😇', name:'천사 도베르만', dmg:35,  cd:0.60, range:160, atk:'holy',      special:'smite',  img:'character/myth4.png' },
   // 전설 — 아들 그림! (신화 등장에 맞춰 전반 상향)
-  { type:'reddragon',  grade:4, emoji:'🐉', name:'레드드래곤', dmg:300, cd:1.50, range:320, splash:70, atk:'breath',  img:'character/legend1.png' },
-  { type:'dosa',       grade:4, emoji:'🧙', name:'도사',       dmg:110, cd:0.40, range:180, atk:'fan',      img:'character/legend2.png' },
+  { type:'reddragon',  grade:4, emoji:'🐉', name:'레드드래곤', dmg:312, cd:1.70, range:320, splash:70, atk:'breath',  img:'character/legend1.png' },
+  { type:'dosa',       grade:4, emoji:'🧙', name:'도사',       dmg:110, cd:0.70, range:180, atk:'fan',      img:'character/legend2.png' },
   { type:'catmachine', grade:4, emoji:'🐱', name:'캣머신',     dmg:170, cd:0.50, range:110, splash:30, atk:'missile', img:'character/legend3.png' },
   { type:'royalchef',  grade:4, emoji:'👨‍🍳', name:'로얄 셰프', dmg:0,   cd:30,   range:0,   support:'chef', disabled:true }, // 서포터! (그림 완성되면 disabled 제거하고 공개)
   { type:'penguin',    grade:4, emoji:'🐧', name:'펭귄악사',   dmg:0,   cd:1,    range:130, support:'aura', img:'character/legend4.png' }, // 오라 서포터
@@ -423,6 +423,7 @@ const CHEER_CHANCE = 0.15, CHEER_RANGE = 120, CHEER_TIME = 3.5, CHEER_SPD = 1.35
 const CHEF_CD = 30, FOOD_BUFF_TIME = 10;
 // 하이퍼차지 (기획: 구예준) — 20웨이브마다 1개, 하이퍼차지 보유 캐릭터로 발동
 const HYPER_EVERY = 20, HYPER_TIME = 10, HYPER_DMG_MUL = 3;
+const FARMER_DMG_TIME = 8; // 얼어버리는 일륜도: 공격력 3배 지속(빙결은 10초)
 const FOODS = [
   { id:'pancake', emoji:'🥞', name:'팬케이크', msg:'공격력 30% UP!' },
   { id:'cupcake', emoji:'🧁', name:'컵케이크', msg:'공격속도 50% UP!' },
@@ -432,8 +433,9 @@ const FOODS = [
 ];
 // 신화 특수 능력
 const BOMB_CHANCE = 0.15, BOMB_DMG = 150, BOMB_RADIUS = 60, BOMB_FUSE = 1.0; // 능력자광부: 폭탄 설치
-const BALDO_CHANCE = 0.20, BALDO_RADIUS = 90;                                // 낭인: 발도술 광역
-const SMITE_CHANCE = 0.08, SMITE_BOSS_PCT = 0.03;                            // 천사 도베르만: 즉사 (보스는 최대체력 3% 추가)
+const BALDO_CHANCE = 0.25, BALDO_RADIUS = 90;                                // 낭인: 발도술 광역
+const SMITE_CHANCE = 0.04, SMITE_BOSS_PCT = 0.03;                            // 천사 도베르만: 즉사 (보스는 최대체력 3% 추가)
+const MULTI_TARGETS = 5;                                                     // 떡장수: 동시 공격 대상 수
 const FIREBALL_CHANCE = 0.25; // 원까태인 불꽃공 확률 (피해 3배 + 소범위)
 const PROJ_SPEED = { arrow:700, scythe:420, ball:560, fire:480, shell:320, shuriken:650, fan:560, missile:430, drill:620, songpyeon:520, holy:560, paper:540, orb:500 };
 const INSTANT_ATK = new Set(['slash', 'bite', 'punch', 'axe', 'breath', 'ronin', 'bane']); // 즉발(투사체 없는) 공격
@@ -787,9 +789,9 @@ function castHyper(slot) { // ⚡ 하이퍼차지 발동! (캐릭터마다 다�
   if (!ORGOL) S.hyperCharges--; // 🎼 오르골 서버는 무한 발동!
   addText(WORLD_W / 2, 230, `⚡ ${sl.unit.hyper}!! ⚡`, '#4fc3f7', 20);
   if (sl.unit.type === 'farmer') { // 얼어버리는 일륜도
-    S.buffT.hyper = HYPER_TIME;
+    S.buffT.hyper = FARMER_DMG_TIME;
     for (const e of S.enemies) e.frozenT = HYPER_TIME; // 적 전원 빙결
-    addText(WORLD_W / 2, 262, '적 전원 빙결 + 아군 공격력 3배! (10초)', '#e1f5fe', 14);
+    addText(WORLD_W / 2, 262, `적 전원 빙결 10초 + 아군 공격력 3배 ${FARMER_DMG_TIME}초!`, '#e1f5fe', 14);
     addText(sl.cx, sl.cy - 30, '❄️⚔️', '#fff', 24);
   } else if (sl.unit.type === 'jurasaurus') { // 하이퍼 사우르스
     S.buffT.jura = HYPER_TIME;
@@ -854,8 +856,8 @@ function update(dt) {
     }
     const inRange = e => { const p = posAt(e.d); const dx = p.x - s.cx, dy = p.y - s.cy; return dx * dx + dy * dy <= u.range * u.range; };
     let targets;
-    if (u.special === 'multi4') { // 떡장수: 보스는 무시하고 최대 4명 동시 공격
-      targets = S.enemies.filter(e => !e.boss && inRange(e)).sort((a, b) => b.trav - a.trav).slice(0, 4);
+    if (u.special === 'multi4') { // 떡장수: 보스는 무시하고 여러 명 동시 공격
+      targets = S.enemies.filter(e => !e.boss && inRange(e)).sort((a, b) => b.trav - a.trav).slice(0, MULTI_TARGETS);
     } else {
       let best = null;
       for (const e of S.enemies) if (inRange(e) && (!best || e.trav > best.trav)) best = e;
@@ -1626,9 +1628,9 @@ function updateInfoPanel() {
     const extra = (u.splash ? ' · 범위공격' : '') + (u.slow ? ' · 감속' : '')
       + (u.special === 'fireball' ? ' · 🔥25% 불꽃공(3배)' : '')
       + (u.special === 'bomb' ? ' · 💣15% 폭탄 설치' : '')
-      + (u.special === 'multi4' ? ' · 4명 동시공격 · 보스 무시' : '')
-      + (u.special === 'baldo' ? ' · ⚔️20% 발도술(광역)' : '')
-      + (u.special === 'smite' ? ' · ⚡8% 즉사' : '')
+      + (u.special === 'multi4' ? ` · ${MULTI_TARGETS}명 동시공격 · 보스 무시` : '')
+      + (u.special === 'baldo' ? ` · ⚔️${Math.round(BALDO_CHANCE * 100)}% 발도술(광역)` : '')
+      + (u.special === 'smite' ? ` · ⚡${Math.round(SMITE_CHANCE * 100)}% 즉사` : '')
       + (u.special === 'cheer' ? ' · 📣15% 주변 공속 UP' : '')
       + ((u.atk === 'slash' || u.atk === 'bite' || u.atk === 'axe' || u.atk === 'ronin') ? ' · 근접' : '')
       + (u.hyper ? ` · ⚡${u.hyper}` : '');
@@ -2055,8 +2057,8 @@ function renderHolly(tab) {
       const pick = total ? ((use[u.type] || 0) / total * 100).toFixed(1) + '%' : '기록 없음';
       const extra = [u.splash ? `범위 ${u.splash}` : '', u.slow ? '감속' : '',
         u.special === 'fireball' ? '25% 불꽃공' : '', u.special === 'bomb' ? '15% 폭탄' : '',
-        u.special === 'multi4' ? '4연발·보스무시' : '', u.special === 'baldo' ? '20% 발도술' : '',
-        u.special === 'smite' ? '8% 즉사' : '', u.special === 'cheer' ? '15% 주변 공속 UP' : '',
+        u.special === 'multi4' ? `${MULTI_TARGETS}연발·보스무시` : '', u.special === 'baldo' ? `${Math.round(BALDO_CHANCE * 100)}% 발도술` : '',
+        u.special === 'smite' ? `${Math.round(SMITE_CHANCE * 100)}% 즉사` : '', u.special === 'cheer' ? '15% 주변 공속 UP' : '',
         u.support === 'chef' ? '30초 랜덤 요리' : '',
         u.support === 'aura' ? '오라: 아군 공격+25%·공속+20% / 적 이동-35%' : '',
         u.hyper ? `⚡${u.hyper}` : ''].filter(Boolean).join(' · ');
