@@ -1142,10 +1142,9 @@ function clearedOf(i) { return localStorage.getItem('ltd_clear_' + i) === '1'; }
 function gameOver() {
   S.over = true;
   sfx('over');
-  if (!DEV && !ORGOL) {
-    gainPearl(Math.max(1, Math.floor(S.wave / 2))); // 🫧 진주 획득 (낚시 밑천)
-    if (lavaOn()) { FREEFISH += S.wave; saveTreasure(); } // 🌋 라바 이벤트: 웨이브 수만큼 무료 낚시!
-  }
+  if (!DEV && !ORGOL) gainPearl(Math.max(1, Math.floor(S.wave / 2))); // 🫧 진주 획득 (낚시 밑천)
+  // 🌋 라바 이벤트는 🌑 DARK KAKAO에서도 보상 지급 (개발자 특권)
+  if (lavaOn() && !ORGOL && S.wave > 0) { FREEFISH += S.wave; saveTreasure(); }
   if (DUO.on) { duoPushStatus(); duoGameOver(); } // 👥 듀오: 파트너에게 유산 전달 + 팀 기록 제출(더 오래 버틴 쪽이 갱신)
   if (!DEV && !ORGOL && !DUO.on) { // 🌑 DARK KAKAO·🎼 오르골 기록은 저장·제출되지 않는다 (듀오는 듀오 랭킹으로)
     if (S.mode === 'story') {
@@ -1972,8 +1971,10 @@ function showOverlay(mode) {
     b1.textContent = '다시하기';
     b1.classList.remove('hidden');
     b2.classList.remove('hidden');
-    if (DEV) $('ovRecord').textContent = '🌑 DARK KAKAO 서버 — 기록은 저장되지 않아요';
-    else if (lavaOn() && S.wave > 0) $('ovRecord').innerHTML = `🌋 <b>라바 이벤트!</b> 무료 낚시 <b>${S.wave}회</b> 획득! (총 ${FREEFISH}회)`;
+    const lavaMsg = (lavaOn() && S.wave > 0 && !ORGOL)
+      ? `🌋 <b>라바 이벤트!</b> 무료 낚시 <b>${S.wave}회</b> 획득! (총 ${FREEFISH}회)` : '';
+    if (DEV) $('ovRecord').innerHTML = '🌑 DARK KAKAO 서버 — 기록은 저장되지 않아요' + (lavaMsg ? '<br>' + lavaMsg : '');
+    else if (lavaMsg) $('ovRecord').innerHTML = lavaMsg;
     if (DUO.on) { // 듀오: 재시작 대신 처음으로
       b1.classList.add('hidden');
       b2.textContent = '처음으로';
