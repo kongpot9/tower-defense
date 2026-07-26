@@ -86,6 +86,15 @@
   #pearlCount { color:#b3e5fc; font-size:16px; font-weight:800; }
   #fishBtn { padding:12px 20px; font-size:15px; background:linear-gradient(180deg,#29b6f6,#0277bd); box-shadow:0 4px 0 #01579b; border-radius:12px; }
   #fishBtn:disabled { filter:grayscale(.7); box-shadow:none; }
+  #fishAllBtn { padding:12px 16px; font-size:14px; background:linear-gradient(180deg,#ff7043,#d84315); box-shadow:0 4px 0 #8d2b0b; border-radius:12px; }
+  #eventBanner {
+    width:100%; max-width:420px; padding:9px 12px; border-radius:12px;
+    background:linear-gradient(90deg,#bf360c,#ff7043); color:#fff;
+    font-size:13px; font-weight:800; text-align:center; line-height:1.5;
+  }
+  #homeEvent {
+    color:#ff8a65; font-size:12px; font-weight:800; margin-top:2px;
+  }
   #fishResult { min-height:26px; color:#ffd76e; font-size:14px; font-weight:800; text-align:center; }
   #treasureList {
     flex:1; width:100%; max-width:420px; overflow-y:auto;
@@ -285,6 +294,7 @@
     <button class="devbtn" id="devKill">💀전멸</button>
     <button class="devbtn" id="devGod">🛡️무적</button>
     <button class="devbtn" id="devPower">💪공10만</button>
+    <button class="devbtn" id="devLava">🌋라바</button>
   </div>
   <div id="btnrow">
     <button id="summonBtn">🎲 소환 20G</button>
@@ -301,6 +311,7 @@
   <p id="ovMsg">골드로 랜덤 캐릭터를 소환하고<br>같은 캐릭터를 합성해서 더 강하게!</p>
   <div id="stageSel"></div>
   <div class="record" id="ovRecord"></div>
+  <div id="homeEvent" class="hidden"></div>
   <button id="ovBtn">시작하기</button>
   <button id="ovBtn2" class="hidden">스테이지 선택</button>
   <button id="ovBtn3" class="hidden">🏆 랭킹</button>
@@ -366,9 +377,11 @@
 <div id="fish" class="hidden">
   <h2>🎣 낚시터</h2>
   <p class="sub">진주로 낚시해서 보물을 건져라!<br>같은 보물을 또 낚으면 <b>레벨업</b> (최대 15)</p>
+  <div id="eventBanner" class="hidden"></div>
   <div id="fishTop">
     <span id="pearlCount">🫧 0</span>
     <button id="fishBtn">🎣 낚시하기 (🫧10)</button>
+    <button id="fishAllBtn" class="hidden">⚡ 전부 낚기</button>
   </div>
   <div id="fishResult"></div>
   <div id="treasureList"></div>
@@ -1129,7 +1142,10 @@ function clearedOf(i) { return localStorage.getItem('ltd_clear_' + i) === '1'; }
 function gameOver() {
   S.over = true;
   sfx('over');
-  if (!DEV && !ORGOL) gainPearl(Math.max(1, Math.floor(S.wave / 2))); // 🫧 진주 획득 (낚시 밑천)
+  if (!DEV && !ORGOL) {
+    gainPearl(Math.max(1, Math.floor(S.wave / 2))); // 🫧 진주 획득 (낚시 밑천)
+    if (lavaOn()) { FREEFISH += S.wave; saveTreasure(); } // 🌋 라바 이벤트: 웨이브 수만큼 무료 낚시!
+  }
   if (DUO.on) { duoPushStatus(); duoGameOver(); } // 👥 듀오: 파트너에게 유산 전달 + 팀 기록 제출(더 오래 버틴 쪽이 갱신)
   if (!DEV && !ORGOL && !DUO.on) { // 🌑 DARK KAKAO·🎼 오르골 기록은 저장·제출되지 않는다 (듀오는 듀오 랭킹으로)
     if (S.mode === 'story') {
@@ -1896,6 +1912,8 @@ function showOverlay(mode) {
     $('nickName').textContent = getNick() || '닉네임 없음';
     const best = +(localStorage.getItem('ltd_best') || 0);
     $('ovRecord').textContent = best > 0 ? `🏆 일반 모드 최고 기록: 웨이브 ${best}` : '';
+    loadLava(); // 🌋 이벤트 진행 여부 확인
+    updateEventUI();
   } else if (mode === 'rank') { // 🏆 랭킹
     ov.querySelector('h1').textContent = '🏆 랭킹';
     $('ovChars').style.display = 'none';
@@ -1955,6 +1973,7 @@ function showOverlay(mode) {
     b1.classList.remove('hidden');
     b2.classList.remove('hidden');
     if (DEV) $('ovRecord').textContent = '🌑 DARK KAKAO 서버 — 기록은 저장되지 않아요';
+    else if (lavaOn() && S.wave > 0) $('ovRecord').innerHTML = `🌋 <b>라바 이벤트!</b> 무료 낚시 <b>${S.wave}회</b> 획득! (총 ${FREEFISH}회)`;
     if (DUO.on) { // 듀오: 재시작 대신 처음으로
       b1.classList.add('hidden');
       b2.textContent = '처음으로';
@@ -2076,6 +2095,7 @@ $('devPower').addEventListener('click', () => {
   $('devPower').classList.toggle('active', DEV_POWER);
   addText(WORLD_W / 2, 300, DEV_POWER ? '💪 기본 공격력 10만!!' : '💪 공격력 원상복구', '#b388ff', 15);
 });
+$('devLava').addEventListener('click', () => { if (DEV) startLava(); }); // 🌋 라바 이벤트 개시 (3시간)
 $('devPickBtn').addEventListener('click', () => {
   if (!DEV) return;
   const grid = $('devPickGrid');
@@ -2284,22 +2304,67 @@ const TREASURES = [
   { id:'gem',     icon:'💎', name:'간트네스의 반지',
     desc: lv => `적이 나올 때 40% 확률로 체력 ${10 + lv}% 감소`, },
 ];
-let TR = {}, PEARL = 0;
+let TR = {}, PEARL = 0, FREEFISH = 0;
+// 🌋 라바 이벤트 — 3시간 한정, 게임이 끝나면 도달 웨이브 수만큼 무료 낚시!
+const LAVA_HOURS = 3;
+let LAVA_UNTIL = 0;
+const lavaOn = () => Date.now() < LAVA_UNTIL;
+function lavaLeftText() {
+  const ms = LAVA_UNTIL - Date.now();
+  if (ms <= 0) return '';
+  const h = Math.floor(ms / 3600000), m = Math.floor(ms / 60000) % 60;
+  return h > 0 ? `${h}시간 ${m}분 남음` : `${m}분 남음`;
+}
+async function loadLava() { // 서버에서 이벤트 종료 시각 받아오기 (모든 유저 동기화)
+  if (!RANK_DB) return;
+  try {
+    const d = await (await fetch(`${RANK_DB}/party/_event/lava.json`)).json();
+    LAVA_UNTIL = (d && d.until) || 0;
+    updateEventUI();
+  } catch (e) {}
+}
+async function startLava() { // 🌑 DARK KAKAO 전용 — 이벤트 개시
+  LAVA_UNTIL = Date.now() + LAVA_HOURS * 3600000;
+  try { await fetch(`${RANK_DB}/party/_event/lava.json`, { method: 'PUT', body: JSON.stringify({ until: LAVA_UNTIL }) }); } catch (e) {}
+  updateEventUI();
+  addText(WORLD_W / 2, 300, '🌋 라바 이벤트 시작!!', '#ff7043', 20);
+}
+function updateEventUI() {
+  const on = lavaOn();
+  const he = $('homeEvent');
+  if (he) {
+    he.textContent = on ? `🌋 라바 이벤트 진행 중! 게임이 끝나면 웨이브 수만큼 무료 낚시! (${lavaLeftText()})` : '';
+    he.classList.toggle('hidden', !on);
+  }
+  const eb = $('eventBanner');
+  if (eb) {
+    eb.innerHTML = on
+      ? `🌋 <b>라바 이벤트</b> 진행 중 — ${lavaLeftText()}<br>게임이 끝나면 <b>도달 웨이브 수만큼 무료 낚시!</b>`
+      : '';
+    eb.classList.toggle('hidden', !on);
+  }
+}
 function loadTreasure() {
   try { TR = JSON.parse(localStorage.getItem('ltd_treasure') || '{}'); } catch (e) { TR = {}; }
   PEARL = +(localStorage.getItem('ltd_pearl') || 0);
+  FREEFISH = +(localStorage.getItem('ltd_freefish') || 0);
 }
 function saveTreasure() {
   try {
     localStorage.setItem('ltd_treasure', JSON.stringify(TR));
     localStorage.setItem('ltd_pearl', String(PEARL));
+    localStorage.setItem('ltd_freefish', String(FREEFISH));
   } catch (e) {}
 }
 const trLv = id => TR[id] || 0; // 0이면 미보유
 function gainPearl(n) { PEARL += n; saveTreasure(); }
 function renderFish() {
-  $('pearlCount').textContent = `🫧 ${PEARL}`;
-  $('fishBtn').disabled = PEARL < FISH_COST;
+  updateEventUI();
+  $('pearlCount').innerHTML = `🫧 ${PEARL}` + (FREEFISH > 0 ? ` &nbsp;<span style="color:#ff8a65">🌋 무료 ${FREEFISH}회</span>` : '');
+  $('fishBtn').disabled = FREEFISH <= 0 && PEARL < FISH_COST;
+  $('fishBtn').textContent = FREEFISH > 0 ? '🎣 무료 낚시!' : '🎣 낚시하기 (🫧10)';
+  $('fishAllBtn').classList.toggle('hidden', FREEFISH < 2);
+  $('fishAllBtn').textContent = `⚡ 전부 낚기 (${FREEFISH}회)`;
   $('treasureList').innerHTML = TREASURES.map(t => {
     const lv = trLv(t.id);
     return `<div class="tcard${lv ? (lv >= TREASURE_MAX ? ' max' : '') : ' locked'}">
@@ -2311,8 +2376,9 @@ function renderFish() {
   }).join('');
 }
 function doFish() {
-  if (PEARL < FISH_COST) return;
-  PEARL -= FISH_COST;
+  if (FREEFISH > 0) FREEFISH--;            // 🌋 무료 낚시권 먼저 사용
+  else if (PEARL >= FISH_COST) PEARL -= FISH_COST;
+  else return;
   const t = rand(TREASURES);
   const lv = trLv(t.id);
   let msg;
@@ -2324,6 +2390,33 @@ function doFish() {
   renderFish();
   sfx(!lv ? 'jackpot' : 'merge');
 }
+function doFishAll() { // 🌋 무료 낚시권을 한 번에 소모
+  if (FREEFISH < 1) return;
+  const got = {}, ups = {};
+  let refund = 0;
+  const n = FREEFISH;
+  while (FREEFISH > 0) {
+    FREEFISH--;
+    const t = rand(TREASURES);
+    const lv = trLv(t.id);
+    if (!lv) { TR[t.id] = 1; got[t.name] = t.icon; }
+    else if (lv >= TREASURE_MAX) { PEARL += 4; refund += 4; }
+    else { TR[t.id] = lv + 1; ups[t.id] = (ups[t.id] || 0) + 1; }
+  }
+  saveTreasure();
+  const newList = Object.entries(got).map(([nm, ic]) => `${ic}${nm}`).join(', ');
+  const upList = Object.entries(ups).map(([id, c]) => {
+    const t = TREASURES.find(x => x.id === id);
+    return `${t.icon}+${c}`;
+  }).join(' ');
+  $('fishResult').innerHTML = `🌋 ${n}회 낚시 완료!` +
+    (newList ? `<br>🎉 새 보물: ${newList}` : '') +
+    (upList ? `<br>⬆️ ${upList}` : '') +
+    (refund ? `<br>🫧 환급 +${refund}` : '');
+  renderFish();
+  sfx('jackpot');
+}
+$('fishAllBtn').addEventListener('click', doFishAll);
 $('ovBtn6').addEventListener('click', () => { $('fish').classList.remove('hidden'); $('fishResult').textContent = ''; renderFish(); });
 $('fishClose').addEventListener('click', () => $('fish').classList.add('hidden'));
 $('fishBtn').addEventListener('click', doFish);
@@ -2682,8 +2775,10 @@ requestAnimationFrame(frame);
 window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, moveUnit, swapUnits, draw, startStage, STAGES, posAt,
   renderRank, submitClassicScore, submitStoryScore, showOverlay, throwFood, FOODS, castHyper,
   DUO, duoCreate, duoJoin, duoRandom, duoPushStatus, duoStartGame, sendGift, duoCleanup, updateTopbar,
-  TREASURES, doFish, renderFish, rollGrade, trLv, getTR: () => ({ TR, PEARL }),
-  setTR: (t, p) => { TR = t; PEARL = p; saveTreasure(); }, setRankDb: u => { RANK_DB = u; } };
+  TREASURES, doFish, doFishAll, renderFish, rollGrade, trLv, startLava, loadLava, lavaOn,
+  getTR: () => ({ TR, PEARL, FREEFISH, LAVA_UNTIL }),
+  setTR: (t, p, f) => { TR = t; PEARL = p; if (f !== undefined) FREEFISH = f; saveTreasure(); },
+  setLava: ms => { LAVA_UNTIL = ms; updateEventUI(); }, setRankDb: u => { RANK_DB = u; } };
 </script>
 </body>
 </html>
