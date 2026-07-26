@@ -75,6 +75,34 @@
     background:linear-gradient(180deg,#66d36e,#3fa946); box-shadow:0 5px 0 #23702a;
   }
   #overlay .record { color:#ffd76e; font-weight:800; font-size:17px; }
+  #fish {
+    position:fixed; inset:0; background:#0f2436; z-index:23;
+    padding:16px 14px calc(14px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+  }
+  #fish h2 { color:#7fd4ff; font-size:22px; }
+  #fish .sub { color:#8fb4cc; font-size:12px; text-align:center; line-height:1.6; }
+  #fishTop { display:flex; align-items:center; gap:10px; width:100%; max-width:420px; justify-content:center; }
+  #pearlCount { color:#b3e5fc; font-size:16px; font-weight:800; }
+  #fishBtn { padding:12px 20px; font-size:15px; background:linear-gradient(180deg,#29b6f6,#0277bd); box-shadow:0 4px 0 #01579b; border-radius:12px; }
+  #fishBtn:disabled { filter:grayscale(.7); box-shadow:none; }
+  #fishResult { min-height:26px; color:#ffd76e; font-size:14px; font-weight:800; text-align:center; }
+  #treasureList {
+    flex:1; width:100%; max-width:420px; overflow-y:auto;
+    display:flex; flex-direction:column; gap:7px; padding:2px;
+  }
+  .tcard {
+    background:#163a52; border:1px solid #2a5f80; border-radius:12px;
+    padding:9px 12px; color:#dff1fb; font-size:13px; text-align:left;
+    display:flex; gap:10px; align-items:center;
+  }
+  .tcard.locked { opacity:.45; }
+  .tcard .ticon { font-size:26px; }
+  .tcard .tname { font-weight:800; font-size:14px; }
+  .tcard .tlv { color:#ffd76e; font-size:11px; font-weight:800; }
+  .tcard .tdesc { color:#8fb4cc; font-size:11px; margin-top:2px; line-height:1.45; }
+  .tcard.max { border-color:#ffd54f; }
+  #fish .close { background:#2a5f80; padding:9px 26px; font-size:14px; border-radius:10px; }
   #chat {
     position:fixed; inset:0; background:#141b2e; z-index:23;
     padding:16px 14px calc(14px + env(safe-area-inset-bottom));
@@ -278,6 +306,7 @@
   <button id="ovBtn3" class="hidden">🏆 랭킹</button>
   <button id="ovBtn4" class="hidden">👥 더블큐</button>
   <button id="ovBtn5" class="hidden">💬 채팅방</button>
+  <button id="ovBtn6" class="hidden">🎣 낚시터</button>
   <div id="nickLine" class="hidden">👤 <span id="nickName"></span> <button id="nickEdit">✏️ 바꾸기</button></div>
 </div>
 
@@ -332,6 +361,18 @@
       <button id="duoCancelBtn" class="gray">취소</button>
     </div>
   </div>
+</div>
+
+<div id="fish" class="hidden">
+  <h2>🎣 낚시터</h2>
+  <p class="sub">진주로 낚시해서 보물을 건져라!<br>같은 보물을 또 낚으면 <b>레벨업</b> (최대 15)</p>
+  <div id="fishTop">
+    <span id="pearlCount">🫧 0</span>
+    <button id="fishBtn">🎣 낚시하기 (🫧10)</button>
+  </div>
+  <div id="fishResult"></div>
+  <div id="treasureList"></div>
+  <button class="close" id="fishClose">나가기</button>
 </div>
 
 <div id="chat" class="hidden">
@@ -583,6 +624,7 @@ const S = {
   enemies: [], projectiles: [], texts: [], effects: [], bombs: [],
   buffT: { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0, jura: 0, bleed: 0 }, // 셰프 요리 + 하이퍼차지 버프 남은 시간
   hyperCharges: 0, // ⚡ 하이퍼차지 보유 개수 (20웨이브마다 +1)
+  nextHyper: HYPER_EVERY, // 다음 하이퍼차지 충전 웨이브 (일기장으로 단축 가능)
   eid: 1, // 적 고유 번호 (듀오 동기화용)
   selected: null, speed: 1, muted: false, paused: false, time: 0,
   stage: 0, cleared: false, clearWait: false,
@@ -595,7 +637,14 @@ function resetGame() {
   S.buffT = { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0, jura: 0, bleed: 0 };
   S.atkLv = 0;
   S.hyperCharges = 0;
+  S.nextHyper = HYPER_EVERY;
   S.eid = 1;
+  const sf = trLv('safe'); // 🔒 금고: 게임 시작 시 70% 확률로 보너스 골드
+  if (sf && Math.random() < 0.7) {
+    const bonus = 60 + (sf - 1) * 20;
+    S.gold += bonus;
+    setTimeout(() => addText(WORLD_W / 2, 300, `🔒 금고에서 ${bonus}G 발견!`, '#ffd76e', 16), 400);
+  }
   S.selected = null;
   S.paused = false;
   S.cleared = false;
@@ -638,8 +687,16 @@ function sfx(kind) {
 // ---------- 유틸 ----------
 const rand = a => a[Math.floor(Math.random() * a.length)];
 function rollGrade() {
+  const p = GRADE_PROB.slice();
+  const lk = trLv('luck'); // 🍀 행운석: 고등급 확률 상승 (일반에서 차감)
+  if (lk) {
+    const up = [0, 0, lk * 0.003, lk * 0.002, lk * 0.001];
+    const total = up.reduce((a, b) => a + b, 0);
+    for (let i = 2; i < p.length; i++) p[i] += up[i];
+    p[0] = Math.max(0, p[0] - total);
+  }
   let r = Math.random(), acc = 0;
-  for (let i = 0; i < GRADE_PROB.length; i++) { acc += GRADE_PROB[i]; if (r < acc) return i; }
+  for (let i = 0; i < p.length; i++) { acc += p[i]; if (r < acc) return i; }
   return 0;
 }
 function unitsOfGrade(g) { return UNITS.filter(u => u.grade === g && !u.disabled); }
@@ -655,10 +712,18 @@ function startWave() {
   if (S.mode === 'story' && S.wave === stg.clearWave && !S.cleared) { stageClear(); return; } // 클리어 웨이브까지 버팀!
   S.wave++;
   S.roundT = ROUND_LEN;
-  if (S.wave % HYPER_EVERY === 0) { // 20웨이브마다 하이퍼차지 지급!
+  if (S.wave >= S.nextHyper) { // 하이퍼차지 지급! (기본 20웨이브마다)
     S.hyperCharges++;
     addText(WORLD_W / 2, 320, '⚡ 하이퍼차지 획득!', '#4fc3f7', 18);
     sfx('jackpot');
+    let gap = HYPER_EVERY;
+    const dr = trLv('diary'); // 📓 톰 리들의 일기장: 70% 확률로 충전 단축
+    if (dr && Math.random() < 0.7) {
+      const cut = 5 + Math.floor((dr - 1) / 3);
+      gap = Math.max(5, HYPER_EVERY - cut);
+      addText(WORLD_W / 2, 348, `📓 일기장! 다음 충전 ${cut}웨이브 단축`, '#ce93d8', 14);
+    }
+    S.nextHyper = S.wave + gap;
   }
   const boss = S.wave % 5 === 0;
   S.bossWave = boss;
@@ -880,13 +945,15 @@ function update(dt) {
       const aura = auras.length > 0 && inAura(s.cx, s.cy); // 🐧 연주 범위 안?
       // 얼음 왕국 감속 ÷ (컵케이크 · 펭귄 연주 · 인디 응원) 가속
       u.cdT = u.cd * (STAGES[S.stage].atkCdMul || 1)
-        / ((S.buffT.spd > 0 ? 1.5 : 1) * (aura ? AURA_SPD : 1) * (u.cheerT > 0 ? CHEER_SPD : 1));
+        / ((S.buffT.spd > 0 ? 1.5 : 1) * (aura ? AURA_SPD : 1) * (u.cheerT > 0 ? CHEER_SPD : 1)
+           * (1 + trLv('flute') * 0.01)); // 🎵 피터의 피리
       const juraHyper = u.type === 'jurasaurus' && S.buffT.jura > 0; // 🦕 하이퍼 사우르스!
       if (juraHyper) u.cdT = u.cd / 51; // 공속 +5000%
       // 강화(⚔️ +10%씩 복리) × 팬케이크(+30%) × 펭귄 연주(+25%) 적용 공격력
       const D = DEV_POWER ? 100000 // 🌑 DARK KAKAO: 기본 공격력 10만
         : Math.round(u.dmg * Math.pow(1.1, S.atkLv) * (S.buffT.dmg > 0 ? 1.3 : 1) * (S.buffT.hyper > 0 ? HYPER_DMG_MUL : 1) * (juraHyper ? 5 : 1) * (aura ? AURA_DMG : 1)
-          * (S.buffT.bleed > 0 ? BLEED_MUL : 1)); // 🩸 피의 석궁: 적 방어력 하락
+          * (S.buffT.bleed > 0 ? BLEED_MUL : 1) // 🩸 피의 석궁: 적 방어력 하락
+          * (1 + Math.min(S.gold / 100, trLv('ring') * 2) / 100)); // 💍 부자의 반지: 골드 비례
       if (u.special === 'cheer' && Math.random() < CHEER_CHANCE) { // 🤠 인디: 주변 아군에게 응원!
         let n = 0;
         for (const s2 of slots) {
@@ -1034,6 +1101,7 @@ function clearedOf(i) { return localStorage.getItem('ltd_clear_' + i) === '1'; }
 function gameOver() {
   S.over = true;
   sfx('over');
+  if (!DEV && !ORGOL) gainPearl(Math.max(1, Math.floor(S.wave / 2))); // 🫧 진주 획득 (낚시 밑천)
   if (DUO.on) { duoPushStatus(); duoGameOver(); } // 👥 듀오: 파트너에게 유산 전달 + 팀 기록 제출(더 오래 버틴 쪽이 갱신)
   if (!DEV && !ORGOL && !DUO.on) { // 🌑 DARK KAKAO·🎼 오르골 기록은 저장·제출되지 않는다 (듀오는 듀오 랭킹으로)
     if (S.mode === 'story') {
@@ -1779,6 +1847,7 @@ function showOverlay(mode) {
   b3.classList.add('hidden');
   $('ovBtn4').classList.add('hidden');
   $('ovBtn5').classList.add('hidden');
+  $('ovBtn6').classList.add('hidden');
   $('nickLine').classList.add('hidden');
   if (mode === 'home') { // 첫 화면: 모드 선택
     ov.querySelector('h1').textContent = '🏰 타워 디펜스 777';
@@ -1792,6 +1861,7 @@ function showOverlay(mode) {
     b3.classList.remove('hidden');
     $('ovBtn4').classList.remove('hidden');
     $('ovBtn5').classList.remove('hidden');
+    $('ovBtn6').classList.remove('hidden');
     if (DUO.on) duoCleanup(); // 홈으로 오면 듀오 종료
     $('nickLine').classList.remove('hidden');
     $('nickName').textContent = getNick() || '닉네임 없음';
@@ -2159,6 +2229,66 @@ $('hollyClose').addEventListener('click', () => $('holly').classList.add('hidden
 $('orgolClose').addEventListener('click', () => $('orgol').classList.add('hidden'));
 function openHolly() { $('holly').classList.remove('hidden'); renderHolly('units'); }
 
+// ---------- 🎣 낚시터 & 보물 (기획: 구예준) ----------
+// 진주로 낚시 → 보물 획득, 중복이면 레벨업(최대 15). 효과는 레벨에 비례.
+const TREASURE_MAX = 15, FISH_COST = 10;
+const TREASURES = [
+  { id:'safe',    icon:'🔒', name:'금고',
+    desc: lv => `게임 시작 시 70% 확률로 ${60 + (lv - 1) * 20}골드`, },
+  { id:'ring',    icon:'💍', name:'부자의 반지',
+    desc: lv => `보유 골드 100당 아군 공격력 +1% (최대 +${lv * 2}%)`, },
+  { id:'luck',    icon:'🍀', name:'행운석',
+    desc: lv => `고등급 소환 확률 상승 (전설 +${(lv * 0.1).toFixed(1)}%p · 신화 +${(lv * 0.2).toFixed(1)}%p · 영웅 +${(lv * 0.3).toFixed(1)}%p)`, },
+  { id:'flute',   icon:'🎵', name:'피터의 피리',
+    desc: lv => `아군 전체 공격속도 +${lv}%`, },
+  { id:'diary',   icon:'📓', name:'톰 리들의 일기장',
+    desc: lv => `하이퍼차지 충전 시 70% 확률로 ${5 + Math.floor((lv - 1) / 3)}웨이브 단축`, },
+];
+let TR = {}, PEARL = 0;
+function loadTreasure() {
+  try { TR = JSON.parse(localStorage.getItem('ltd_treasure') || '{}'); } catch (e) { TR = {}; }
+  PEARL = +(localStorage.getItem('ltd_pearl') || 0);
+}
+function saveTreasure() {
+  try {
+    localStorage.setItem('ltd_treasure', JSON.stringify(TR));
+    localStorage.setItem('ltd_pearl', String(PEARL));
+  } catch (e) {}
+}
+const trLv = id => TR[id] || 0; // 0이면 미보유
+function gainPearl(n) { PEARL += n; saveTreasure(); }
+function renderFish() {
+  $('pearlCount').textContent = `🫧 ${PEARL}`;
+  $('fishBtn').disabled = PEARL < FISH_COST;
+  $('treasureList').innerHTML = TREASURES.map(t => {
+    const lv = trLv(t.id);
+    return `<div class="tcard${lv ? (lv >= TREASURE_MAX ? ' max' : '') : ' locked'}">
+      <span class="ticon">${lv ? t.icon : '❔'}</span>
+      <div style="flex:1">
+        <div class="tname">${lv ? t.name : '???'} ${lv ? `<span class="tlv">Lv.${lv}${lv >= TREASURE_MAX ? ' MAX' : ''}</span>` : ''}</div>
+        <div class="tdesc">${lv ? t.desc(lv) : '아직 낚지 못한 보물'}</div>
+      </div></div>`;
+  }).join('');
+}
+function doFish() {
+  if (PEARL < FISH_COST) return;
+  PEARL -= FISH_COST;
+  const t = rand(TREASURES);
+  const lv = trLv(t.id);
+  let msg;
+  if (!lv) { TR[t.id] = 1; msg = `🎉 새 보물! ${t.icon} <b>${t.name}</b> 획득!`; }
+  else if (lv >= TREASURE_MAX) { PEARL += 4; msg = `${t.icon} ${t.name}은 이미 MAX! 진주 4개 돌려받았다`; }
+  else { TR[t.id] = lv + 1; msg = `⬆️ ${t.icon} <b>${t.name}</b> Lv.${lv} → <b>Lv.${lv + 1}</b>!`; }
+  saveTreasure();
+  $('fishResult').innerHTML = msg;
+  renderFish();
+  sfx(!lv ? 'jackpot' : 'merge');
+}
+$('ovBtn6').addEventListener('click', () => { $('fish').classList.remove('hidden'); $('fishResult').textContent = ''; renderFish(); });
+$('fishClose').addEventListener('click', () => $('fish').classList.add('hidden'));
+$('fishBtn').addEventListener('click', doFish);
+loadTreasure();
+
 // ---------- 💬 채팅방 & 접속 상태 (기획: 구예준) ----------
 // 저장 경로는 이미 열려 있는 party 아래를 사용 (규칙 추가 불필요)
 const CHAT_PATH = () => `${RANK_DB}/party/_chat`;
@@ -2511,7 +2641,9 @@ requestAnimationFrame(frame);
 // 개발/테스트용 훅 (콘솔에서 게임 상태 확인용)
 window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, moveUnit, swapUnits, draw, startStage, STAGES, posAt,
   renderRank, submitClassicScore, submitStoryScore, showOverlay, throwFood, FOODS, castHyper,
-  DUO, duoCreate, duoJoin, duoRandom, duoPushStatus, duoStartGame, sendGift, duoCleanup, updateTopbar, setRankDb: u => { RANK_DB = u; } };
+  DUO, duoCreate, duoJoin, duoRandom, duoPushStatus, duoStartGame, sendGift, duoCleanup, updateTopbar,
+  TREASURES, doFish, renderFish, rollGrade, trLv, getTR: () => ({ TR, PEARL }),
+  setTR: (t, p) => { TR = t; PEARL = p; saveTreasure(); }, setRankDb: u => { RANK_DB = u; } };
 </script>
 </body>
 </html>
