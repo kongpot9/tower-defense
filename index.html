@@ -478,7 +478,7 @@ const BOMB_CHANCE = 0.15, BOMB_DMG = 150, BOMB_RADIUS = 60, BOMB_FUSE = 1.0; // 
 const BALDO_CHANCE = 0.25, BALDO_RADIUS = 90;                                // 낭인: 발도술 광역
 const SMITE_CHANCE = 0.04, SMITE_BOSS_PCT = 0.03;                            // 천사 도베르만: 즉사 (보스는 최대체력 3% 추가)
 const MULTI_TARGETS = 5;                                                     // 떡장수: 동시 공격 대상 수
-const FIREBALL_CHANCE = 0.25; // 원까태인 불꽃공 확률 (피해 3배 + 소범위)
+const FIREBALL_CHANCE = 0.25, FIREBALL_MUL = 4; // 원까태인 불꽃공 확률 (피해 4배 + 소범위)
 const PROJ_SPEED = { arrow:700, scythe:420, ball:560, fire:480, shell:320, shuriken:650, fan:560, missile:430, drill:620, songpyeon:520, holy:560, paper:540, orb:500 };
 const INSTANT_ATK = new Set(['slash', 'bite', 'punch', 'axe', 'breath', 'ronin', 'bane']); // 즉발(투사체 없는) 공격
 const INSTANT_DECAY = { bite:1.6, breath:1.4, axe:1.8, punch:2.2, ronin:1.8, bane:1.5 };   // 이펙트 지속(작을수록 오래)
@@ -1016,7 +1016,7 @@ function update(dt) {
           const tp = posAt(tgt.d);
           let kind = u.atk || 'orb', dmg = D, splash = u.splash || 0;
           if (u.special === 'fireball' && Math.random() < FIREBALL_CHANCE) {
-            kind = 'fire'; dmg = D * 3; splash = 35; // 불꽃공!
+            kind = 'fire'; dmg = D * FIREBALL_MUL; splash = 35; // 불꽃공!
           }
           S.projectiles.push({
             x: s.cx, y: s.cy, tgt, tx: tp.x, ty: tp.y,
@@ -1747,7 +1747,7 @@ function updateInfoPanel() {
     const u = S.selected.unit;
     hyp.style.display = (u.hyper && (S.hyperCharges > 0 || ORGOL)) ? 'block' : 'none';
     const extra = (u.splash ? ' · 범위공격' : '') + (u.slow ? ' · 감속' : '')
-      + (u.special === 'fireball' ? ' · 🔥25% 불꽃공(3배)' : '')
+      + (u.special === 'fireball' ? ` · 🔥${Math.round(FIREBALL_CHANCE * 100)}% 불꽃공(${FIREBALL_MUL}배)` : '')
       + (u.special === 'bomb' ? ' · 💣15% 폭탄 설치' : '')
       + (u.special === 'multi4' ? ` · ${MULTI_TARGETS}명 동시공격 · 보스 무시` : '')
       + (u.special === 'baldo' ? ` · ⚔️${Math.round(BALDO_CHANCE * 100)}% 발도술(광역)` : '')
