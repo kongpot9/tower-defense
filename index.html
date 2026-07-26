@@ -622,7 +622,7 @@ const S = {
   wave: 0, gold: 80, summonCost: SUMMON_BASE,
   roundT: 0, toSpawn: 0, spawnTimer: 0, spawnInterval: 1,
   enemies: [], projectiles: [], texts: [], effects: [], bombs: [],
-  buffT: { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0, jura: 0, bleed: 0 }, // 셰프 요리 + 하이퍼차지 버프 남은 시간
+  buffT: { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0, jura: 0, bleed: 0, car: 0 }, // 셰프 요리 + 하이퍼차지 + 보물 버프
   hyperCharges: 0, // ⚡ 하이퍼차지 보유 개수 (20웨이브마다 +1)
   nextHyper: HYPER_EVERY, // 다음 하이퍼차지 충전 웨이브 (일기장으로 단축 가능)
   eid: 1, // 적 고유 번호 (듀오 동기화용)
@@ -634,7 +634,7 @@ function resetGame() {
   S.over = false; S.wave = 0; S.gold = 80; S.summonCost = SUMMON_BASE;
   S.roundT = 0; S.toSpawn = 0;
   S.enemies = []; S.projectiles = []; S.texts = []; S.effects = []; S.bombs = [];
-  S.buffT = { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0, jura: 0, bleed: 0 };
+  S.buffT = { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0, jura: 0, bleed: 0, car: 0 };
   S.atkLv = 0;
   S.hyperCharges = 0;
   S.nextHyper = HYPER_EVERY;
@@ -725,6 +725,18 @@ function startWave() {
     }
     S.nextHyper = S.wave + gap;
   }
+  const cr = trLv('car'); // 🚗 시공간 초월 자동차: 50% 확률로 공격력 2배
+  if (cr && Math.random() < 0.5) {
+    S.buffT.car = 10 + (cr - 1) * 0.5;
+    addText(WORLD_W / 2, 292, `🚗 시공간 초월! 공격력 2배 ${S.buffT.car.toFixed(1)}초!`, '#80deea', 16);
+  }
+  const cp = trLv('cup'); // 🏆 팬타트릭스의 잔: 10웨이브마다 적 전체 감속
+  if (cp && S.wave % 10 === 0 && Math.random() < 0.7) {
+    const dur = 5 + (cp - 1) * 0.5;
+    for (const e of S.enemies) e.slowT = Math.max(e.slowT, dur);
+    S.cupSlow = dur; // 이번 웨이브에 나오는 적들에게도 적용
+    addText(WORLD_W / 2, 292, `🏆 팬타트릭스의 잔! 적 전체 ${dur.toFixed(1)}초 감속`, '#b39ddb', 15);
+  } else S.cupSlow = 0;
   const boss = S.wave % 5 === 0;
   S.bossWave = boss;
   S.bossLeft = boss ? (stg.gimmick === 'twinboss' ? 2 : 1) : 0;
@@ -746,14 +758,16 @@ function spawnEnemy() {
   const w = S.wave, stg = STAGES[S.stage];
   const isBoss = S.bossLeft > 0;
   if (isBoss) S.bossLeft--;
-  const hp = Math.round(hpFor(w) * stg.hpMul * (isBoss ? stg.bossMul || 30 : 1));
+  let hp = Math.round(hpFor(w) * stg.hpMul * (isBoss ? stg.bossMul || 30 : 1));
+  const gm = trLv('gem'); // 💎 간트네스의 반지: 40% 확률로 적 체력 삭감
+  if (gm && Math.random() < 0.4) hp = Math.max(1, Math.round(hp * (1 - (10 + gm) / 100)));
   S.enemies.push({
     id: S.eid++, d: 0, trav: 0, hp, maxhp: hp,
     speed: (isBoss ? 34 : Math.min(50 + w * 0.6, 78)) * stg.spdMul,
     boss: isBoss,
     emoji: isBoss ? '👹' : stg.mobs[(w - 1) % stg.mobs.length],
     gold: Math.max(1, Math.round((isBoss ? 60 + w * 5 : 1 + Math.floor(w / 3)) * stg.goldMul)),
-    slowT: 0, r: isBoss ? 20 : 12,
+    slowT: S.cupSlow || 0, r: isBoss ? 20 : 12, // 🏆 잔 발동 웨이브면 나오자마자 느려짐
   });
 }
 function throwFood(s) { // 로얄 셰프의 요리 타임! 5가지 중 랜덤
@@ -946,14 +960,17 @@ function update(dt) {
       // 얼음 왕국 감속 ÷ (컵케이크 · 펭귄 연주 · 인디 응원) 가속
       u.cdT = u.cd * (STAGES[S.stage].atkCdMul || 1)
         / ((S.buffT.spd > 0 ? 1.5 : 1) * (aura ? AURA_SPD : 1) * (u.cheerT > 0 ? CHEER_SPD : 1)
-           * (1 + trLv('flute') * 0.01)); // 🎵 피터의 피리
+           * (1 + trLv('flute') * 0.01)                                    // 🎵 피터의 피리
+           * (trLv('bell') ? 1.2 + (trLv('bell') - 1) * 0.01 : 1));        // 🔔 인디의 구구단종
       const juraHyper = u.type === 'jurasaurus' && S.buffT.jura > 0; // 🦕 하이퍼 사우르스!
       if (juraHyper) u.cdT = u.cd / 51; // 공속 +5000%
       // 강화(⚔️ +10%씩 복리) × 팬케이크(+30%) × 펭귄 연주(+25%) 적용 공격력
       const D = DEV_POWER ? 100000 // 🌑 DARK KAKAO: 기본 공격력 10만
         : Math.round(u.dmg * Math.pow(1.1, S.atkLv) * (S.buffT.dmg > 0 ? 1.3 : 1) * (S.buffT.hyper > 0 ? HYPER_DMG_MUL : 1) * (juraHyper ? 5 : 1) * (aura ? AURA_DMG : 1)
           * (S.buffT.bleed > 0 ? BLEED_MUL : 1) // 🩸 피의 석궁: 적 방어력 하락
-          * (1 + Math.min(S.gold / 100, trLv('ring') * 2) / 100)); // 💍 부자의 반지: 골드 비례
+          * (1 + Math.min(S.gold / 100, trLv('ring') * 2) / 100) // 💍 부자의 반지: 골드 비례
+          * (S.buffT.car > 0 ? 2 : 1)                            // 🚗 시공간 초월 자동차
+          * (trLv('rocket') ? 1.1 + (trLv('rocket') - 1) * 0.01 : 1)); // 🚀 살라자르 드래곤의 로켓
       if (u.special === 'cheer' && Math.random() < CHEER_CHANCE) { // 🤠 인디: 주변 아군에게 응원!
         let n = 0;
         for (const s2 of slots) {
@@ -1084,7 +1101,7 @@ function update(dt) {
     if (S.effects[i].t <= 0) S.effects.splice(i, 1);
   }
   // 로얄 셰프 요리 버프 타이머
-  for (const k of ['dmg', 'spd', 'gold', 'hyper', 'jura', 'bleed']) if (S.buffT[k] > 0) S.buffT[k] -= dt;
+  for (const k of ['dmg', 'spd', 'gold', 'hyper', 'jura', 'bleed', 'car']) if (S.buffT[k] > 0) S.buffT[k] -= dt;
   if (S.buffT.ghost > 0) {
     S.buffT.ghost -= dt;
     if (S.buffT.ghost <= 0) { // 수프 시간 끝 — 분신들 퇴장
@@ -1655,7 +1672,7 @@ function draw() {
     ctx.fillStyle = ORGOL ? '#8ab8ff' : '#4fc3f7';
     ctx.fillText(lbl, WORLD_W - 52, 18);
   }
-  for (const [k, em] of [['dmg', '🥞'], ['spd', '🧁'], ['gold', '🍜'], ['ghost', '🍲'], ['hyper', '⚡'], ['jura', '🦕'], ['bleed', '🩸']]) {
+  for (const [k, em] of [['dmg', '🥞'], ['spd', '🧁'], ['gold', '🍜'], ['ghost', '🍲'], ['hyper', '⚡'], ['jura', '🦕'], ['bleed', '🩸'], ['car', '🚗']]) {
     if (S.buffT[k] > 0) {
       const label = `${em}${Math.ceil(S.buffT[k])}`;
       ctx.font = '800 13px sans-serif';
@@ -2243,6 +2260,16 @@ const TREASURES = [
     desc: lv => `아군 전체 공격속도 +${lv}%`, },
   { id:'diary',   icon:'📓', name:'톰 리들의 일기장',
     desc: lv => `하이퍼차지 충전 시 70% 확률로 ${5 + Math.floor((lv - 1) / 3)}웨이브 단축`, },
+  { id:'car',     icon:'🚗', name:'시공간 초월 자동차',
+    desc: lv => `웨이브 시작 시 50% 확률로 ${(10 + (lv - 1) * 0.5).toFixed(1)}초간 아군 공격력 2배!`, },
+  { id:'bell',    icon:'🔔', name:'인디의 구구단종',
+    desc: lv => `아군 공격속도 ×${(1.2 + (lv - 1) * 0.01).toFixed(2)}`, },
+  { id:'rocket',  icon:'🚀', name:'살라자르 드래곤의 로켓',
+    desc: lv => `아군 공격력 ×${(1.1 + (lv - 1) * 0.01).toFixed(2)}`, },
+  { id:'cup',     icon:'🏆', name:'팬타트릭스의 잔',
+    desc: lv => `10웨이브마다 70% 확률로 적 전체 ${(5 + (lv - 1) * 0.5).toFixed(1)}초 감속`, },
+  { id:'gem',     icon:'💎', name:'간트네스의 반지',
+    desc: lv => `적이 나올 때 40% 확률로 체력 ${10 + lv}% 감소`, },
 ];
 let TR = {}, PEARL = 0;
 function loadTreasure() {
