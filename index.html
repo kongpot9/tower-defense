@@ -448,7 +448,7 @@ const UNITS = [
   // 희귀
   { type:'jurasaurus', grade:1, emoji:'🦕', name:'쥬라사우르스', dmg:32, cd:0.85, range:100, atk:'bite', hyper:'하이퍼 사우르스', img:'character/rare1.png' },
   { type:'wonkkataein',grade:1, emoji:'⚾', name:'원까태인', dmg:14, cd:0.50, range:175, atk:'ball', special:'fireball', img:'character/rare2.png' },
-  { type:'tankboy',    grade:1, emoji:'🚜', name:'탱크보이', dmg:45, cd:2.10, range:165, splash:50, atk:'shell', img:'character/rare3.png' },
+  { type:'tankboy',    grade:1, emoji:'🚜', name:'탱크보이', dmg:45, cd:2.10, range:165, splash:50, atk:'shell', hyper:'기가파르도 장군님', img:'character/rare3.png' },
   // 영웅 — 아들 그림!
   { type:'deathpierrot', grade:2, emoji:'🤡', name:'데스삐에로', dmg:72,  cd:0.80, range:140, atk:'punch',    img:'character/hero1.png' },
   { type:'lumberjack',   grade:2, emoji:'🪓', name:'나무꾼',     dmg:110, cd:1.00, range:100, atk:'axe',      img:'character/hero2.png' },
@@ -898,6 +898,22 @@ function castHyper(slot) { // ⚡ 하이퍼차지 발동! (캐릭터마다 다�
     S.effects.push({ kind: 'bloodbow', x: sl.cx, y: sl.cy, r: Math.max(60, best), t: 1, decay: 1.2 });
     addText(WORLD_W / 2, 262, `적 전원 집결 + 방어력 ${BLEED_MUL}배 하락! (10초)`, '#ff9e9e', 14);
     addText(sl.cx, sl.cy - 30, '🏹🩸', '#fff', 24);
+  } else if (sl.unit.type === 'tankboy') { // 🚜 기가파르도 장군님 — 전 맵 폭격 후 적 절반 즉사!
+    let killed = 0;
+    for (const e of S.enemies) {
+      const p = posAt(e.d);
+      S.effects.push({ kind: 'boom', x: p.x, y: p.y, r: 45, t: 1, fire: true });
+      if (e.boss) e.hp -= e.maxhp * 0.5;   // 보스는 즉사 대신 최대체력 절반
+      else if (Math.random() < 0.5) { e.hp = 0; killed++; } // 적 절반 즉사
+    }
+    // 전 맵 폭격 연출 — 트랙 곳곳에 융단폭격
+    for (let i = 0; i < 14; i++) {
+      const p = posAt(PERIM * i / 14);
+      S.effects.push({ kind: 'boom', x: p.x, y: p.y, r: 55, t: 1 + i * 0.04, fire: true });
+    }
+    S.effects.push({ kind: 'carpet', x: WORLD_W / 2, y: WORLD_H / 2, r: 0, t: 1, decay: 1.1 });
+    addText(WORLD_W / 2, 262, `전 맵 폭격!! 적 ${killed}마리 즉사!`, '#ffab91', 15);
+    addText(sl.cx, sl.cy - 30, '🚜💥', '#fff', 24);
   } else if (sl.unit.type === 'jurasaurus') { // 하이퍼 사우르스
     S.buffT.jura = HYPER_TIME;
     for (const e of S.enemies) e.slowT = Math.max(e.slowT, HYPER_TIME); // 적 전체 감속 디버프
@@ -1646,6 +1662,24 @@ function draw() {
       ctx.beginPath(); ctx.arc(e.x, e.y, 17, -2.4 + (1 - e.t), -0.4 + (1 - e.t)); ctx.stroke();
       ctx.strokeStyle = '#e1f5fe'; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(e.x - 14, e.y + 8); ctx.lineTo(e.x + 14, e.y - 12); ctx.stroke();
+    } else if (e.kind === 'carpet') { // 🚜 기가파르도 장군님 — 전 맵 융단폭격
+      ctx.fillStyle = `rgba(255,112,67,${0.35 * e.t})`;
+      roundRectPath(4, 4, WORLD_W - 8, WORLD_H - 8, 18);
+      ctx.fill();
+      const n = 10;
+      for (let i = 0; i < n; i++) {                 // 화면 곳곳에 터지는 폭발
+        const seed = i * 7919;
+        const bx = 30 + ((seed * 13) % (WORLD_W - 60));
+        const by = 40 + ((seed * 29) % (WORLD_H - 80));
+        const rr = (18 + (i % 4) * 9) * (1.3 - e.t);
+        ctx.fillStyle = i % 2 ? 'rgba(255,183,77,0.55)' : 'rgba(255,87,34,0.5)';
+        ctx.beginPath(); ctx.arc(bx, by, Math.max(0, rr), 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.font = '800 20px sans-serif'; ctx.textAlign = 'center';
+      ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 4;
+      ctx.strokeText('💥 전 맵 폭격 💥', WORLD_W / 2, WORLD_H / 2);
+      ctx.fillStyle = '#fff3e0';
+      ctx.fillText('💥 전 맵 폭격 💥', WORLD_W / 2, WORLD_H / 2);
     } else if (e.kind === 'bloodbow') { // 🏹 피의 석궁 — 적들을 끌어당기는 핏빛 고리
       const rr = e.r * e.t + 20;
       ctx.strokeStyle = '#e53935'; ctx.lineWidth = 4;
@@ -1678,7 +1712,7 @@ function draw() {
       ctx.strokeStyle = '#ffd54f'; ctx.lineWidth = 2.5;
       ctx.beginPath(); ctx.arc(e.x, e.y, 20 * (1 - e.t) + 6, 0, Math.PI * 2); ctx.stroke();
     } else if (e.kind === 'boom') {    // 폭발 (포탄/불꽃공/폭탄/범위공격)
-      const rr = e.r * (1 - e.t) + 8;
+      const rr = e.r * Math.max(0, 1 - e.t) + 8; // t>1(지연 폭발)이면 아직 작은 상태로 대기
       ctx.fillStyle = e.fire ? 'rgba(255,110,30,0.4)' : 'rgba(255,200,80,0.35)';
       ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = e.fire ? '#ff5722' : '#ffb300'; ctx.lineWidth = 2.5;
