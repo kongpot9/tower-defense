@@ -442,16 +442,16 @@ const GRADE_PROB = [0.54, 0.30, 0.10, 0.045, 0.015]; // 소환 등급 확률
 // 일반·희귀 등급은 아들이 그린 캐릭터! (character 폴더)
 const UNITS = [
   // 일반
-  { type:'swordsman',  grade:0, emoji:'⚔️', name:'검사',  dmg:11, cd:0.90, range:95,  atk:'slash',  img:'character/normal1.png' },
-  { type:'archer',     grade:0, emoji:'🏹', name:'궁수',  dmg:5,  cd:0.55, range:170, atk:'arrow',  hyper:'피의 석궁', img:'character/normal2.png' },
+  { type:'swordsman',  grade:0, emoji:'⚔️', name:'검사',  dmg:12, cd:0.90, range:95,  atk:'slash',  img:'character/normal1.png' },
+  { type:'archer',     grade:0, emoji:'🏹', name:'궁수',  dmg:5,  cd:0.55, range:204, atk:'arrow',  hyper:'피의 석궁', img:'character/normal2.png' },
   { type:'farmer',     grade:0, emoji:'🌾', name:'농부',  dmg:7,  cd:0.80, range:130, atk:'scythe', hyper:'얼어버리는 일륜도', img:'character/normal3.png' },
   // 희귀
-  { type:'jurasaurus', grade:1, emoji:'🦕', name:'쥬라사우르스', dmg:32, cd:0.85, range:100, atk:'bite', hyper:'하이퍼 사우르스', img:'character/rare1.png' },
-  { type:'wonkkataein',grade:1, emoji:'⚾', name:'원까태인', dmg:14, cd:0.50, range:175, atk:'ball', special:'fireball', img:'character/rare2.png' },
-  { type:'tankboy',    grade:1, emoji:'🚜', name:'탱크보이', dmg:45, cd:2.10, range:165, splash:50, atk:'shell', hyper:'기가파르도 장군님', img:'character/rare3.png' },
+  { type:'jurasaurus', grade:1, emoji:'🦕', name:'쥬라사우르스', dmg:32, cd:0.45, range:100, atk:'bite', hyper:'하이퍼 사우르스', img:'character/rare1.png' },
+  { type:'wonkkataein',grade:1, emoji:'⚾', name:'원까태인', dmg:22, cd:0.50, range:175, atk:'ball', special:'fireball', img:'character/rare2.png' },
+  { type:'tankboy',    grade:1, emoji:'🚜', name:'탱크보이', dmg:45, cd:1.60, range:165, splash:50, atk:'shell', hyper:'기가파르도 장군님', img:'character/rare3.png' },
   // 영웅 — 아들 그림!
-  { type:'deathpierrot', grade:2, emoji:'🤡', name:'데스삐에로', dmg:72,  cd:0.80, range:140, atk:'punch',    img:'character/hero1.png' },
-  { type:'lumberjack',   grade:2, emoji:'🪓', name:'나무꾼',     dmg:110, cd:1.00, range:100, atk:'axe',      img:'character/hero2.png' },
+  { type:'deathpierrot', grade:2, emoji:'🤡', name:'데스삐에로', dmg:72,  cd:0.80, range:140, atk:'punch', special:'shock', img:'character/hero1.png' },
+  { type:'lumberjack',   grade:2, emoji:'🪓', name:'나무꾼',     dmg:91,  cd:1.00, range:100, atk:'axe',      img:'character/hero2.png' },
   { type:'darkrider',    grade:2, emoji:'🥷', name:'다크라이더', dmg:16,  cd:0.22, range:165, atk:'shuriken', img:'character/hero3.png' },
   // 신화 — 아들 그림!
   { type:'miner',    grade:3, emoji:'⛏️', name:'능력자광부',   dmg:30,  cd:0.30, range:130, atk:'drill',     special:'bomb',   img:'character/myth1.png' },
@@ -477,7 +477,9 @@ const CHEER_CHANCE = 0.15, CHEER_RANGE = 120, CHEER_TIME = 3.5, CHEER_SPD = 1.35
 const CHEF_CD = 30, FOOD_BUFF_TIME = 10;
 // 하이퍼차지 (기획: 구예준) — 20웨이브마다 1개, 하이퍼차지 보유 캐릭터로 발동
 const HYPER_EVERY = 20, HYPER_TIME = 10, HYPER_DMG_MUL = 3;
-const FARMER_DMG_TIME = 8; // 얼어버리는 일륜도: 공격력 3배 지속(빙결은 10초)
+const FARMER_DMG_TIME = 8, FARMER_FREEZE_TIME = 11; // 얼어버리는 일륜도: 공격력 3배 8초 / 빙결 11초
+const SHOCK_CHANCE = 0.3, SHOCK_RADIUS = 70, SHOCK_MAX = 3;  // 🤡 데스삐에로: 전기 연쇄 공격
+const CAT_HOMING_CHANCE = 0.25, CAT_HOMING_SPLASH = 50;      // 🐱 캣머신: 끝까지 추적하는 유도 미사일
 const BLEED_MUL = 5;       // 피의 석궁: 적 방어력 5배 하락 = 받는 피해 5배
 const FOODS = [
   { id:'pancake', emoji:'🥞', name:'팬케이크', msg:'공격력 30% UP!' },
@@ -883,8 +885,8 @@ function castHyper(slot) { // ⚡ 하이퍼차지 발동! (캐릭터마다 다�
   addText(WORLD_W / 2, 230, `⚡ ${sl.unit.hyper}!! ⚡`, '#4fc3f7', 20);
   if (sl.unit.type === 'farmer') { // 얼어버리는 일륜도
     S.buffT.hyper = FARMER_DMG_TIME;
-    for (const e of S.enemies) e.frozenT = HYPER_TIME; // 적 전원 빙결
-    addText(WORLD_W / 2, 262, `적 전원 빙결 10초 + 아군 공격력 3배 ${FARMER_DMG_TIME}초!`, '#e1f5fe', 14);
+    for (const e of S.enemies) e.frozenT = FARMER_FREEZE_TIME; // 적 전원 빙결
+    addText(WORLD_W / 2, 262, `적 전원 빙결 ${FARMER_FREEZE_TIME}초 + 아군 공격력 3배 ${FARMER_DMG_TIME}초!`, '#e1f5fe', 14);
     addText(sl.cx, sl.cy - 30, '❄️⚔️', '#fff', 24);
   } else if (sl.unit.type === 'archer') { // 🏹 피의 석궁 — 모두 궁수 앞으로!
     S.buffT.bleed = HYPER_TIME;
@@ -1015,7 +1017,8 @@ function update(dt) {
       const bp = posAt(best.d);
       if (u.special === 'bomb' && Math.random() < BOMB_CHANCE) {
         // 능력자광부: 이번 공격 대신 폭탄 설치!
-        S.bombs.push({ x: bp.x, y: bp.y, t: BOMB_FUSE });
+        // 폭탄 위력도 서포터 버프·강화를 그대로 물려받는다 (기본 공격력의 5배)
+        S.bombs.push({ x: bp.x, y: bp.y, t: BOMB_FUSE, dmg: Math.round(D * (BOMB_DMG / 30)) });
       } else if (u.special === 'baldo' && Math.random() < BALDO_CHANCE) {
         // 낭인: 발도술 — 주변 모든 적을 한 칼에 벤다
         for (const e2 of S.enemies) {
@@ -1026,7 +1029,20 @@ function update(dt) {
         addText(bp.x, bp.y - 24, '⚔️ 발도술!', '#b3e5fc', 15);
       } else if (INSTANT_ATK.has(u.atk)) {
         // 즉발 공격: 곧바로 피해 + 전용 이펙트 (브레스 등 범위 공격 포함)
-        if (u.splash) {
+        if (u.special === 'shock' && Math.random() < SHOCK_CHANCE) { // 🤡 데스삐에로: 전기 연쇄!
+          const hit = S.enemies.filter(e2 => {
+            const p2 = posAt(e2.d);
+            return Math.hypot(p2.x - bp.x, p2.y - bp.y) <= SHOCK_RADIUS;
+          }).sort((a, b) => b.trav - a.trav).slice(0, SHOCK_MAX);
+          let prev = { x: s.cx, y: s.cy };
+          for (const e2 of hit) {
+            e2.hp -= D;
+            const p2 = posAt(e2.d);
+            S.effects.push({ kind: 'shock', x: p2.x, y: p2.y, sx: prev.x, sy: prev.y, t: 1, decay: 2.2 });
+            prev = p2;
+          }
+          addText(bp.x, bp.y - 26, `⚡ 전기 연쇄 ×${hit.length}!`, '#80d8ff', 14);
+        } else if (u.splash) {
           for (const e2 of S.enemies) {
             const p2 = posAt(e2.d);
             if (Math.hypot(p2.x - bp.x, p2.y - bp.y) <= u.splash) {
@@ -1043,9 +1059,12 @@ function update(dt) {
       } else {
         for (const tgt of targets) {
           const tp = posAt(tgt.d);
-          let kind = u.atk || 'orb', dmg = D, splash = u.splash || 0;
+          let kind = u.atk || 'orb', dmg = D, splash = u.splash || 0, homing = !!u.homing;
           if (u.special === 'fireball' && Math.random() < FIREBALL_CHANCE) {
             kind = 'fire'; dmg = D * FIREBALL_MUL; splash = 35; // 불꽃공!
+          }
+          if (u.type === 'catmachine' && Math.random() < CAT_HOMING_CHANCE) { // 🐱 끝까지 쫓는 유도 미사일!
+            homing = true; splash = CAT_HOMING_SPLASH;
           }
           S.projectiles.push({
             x: s.cx, y: s.cy, tgt, tx: tp.x, ty: tp.y,
@@ -1053,7 +1072,7 @@ function update(dt) {
             spd: PROJ_SPEED[kind] || 500,
             color: GRADES[u.grade].color,
             smite: u.special === 'smite',
-            homing: !!u.homing,
+            homing,
           });
         }
       }
@@ -1112,7 +1131,8 @@ function update(dt) {
       for (const e of S.enemies) {
         const p = posAt(e.d);
         if (Math.hypot(p.x - b.x, p.y - b.y) <= BOMB_RADIUS)
-          e.hp -= Math.round(BOMB_DMG * Math.pow(1.1, S.atkLv) * (S.buffT.bleed > 0 ? BLEED_MUL : 1));
+          // 설치 시점의 버프가 담긴 위력 사용 (구버전 폭탄은 기본값으로 대체)
+          e.hp -= Math.round((b.dmg || BOMB_DMG * Math.pow(1.1, S.atkLv)) * (S.buffT.bleed > 0 ? BLEED_MUL : 1));
       }
       S.effects.push({ kind: 'boom', x: b.x, y: b.y, r: BOMB_RADIUS, t: 1, fire: true });
       S.bombs.splice(i, 1);
@@ -1662,6 +1682,19 @@ function draw() {
       ctx.beginPath(); ctx.arc(e.x, e.y, 17, -2.4 + (1 - e.t), -0.4 + (1 - e.t)); ctx.stroke();
       ctx.strokeStyle = '#e1f5fe'; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(e.x - 14, e.y + 8); ctx.lineTo(e.x + 14, e.y - 12); ctx.stroke();
+    } else if (e.kind === 'shock') { // 🤡 데스삐에로: 지지직 튀는 전기 연쇄
+      ctx.strokeStyle = '#80d8ff'; ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      const seg = 5, jx = e.x - e.sx, jy = e.y - e.sy;
+      ctx.moveTo(e.sx, e.sy);
+      for (let i = 1; i <= seg; i++) {
+        const f = i / seg;
+        const off = i === seg ? 0 : (i % 2 ? 7 : -7);
+        ctx.lineTo(e.sx + jx * f - jy / (seg * 2) * off * 0.35, e.sy + jy * f + jx / (seg * 2) * off * 0.35);
+      }
+      ctx.stroke();
+      ctx.fillStyle = '#e1f5fe';
+      ctx.beginPath(); ctx.arc(e.x, e.y, 6 * e.t + 2, 0, Math.PI * 2); ctx.fill();
     } else if (e.kind === 'carpet') { // 🚜 기가파르도 장군님 — 전 맵 융단폭격
       ctx.fillStyle = `rgba(255,112,67,${0.35 * e.t})`;
       roundRectPath(4, 4, WORLD_W - 8, WORLD_H - 8, 18);
@@ -1813,6 +1846,8 @@ function updateInfoPanel() {
       + (u.special === 'baldo' ? ` · ⚔️${Math.round(BALDO_CHANCE * 100)}% 발도술(광역)` : '')
       + (u.special === 'smite' ? ` · ⚡${Math.round(SMITE_CHANCE * 100)}% 즉사` : '')
       + (u.homing ? ' · 🎯유도탄' : '')
+      + (u.special === 'shock' ? ` · ⚡${Math.round(SHOCK_CHANCE * 100)}% 전기 연쇄` : '')
+      + (u.type === 'catmachine' ? ` · 🎯${Math.round(CAT_HOMING_CHANCE * 100)}% 유도 미사일` : '')
       + (u.special === 'cheer' ? ' · 📣15% 주변 공속 UP' : '')
       + ((u.atk === 'slash' || u.atk === 'bite' || u.atk === 'axe' || u.atk === 'ronin') ? ' · 근접' : '')
       + (u.hyper ? ` · ⚡${u.hyper}` : '');
@@ -2257,6 +2292,8 @@ function renderHolly(tab) {
         u.support === 'chef' ? '30초 랜덤 요리' : '',
         u.support === 'aura' ? '오라: 아군 공격+25%·공속+20% / 적 이동-35%' : '',
         u.homing ? '유도탄(목표 사망 시 재조준)' : '',
+        u.special === 'shock' ? `${Math.round(SHOCK_CHANCE * 100)}% 전기 연쇄(최대 ${SHOCK_MAX})` : '',
+        u.type === 'catmachine' ? `${Math.round(CAT_HOMING_CHANCE * 100)}% 유도 미사일` : '',
         u.hyper ? `⚡${u.hyper}` : ''].filter(Boolean).join(' · ');
       const tier = HOLLY_TIER[u.type] || '?';
       return `<div class="hcard">
