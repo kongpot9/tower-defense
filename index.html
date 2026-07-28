@@ -468,6 +468,7 @@ const UNITS = [
   { type:'bane',       grade:3, emoji:'😈', name:'베인',       dmg:330, cd:2.20, range:110, splash:45, atk:'bane', img:'character/myth5.png' },
   // 영웅 추가
   { type:'indie',      grade:2, emoji:'🤠', name:'인디',       dmg:40,  cd:0.70, range:140, atk:'paper', special:'cheer', img:'character/hero4.png' },
+  { type:'jeff',       grade:2, emoji:'🕴️', name:'제프',       dmg:51,  cd:0.80, range:130, atk:'orb',   special:'office', img:'character/hero5.png' },
 ];
 // 🐧 펭귄악사의 연주 오라 (기획: 구예준) — 범위 내 아군 강화 + 적 약화
 const AURA_DMG = 1.25, AURA_SPD = 1.2, AURA_ENEMY_SLOW = 0.65;
@@ -480,6 +481,9 @@ const HYPER_EVERY = 20, HYPER_TIME = 10, HYPER_DMG_MUL = 3;
 const FARMER_DMG_TIME = 8, FARMER_FREEZE_TIME = 11; // 얼어버리는 일륜도: 공격력 3배 8초 / 빙결 11초
 const SHOCK_CHANCE = 0.3, SHOCK_RADIUS = 70, SHOCK_MAX = 3;  // 🤡 데스삐에로: 전기 연쇄 공격
 const CAT_HOMING_CHANCE = 0.25, CAT_HOMING_SPLASH = 50;      // 🐱 캣머신: 끝까지 추적하는 유도 미사일
+// 🕴️ 제프(회사원): 평소엔 근무 모드(약하지만 빠름), 7웨이브마다 파티 모드!
+const JEFF_PARTY_EVERY = 7, JEFF_WORK_DMG = 30, JEFF_WORK_CD = 0.35;
+const JEFF_PARTY_BONUS = 30, JEFF_TEAM_BUFF = 1.1;
 const BLEED_MUL = 5;       // 피의 석궁: 적 방어력 5배 하락 = 받는 피해 5배
 const FOODS = [
   { id:'pancake', emoji:'🥞', name:'팬케이크', msg:'공격력 30% UP!' },
@@ -740,6 +744,14 @@ function startWave() {
     }
     S.nextHyper = S.wave + gap;
   }
+  // 🕴️ 제프: 7웨이브마다 파티 모드! (자기 강화 or 팀 회식 중 랜덤)
+  if (S.wave % JEFF_PARTY_EVERY === 0 && slots.some(sl => sl.unit && sl.unit.special === 'office')) {
+    S.jeffParty = Math.random() < 0.5 ? 'boost' : 'team';
+    addText(WORLD_W / 2, 292, S.jeffParty === 'boost'
+      ? `🎤 제프 파티 타임! 공격력 +${JEFF_PARTY_BONUS}!`
+      : `🎉 제프의 회식! 아군 전체 공격력 +${Math.round((JEFF_TEAM_BUFF - 1) * 100)}%!`, '#ffd54f', 16);
+    sfx('food');
+  } else S.jeffParty = null;
   const cr = trLv('car'); // 🚗 시공간 초월 자동차: 50% 확률로 공격력 2배
   if (cr && Math.random() < 0.5) {
     S.buffT.car = 10 + (cr - 1) * 0.5;
@@ -995,9 +1007,16 @@ function update(dt) {
            * (trLv('bell') ? 1.2 + (trLv('bell') - 1) * 0.01 : 1));        // 🔔 인디의 구구단종
       const juraHyper = u.type === 'jurasaurus' && S.buffT.jura > 0; // 🦕 하이퍼 사우르스!
       if (juraHyper) u.cdT = u.cd / 51; // 공속 +5000%
+      // 🕴️ 제프: 근무 모드는 약하지만 빠르고, 파티 모드는 강해진다
+      let jeffDmg = 0;
+      if (u.special === 'office') {
+        if (S.jeffParty) jeffDmg = S.jeffParty === 'boost' ? u.dmg + JEFF_PARTY_BONUS : u.dmg;
+        else { jeffDmg = JEFF_WORK_DMG; u.cdT = u.cdT * (JEFF_WORK_CD / u.cd); }
+      }
       // 강화(⚔️ +10%씩 복리) × 팬케이크(+30%) × 펭귄 연주(+25%) 적용 공격력
       const D = DEV_POWER ? 100000 // 🌑 DARK KAKAO: 기본 공격력 10만
-        : Math.round(u.dmg * Math.pow(1.1, S.atkLv) * (S.buffT.dmg > 0 ? 1.3 : 1) * (S.buffT.hyper > 0 ? HYPER_DMG_MUL : 1) * (juraHyper ? 5 : 1) * (aura ? AURA_DMG : 1)
+        : Math.round((jeffDmg || u.dmg) * Math.pow(1.1, S.atkLv) * (S.buffT.dmg > 0 ? 1.3 : 1) * (S.buffT.hyper > 0 ? HYPER_DMG_MUL : 1) * (juraHyper ? 5 : 1) * (aura ? AURA_DMG : 1)
+          * (S.jeffParty === 'team' ? JEFF_TEAM_BUFF : 1) // 🎉 제프의 회식: 아군 전체 강화
           * (S.buffT.bleed > 0 ? BLEED_MUL : 1) // 🩸 피의 석궁: 적 방어력 하락
           * (1 + Math.min(S.gold / 100, trLv('ring') * 2) / 100) // 💍 부자의 반지: 골드 비례
           * (S.buffT.car > 0 ? 2 : 1)                            // 🚗 시공간 초월 자동차
@@ -1439,6 +1458,10 @@ function draw() {
       ctx.font = '13px sans-serif';
       ctx.fillText('📣', sl.cx + 17, sl.cy - 17);
     }
+    if (u.special === 'office') { // 🕴️ 제프의 현재 모드
+      ctx.font = '13px sans-serif';
+      ctx.fillText(S.jeffParty ? '🎤' : '💼', sl.cx - 17, sl.cy - 17);
+    }
     if (locked) {
       ctx.globalAlpha = 1;
       // 남은 공격 불가 시간을 노란 원호로 표시
@@ -1849,6 +1872,9 @@ function updateInfoPanel() {
       + (u.special === 'shock' ? ` · ⚡${Math.round(SHOCK_CHANCE * 100)}% 전기 연쇄` : '')
       + (u.type === 'catmachine' ? ` · 🎯${Math.round(CAT_HOMING_CHANCE * 100)}% 유도 미사일` : '')
       + (u.special === 'cheer' ? ' · 📣15% 주변 공속 UP' : '')
+      + (u.special === 'office' ? (S.jeffParty
+          ? (S.jeffParty === 'boost' ? ` · 🎤파티 모드! 공격 ${u.dmg + JEFF_PARTY_BONUS}` : ' · 🎉회식 중! 아군 전체 +10%')
+          : ` · 🕴️근무 모드(공격 ${JEFF_WORK_DMG} · 속도 ${JEFF_WORK_CD}s) · ${JEFF_PARTY_EVERY}웨이브마다 파티!`) : '')
       + ((u.atk === 'slash' || u.atk === 'bite' || u.atk === 'axe' || u.atk === 'ronin') ? ' · 근접' : '')
       + (u.hyper ? ` · ⚡${u.hyper}` : '');
     const head = `<span class="emoji">${u.emoji}</span> <b style="color:${GRADES[u.grade].color}">[${GRADES[u.grade].name}] ${u.name}</b>&nbsp; `;
@@ -2220,7 +2246,7 @@ const HOLLY_TIER = { // 현 메타 티어 (일반 모드 기준)
   deathpierrot:'B', darkrider:'B', miner:'B', tankboy:'B', ronin:'B',
   wonkkataein:'C', ricecake:'C', swordsman:'C',
   archer:'D', royalchef:'?',
-  penguin:'S', bane:'A', indie:'B',
+  penguin:'S', bane:'A', indie:'B', jeff:'B',
 };
 const TIER_COLOR = { S:'#ffd54f', A:'#4fc3f7', B:'#9ccc65', C:'#ffb74d', D:'#b0bec5', '?':'#8ab8ff' };
 const HOLLY_EVAL = {
@@ -2244,6 +2270,7 @@ const HOLLY_EVAL = {
   penguin: '한 곡으로 판을 바꾸는 지휘자 — 강한 딜러 옆에 둘수록 이득이 곱해진다',
   bane: '한 방의 무게 330 — 뭉친 적을 통째로 지우는 신화의 파괴자',
   indie: '혼자선 약하지만 팀을 빠르게 만든다 — 공격력이 전부가 아니라는 증명',
+  jeff: '근무 중엔 성실한 연사, 7웨이브마다 마이크를 잡는 회사원 🎤',
 };
 const HOLLY_USE = { // 사용처
   swordsman: '시작 직후 트랙 옆 배치 → 중반부터 합성 재료',
@@ -2266,6 +2293,7 @@ const HOLLY_USE = { // 사용처
   penguin: '전설·신화 딜러가 몰린 구역 한가운데 — 커버하는 아군이 많을수록 강해짐',
   bane: '트랙 옆 칸 필수 — 물량 웨이브·보스 모두 대응하는 신화 주력',
   indie: '딜러 여럿 사이 가운데 칸 — 응원이 닿는 아군이 많은 자리에 배치',
+  jeff: '평소엔 빠른 연사로 잔몹 처리, 7의 배수 웨이브에 파티 모드로 한 방 — 보스 웨이브(5·10·15…)와 겹치는 35웨이브가 최고의 순간',
 };
 const HOLLY_DECKS = [
   ['🐉 전개덱', '드래곤을 겁나 모으고 강화 때리기 — 광역×강화의 화끈한 정공법'],
