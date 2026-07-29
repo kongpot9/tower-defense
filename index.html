@@ -287,6 +287,9 @@
   .rankrow.me { border:2px solid #ffd54f; }
   .rankrow .pos { color:#ffd76e; min-width:30px; }
   .rankrow .nm { flex:1; text-align:left; }
+  .rankrow.rookie { background:#1b2740; color:#8a96b8; }
+  .rankrow.rookie .pos { color:#9ccc65; }
+  .rankcount { width:100%; text-align:left; color:#8a96b8; font-size:11px; font-weight:800; margin-top:4px; }
   #stageSel {
     display:flex; gap:8px; justify-content:center; flex-wrap:wrap;
     max-height:46vh; overflow-y:auto; padding:4px; width:100%;
@@ -1348,13 +1351,31 @@ async function renderRank() {
       : (a, b) => (b.wave || 0) - (a.wave || 0) || (a.t || 0) - (b.t || 0));
     const me = getNick();
     const isMe = r2 => rankTab === 'duo' ? (r2.nicks || []).includes(me) : r2.nick === me;
-    const list = rows.slice(0, 20).map((r2, idx) =>
+    // 전원 등재 — 기록이 없는 유저는 🌱유망주로 이름을 올린다
+    let rookies = [];
+    if (rankTab !== 'duo') {
+      try {
+        const pres = await (await fetch(`${PRESENCE_PATH()}.json`)).json() || {};
+        const has = new Set(rows.map(x => x.nick));
+        rookies = Object.keys(pres).filter(n => !has.has(n)).sort();
+      } catch (e) {}
+    }
+    const list = rows.map((r2, idx) =>
       `<div class="rankrow${isMe(r2) ? ' me' : ''}">
         <span class="pos">${idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : (idx + 1) + '위'}</span>
         <span class="nm">${escapeHtml(r2.nick)}</span>
         <span>${rankTab === 'story' ? '⭐ ' + (r2.stars || 0) + ' / ' + STAGES.length : '웨이브 ' + (r2.wave || 0)}</span>
       </div>`).join('');
-    sel.innerHTML = tabs + (list || `<div style="color:#9fb0d8;font-size:14px;padding:16px;">아직 기록이 없어요 — 1등을 노려보자!</div>`);
+    const rookieList = rookies.map(n =>
+      `<div class="rankrow rookie${n === me ? ' me' : ''}">
+        <span class="pos">🌱</span>
+        <span class="nm">${escapeHtml(n)}</span>
+        <span>유망주</span>
+      </div>`).join('');
+    sel.innerHTML = tabs
+      + `<div class="rankcount">총 ${rows.length + rookies.length}명 · 기록 보유 ${rows.length}명</div>`
+      + (list || `<div style="color:#9fb0d8;font-size:14px;padding:16px;">아직 기록이 없어요 — 1등을 노려보자!</div>`)
+      + (rookieList ? `<div class="rankcount">🌱 유망주 ${rookies.length}명 — 첫 기록을 기다리는 중!</div>` + rookieList : '');
   } catch (e) {
     sel.innerHTML = tabs + `<div style="color:#ff8a8a;font-size:14px;padding:16px;">랭킹을 불러오지 못했어요 😢<br>인터넷 연결을 확인해주세요.</div>`;
   }
