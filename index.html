@@ -13,6 +13,12 @@
     display:flex; flex-direction:column; height:100dvh;
     user-select:none; -webkit-user-select:none; touch-action:none;
   }
+  #gobBtn {
+    background:linear-gradient(180deg,#ffa726,#ef6c00); color:#fff;
+    padding:4px 9px; font-size:11px; border-radius:8px; box-shadow:0 2px 0 #b53d00;
+    animation:hyperpulse 1.1s infinite alternate;
+  }
+  #gobBtn.hidden { display:none; }
   #studio {
     background:#12182a; color:#7c89ad; font-size:10px; font-weight:700;
     letter-spacing:2px; padding:4px 12px 0;
@@ -75,6 +81,34 @@
     background:linear-gradient(180deg,#66d36e,#3fa946); box-shadow:0 5px 0 #23702a;
   }
   #overlay .record { color:#ffd76e; font-weight:800; font-size:17px; }
+  #gob {
+    position:fixed; inset:0; background:#241a12; z-index:23;
+    padding:16px 14px calc(14px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+  }
+  #gob h2 { color:#ffcc80; font-size:22px; }
+  #gob .sub { color:#bfa88c; font-size:12px; text-align:center; line-height:1.6; }
+  #gobTime { color:#ff8a65; font-weight:800; }
+  #gobTop { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:center; width:100%; max-width:420px; }
+  #gobKey, #gobFrag { color:#ffe0b2; font-size:16px; font-weight:800; }
+  #gobOpenBtn { padding:11px 16px; font-size:14px; background:linear-gradient(180deg,#8d6e63,#5d4037); box-shadow:0 4px 0 #3e2723; border-radius:12px; }
+  #gobCookBtn { padding:11px 16px; font-size:14px; background:linear-gradient(180deg,#ffa726,#ef6c00); box-shadow:0 4px 0 #b53d00; border-radius:12px; }
+  #gobOpenBtn:disabled, #gobCookBtn:disabled { filter:grayscale(.7); box-shadow:none; }
+  #gobResult { min-height:24px; color:#ffd54f; font-size:14px; font-weight:800; text-align:center; }
+  #noodleList { width:100%; max-width:420px; display:flex; flex-direction:column; gap:7px; }
+  .ncard {
+    background:#3b2a1c; border:1px solid #6d4c41; border-radius:12px;
+    padding:9px 12px; color:#ffe9d6; font-size:13px; display:flex; gap:10px; align-items:center;
+  }
+  .ncard .nicon { font-size:24px; }
+  .ncard .ncount { margin-left:auto; color:#ffd54f; font-weight:800; }
+  #noodleBar { display:flex; gap:6px; margin-bottom:8px; }
+  #noodleBar button {
+    flex:1; padding:8px 0; font-size:12px; border-radius:10px;
+    background:#5d4037; box-shadow:0 3px 0 #3e2723;
+  }
+  #noodleBar button:disabled { filter:grayscale(.75); box-shadow:none; }
+  #noodleBar.hidden { display:none; }
   #fish {
     position:fixed; inset:0; background:#0f2436; z-index:23;
     padding:16px 14px calc(14px + env(safe-area-inset-bottom));
@@ -275,6 +309,7 @@
 
 <div id="studio">구예준 STUDIO</div>
 <div id="topbar">
+  <button id="gobBtn" class="hidden">🏰 이벤트</button>
   <span id="tWave">웨이브 0</span>
   <span id="tTimer">⏱ 20s</span>
   <span id="tGold">💰 0</span>
@@ -295,7 +330,9 @@
     <button class="devbtn" id="devGod">🛡️무적</button>
     <button class="devbtn" id="devPower">💪공10만</button>
     <button class="devbtn" id="devLava">🌋라바</button>
+    <button class="devbtn" id="devGob">🏰저택</button>
   </div>
+  <div id="noodleBar" class="hidden"></div>
   <div id="btnrow">
     <button id="summonBtn">🎲 소환 20G</button>
     <button id="upBtn">⚔️ 강화 100G</button>
@@ -372,6 +409,21 @@
       <button id="duoCancelBtn" class="gray">취소</button>
     </div>
   </div>
+</div>
+
+<div id="gob" class="hidden">
+  <h2>🏰 고블린의 저택</h2>
+  <p class="sub" id="gobTime"></p>
+  <div id="gobTop">
+    <span id="gobKey">🔑 0</span>
+    <span id="gobFrag">🍝 0</span>
+    <button id="gobOpenBtn">📦 상자 열기</button>
+    <button id="gobCookBtn">🍜 누들 만들기</button>
+  </div>
+  <div id="gobResult"></div>
+  <div id="noodleList"></div>
+  <p class="sub">30웨이브를 채울 때마다 🔑열쇠를 얻어요<br>상자를 열면 🍝면 조각이 나오고, 10개를 모으면 🍜누들 완성!</p>
+  <button class="close" id="gobClose">나가기</button>
 </div>
 
 <div id="fish" class="hidden">
@@ -479,6 +531,15 @@ const CHEF_CD = 30, FOOD_BUFF_TIME = 10;
 // 하이퍼차지 (기획: 구예준) — 20웨이브마다 1개, 하이퍼차지 보유 캐릭터로 발동
 const HYPER_EVERY = 20, HYPER_TIME = 10, HYPER_DMG_MUL = 3;
 const FARMER_DMG_TIME = 8, FARMER_FREEZE_TIME = 11; // 얼어버리는 일륜도: 공격력 3배 8초 / 빙결 11초
+// 🏰 고블린의 저택 (기간 한정 이벤트)
+const GOB_DURATION = (7 * 24 * 3600 + 7 * 3600 + 7 * 60) * 1000; // 7일 7시간 7분
+const GOB_KEY_EVERY = 30, GOB_FRAG_PER_NOODLE = 10;
+const NOODLES = [
+  { id: 1, icon: '🍜', name: '누들 하나', desc: '이번 판 아군 공격력 +20%' },
+  { id: 2, icon: '🍲', name: '누들 두울', desc: '이번 판 공격 간격 0.9초 단축' },
+  { id: 3, icon: '🍥', name: '누들 세엣', desc: '이번 판 적 방어력 10% 감소' },
+];
+const NOODLE_ATK = 1.2, NOODLE_CD_CUT = 0.9, NOODLE_CD_MIN = 0.15, NOODLE_DEF = 1.1;
 const SHOCK_CHANCE = 0.3, SHOCK_RADIUS = 70, SHOCK_MAX = 3;  // 🤡 데스삐에로: 전기 연쇄 공격
 const CAT_HOMING_CHANCE = 0.25, CAT_HOMING_SPLASH = 50;      // 🐱 캣머신: 끝까지 추적하는 유도 미사일
 // 🕴️ 제프(회사원): 평소엔 근무 모드(약하지만 빠름), 7웨이브마다 파티 모드!
@@ -644,6 +705,7 @@ const S = {
   buffT: { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0, jura: 0, bleed: 0, car: 0 }, // 셰프 요리 + 하이퍼차지 + 보물 버프
   hyperCharges: 0, // ⚡ 하이퍼차지 보유 개수 (20웨이브마다 +1)
   nextHyper: HYPER_EVERY, // 다음 하이퍼차지 충전 웨이브 (일기장으로 단축 가능)
+  noodle: {}, nextKey: GOB_KEY_EVERY, // 🏰 이번 판에 쓴 누들 / 다음 열쇠 웨이브
   eid: 1, // 적 고유 번호 (듀오 동기화용)
   selected: null, speed: 1, muted: false, paused: false, time: 0,
   stage: 0, cleared: false, clearWait: false,
@@ -658,6 +720,9 @@ function resetGame() {
   S.hyperCharges = 0;
   S.nextHyper = HYPER_EVERY;
   S.eid = 1;
+  S.noodle = {};
+  S.nextKey = GOB_KEY_EVERY;
+  renderNoodleBar();
   const sf = trLv('safe'); // 🔒 금고: 게임 시작 시 70% 확률로 보너스 골드
   if (sf && Math.random() < 0.7) {
     const bonus = 60 + (sf - 1) * 20;
@@ -743,6 +808,14 @@ function startWave() {
       addText(WORLD_W / 2, 348, `📓 일기장! 다음 충전 ${cut}웨이브 단축`, '#ce93d8', 14);
     }
     S.nextHyper = S.wave + gap;
+  }
+  // 🏰 고블린의 저택: 30웨이브마다 열쇠 획득!
+  if (gobOn() && S.wave >= S.nextKey && !ORGOL) {
+    S.nextKey += GOB_KEY_EVERY;
+    GOB.key++;
+    saveGob();
+    addText(WORLD_W / 2, 348, `🔑 열쇠 획득! (총 ${GOB.key}개) — 저택에서 상자를 열자!`, '#ffcc80', 15);
+    sfx('jackpot');
   }
   // 🕴️ 제프: 7웨이브마다 파티 모드! (자기 강화 or 팀 회식 중 랜덤)
   if (S.wave % JEFF_PARTY_EVERY === 0 && slots.some(sl => sl.unit && sl.unit.special === 'office')) {
@@ -1005,6 +1078,7 @@ function update(dt) {
         / ((S.buffT.spd > 0 ? 1.5 : 1) * (aura ? AURA_SPD : 1) * (u.cheerT > 0 ? CHEER_SPD : 1)
            * (1 + trLv('flute') * 0.01)                                    // 🎵 피터의 피리
            * (trLv('bell') ? 1.2 + (trLv('bell') - 1) * 0.01 : 1));        // 🔔 인디의 구구단종
+      if (S.noodle[2]) u.cdT = Math.max(NOODLE_CD_MIN, u.cdT - NOODLE_CD_CUT); // 🍲 누들 두울
       const juraHyper = u.type === 'jurasaurus' && S.buffT.jura > 0; // 🦕 하이퍼 사우르스!
       if (juraHyper) u.cdT = u.cd / 51; // 공속 +5000%
       // 🕴️ 제프: 근무 모드는 약하지만 빠르고, 파티 모드는 강해진다
@@ -1020,7 +1094,9 @@ function update(dt) {
           * (S.buffT.bleed > 0 ? BLEED_MUL : 1) // 🩸 피의 석궁: 적 방어력 하락
           * (1 + Math.min(S.gold / 100, trLv('ring') * 2) / 100) // 💍 부자의 반지: 골드 비례
           * (S.buffT.car > 0 ? 2 : 1)                            // 🚗 시공간 초월 자동차
-          * (trLv('rocket') ? 1.1 + (trLv('rocket') - 1) * 0.01 : 1)); // 🚀 살라자르 드래곤의 로켓
+          * (trLv('rocket') ? 1.1 + (trLv('rocket') - 1) * 0.01 : 1) // 🚀 살라자르 드래곤의 로켓
+          * (S.noodle[1] ? NOODLE_ATK : 1)   // 🍜 누들 하나: 공격력 +20%
+          * (S.noodle[3] ? NOODLE_DEF : 1)); // 🍥 누들 세엣: 적 방어력 -10%
       if (u.special === 'cheer' && Math.random() < CHEER_CHANCE) { // 🤠 인디: 주변 아군에게 응원!
         let n = 0;
         for (const s2 of slots) {
@@ -2007,6 +2083,7 @@ function showOverlay(mode) {
     const best = +(localStorage.getItem('ltd_best') || 0);
     $('ovRecord').textContent = best > 0 ? `🏆 일반 모드 최고 기록: 웨이브 ${best}` : '';
     loadLava(); // 🌋 이벤트 진행 여부 확인
+    loadGobEvent(); // 🏰 고블린의 저택 진행 여부 확인
     updateEventUI();
   } else if (mode === 'rank') { // 🏆 랭킹
     ov.querySelector('h1').textContent = '🏆 랭킹';
@@ -2192,6 +2269,7 @@ $('devPower').addEventListener('click', () => {
   addText(WORLD_W / 2, 300, DEV_POWER ? '💪 기본 공격력 10만!!' : '💪 공격력 원상복구', '#b388ff', 15);
 });
 $('devLava').addEventListener('click', () => { if (DEV) startLava(); }); // 🌋 라바 이벤트 개시 (3시간)
+$('devGob').addEventListener('click', () => { if (DEV) startGob(); });   // 🏰 고블린의 저택 개시 (7일 7시간 7분)
 $('devPickBtn').addEventListener('click', () => {
   if (!DEV) return;
   const grid = $('devPickGrid');
@@ -2379,6 +2457,92 @@ $('hollyClose').addEventListener('click', () => $('holly').classList.add('hidden
 $('orgolClose').addEventListener('click', () => $('orgol').classList.add('hidden'));
 function openHolly() { $('holly').classList.remove('hidden'); renderHolly('units'); }
 
+// ---------- 🏰 고블린의 저택 (기간 한정 이벤트, 기획: 구예준) ----------
+// 30웨이브마다 🔑열쇠 → 📦상자에서 🍝면 조각 → 10개 모으면 🍜누들 완성 → 게임에서 사용
+let GOB = { key: 0, frag: 0, n1: 0, n2: 0, n3: 0 }, GOB_UNTIL = 0;
+const gobOn = () => Date.now() < GOB_UNTIL;
+function gobLeftText() {
+  const ms = GOB_UNTIL - Date.now();
+  if (ms <= 0) return '이벤트 종료';
+  const d = Math.floor(ms / 86400000), h = Math.floor(ms / 3600000) % 24, m = Math.floor(ms / 60000) % 60;
+  return d > 0 ? `${d}일 ${h}시간 ${m}분 남음` : h > 0 ? `${h}시간 ${m}분 남음` : `${m}분 남음`;
+}
+function loadGob() {
+  try { GOB = { key: 0, frag: 0, n1: 0, n2: 0, n3: 0, ...JSON.parse(localStorage.getItem('ltd_gob') || '{}') }; } catch (e) {}
+}
+function saveGob() { try { localStorage.setItem('ltd_gob', JSON.stringify(GOB)); } catch (e) {} }
+async function loadGobEvent() {
+  if (!RANK_DB) return;
+  try {
+    const d = await (await fetch(`${RANK_DB}/party/_event/goblin.json`)).json();
+    GOB_UNTIL = (d && d.until) || 0;
+    updateEventUI();
+  } catch (e) {}
+}
+async function startGob() { // 🌑 DARK KAKAO 전용 — 이벤트 개시
+  GOB_UNTIL = Date.now() + GOB_DURATION;
+  try { await fetch(`${RANK_DB}/party/_event/goblin.json`, { method: 'PUT', body: JSON.stringify({ until: GOB_UNTIL }) }); } catch (e) {}
+  updateEventUI();
+  addText(WORLD_W / 2, 300, '🏰 고블린의 저택 개장!!', '#ffcc80', 20);
+}
+function renderGob() {
+  $('gobTime').textContent = gobOn() ? `⏳ ${gobLeftText()}` : '이벤트가 열려 있지 않아요';
+  $('gobKey').textContent = `🔑 ${GOB.key}`;
+  $('gobFrag').textContent = `🍝 ${GOB.frag}/${GOB_FRAG_PER_NOODLE}`;
+  $('gobOpenBtn').disabled = GOB.key < 1;
+  $('gobCookBtn').disabled = GOB.frag < GOB_FRAG_PER_NOODLE;
+  $('noodleList').innerHTML = NOODLES.map(n => `<div class="ncard">
+    <span class="nicon">${n.icon}</span>
+    <div style="flex:1"><b>${n.name}</b><div style="color:#bfa88c;font-size:11px">${n.desc}</div></div>
+    <span class="ncount">×${GOB['n' + n.id]}</span></div>`).join('');
+}
+function gobOpenBox() {
+  if (GOB.key < 1) return;
+  GOB.key--;
+  const got = 3 + Math.floor(Math.random() * 5); // 면 조각 3~7개
+  GOB.frag += got;
+  saveGob();
+  $('gobResult').textContent = `📦 상자에서 🍝면 조각 ${got}개 획득!`;
+  renderGob();
+  sfx('merge');
+}
+function gobCook() {
+  if (GOB.frag < GOB_FRAG_PER_NOODLE) return;
+  GOB.frag -= GOB_FRAG_PER_NOODLE;
+  const n = rand(NOODLES);
+  GOB['n' + n.id]++;
+  saveGob();
+  $('gobResult').innerHTML = `🍜 <b>${n.icon} ${n.name}</b> 완성! (${n.desc})`;
+  renderGob();
+  sfx('jackpot');
+}
+function useNoodle(id) { // 게임 중 누들 사용 (판당 종류별 1회)
+  if (!S.running || S.over || S.noodle[id] || GOB['n' + id] < 1) return;
+  GOB['n' + id]--;
+  S.noodle[id] = true;
+  saveGob();
+  const n = NOODLES.find(x => x.id === id);
+  addText(WORLD_W / 2, 280, `${n.icon} ${n.name}! ${n.desc}`, '#ffcc80', 16);
+  sfx('food');
+  renderNoodleBar();
+  updateButtons();
+}
+function renderNoodleBar() {
+  const bar = $('noodleBar');
+  const usable = gobOn() && (GOB.n1 + GOB.n2 + GOB.n3 > 0 || S.noodle[1] || S.noodle[2] || S.noodle[3]);
+  bar.classList.toggle('hidden', !usable);
+  if (!usable) return;
+  bar.innerHTML = NOODLES.map(n =>
+    `<button data-n="${n.id}" ${S.noodle[n.id] || GOB['n' + n.id] < 1 ? 'disabled' : ''}>
+      ${n.icon}${S.noodle[n.id] ? ' 사용중' : ' ×' + GOB['n' + n.id]}</button>`).join('');
+  bar.querySelectorAll('button').forEach(b => b.onclick = () => useNoodle(+b.dataset.n));
+}
+$('gobOpenBtn').addEventListener('click', gobOpenBox);
+$('gobCookBtn').addEventListener('click', gobCook);
+$('gobClose').addEventListener('click', () => $('gob').classList.add('hidden'));
+$('gobBtn').addEventListener('click', () => { $('gob').classList.remove('hidden'); $('gobResult').textContent = ''; renderGob(); });
+loadGob();
+
 // ---------- 🎣 낚시터 & 보물 (기획: 구예준) ----------
 // 진주로 낚시 → 보물 획득, 중복이면 레벨업(최대 15). 효과는 레벨에 비례.
 const TREASURE_MAX = 15, FISH_COST = 10;
@@ -2430,6 +2594,8 @@ async function startLava() { // 🌑 DARK KAKAO 전용 — 이벤트 개시
   addText(WORLD_W / 2, 300, '🌋 라바 이벤트 시작!!', '#ff7043', 20);
 }
 function updateEventUI() {
+  const gb = $('gobBtn'); // 🏰 이벤트 중에만 상단바에 버튼 노출
+  if (gb) gb.classList.toggle('hidden', !gobOn());
   const on = lavaOn();
   const he = $('homeEvent');
   if (he) {
@@ -2878,7 +3044,10 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   TREASURES, doFish, doFishAll, renderFish, rollGrade, trLv, startLava, loadLava, lavaOn,
   getTR: () => ({ TR, PEARL, FREEFISH, LAVA_UNTIL }),
   setTR: (t, p, f) => { TR = t; PEARL = p; if (f !== undefined) FREEFISH = f; saveTreasure(); },
-  setLava: ms => { LAVA_UNTIL = ms; updateEventUI(); }, setRankDb: u => { RANK_DB = u; } };
+  setLava: ms => { LAVA_UNTIL = ms; updateEventUI(); }, setRankDb: u => { RANK_DB = u; },
+  NOODLES, startGob, loadGobEvent, gobOn, gobOpenBox, gobCook, useNoodle, renderGob, renderNoodleBar,
+  getGob: () => ({ ...GOB, until: GOB_UNTIL }),
+  setGob: (g2, until) => { GOB = { ...GOB, ...g2 }; if (until !== undefined) GOB_UNTIL = until; saveGob(); updateEventUI(); } };
 </script>
 </body>
 </html>
