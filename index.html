@@ -81,6 +81,32 @@
     background:linear-gradient(180deg,#66d36e,#3fa946); box-shadow:0 5px 0 #23702a;
   }
   #overlay .record { color:#ffd76e; font-weight:800; font-size:17px; }
+  #vote {
+    position:fixed; inset:0; background:#1a1430; z-index:23;
+    padding:16px 14px calc(14px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+  }
+  #vote h2 { color:#ce93d8; font-size:22px; }
+  #vote .sub { color:#b39ddb; font-size:12px; text-align:center; line-height:1.6; }
+  #voteList {
+    flex:1; width:100%; max-width:420px; overflow-y:auto;
+    display:flex; flex-direction:column; gap:6px; padding:2px;
+  }
+  .vrow {
+    position:relative; overflow:hidden;
+    background:#251d40; border:1px solid #3d3163; border-radius:11px;
+    padding:8px 11px; color:#e8e3f7; font-size:13px;
+    display:flex; gap:9px; align-items:center; text-align:left;
+  }
+  .vrow.mine { border-color:#ce93d8; background:#33244f; }
+  .vbar { position:absolute; left:0; top:0; bottom:0; background:rgba(186,104,200,0.28); }
+  .vrow > * { position:relative; }
+  .vrow .vpic { width:30px; height:30px; object-fit:contain; }
+  .vrow .vemoji { font-size:22px; width:30px; text-align:center; }
+  .vrow .vname { flex:1; font-weight:800; }
+  .vrow .vgrade { font-size:10px; padding:2px 6px; border-radius:7px; font-weight:800; }
+  .vrow .vcount { color:#ffd54f; font-weight:800; font-size:12px; }
+  #vote .close { background:#4a3a6e; padding:9px 26px; font-size:14px; border-radius:10px; }
   #gob {
     position:fixed; inset:0; background:#241a12; z-index:23;
     padding:16px 14px calc(14px + env(safe-area-inset-bottom));
@@ -358,6 +384,7 @@
   <button id="ovBtn4" class="hidden">👥 더블큐</button>
   <button id="ovBtn5" class="hidden">💬 채팅방</button>
   <button id="ovBtn6" class="hidden">🎣 낚시터</button>
+  <button id="ovBtn7" class="hidden">🗳️ 인기투표</button>
   <div id="nickLine" class="hidden">👤 <span id="nickName"></span> <button id="nickEdit">✏️ 바꾸기</button></div>
 </div>
 
@@ -412,6 +439,13 @@
       <button id="duoCancelBtn" class="gray">취소</button>
     </div>
   </div>
+</div>
+
+<div id="vote" class="hidden">
+  <h2>🗳️ 캐릭터 인기투표</h2>
+  <p class="sub" id="voteMine">가장 좋아하는 캐릭터에게 한 표를!</p>
+  <div id="voteList"></div>
+  <button class="close" id="voteClose">나가기</button>
 </div>
 
 <div id="gob" class="hidden">
@@ -2084,6 +2118,7 @@ function showOverlay(mode) {
   $('ovBtn4').classList.add('hidden');
   $('ovBtn5').classList.add('hidden');
   $('ovBtn6').classList.add('hidden');
+  $('ovBtn7').classList.add('hidden');
   $('nickLine').classList.add('hidden');
   if (mode === 'home') { // 첫 화면: 모드 선택
     ov.querySelector('h1').textContent = '🏰 타워 디펜스 777';
@@ -2098,6 +2133,7 @@ function showOverlay(mode) {
     $('ovBtn4').classList.remove('hidden');
     $('ovBtn5').classList.remove('hidden');
     $('ovBtn6').classList.remove('hidden');
+    $('ovBtn7').classList.remove('hidden');
     if (DUO.on) duoCleanup(); // 홈으로 오면 듀오 종료
     $('nickLine').classList.remove('hidden');
     $('nickName').textContent = getNick() || '닉네임 없음';
@@ -2477,6 +2513,57 @@ document.querySelectorAll('.htab').forEach(b => b.addEventListener('click', () =
 $('hollyClose').addEventListener('click', () => $('holly').classList.add('hidden'));
 $('orgolClose').addEventListener('click', () => $('orgol').classList.add('hidden'));
 function openHolly() { $('holly').classList.remove('hidden'); renderHolly('units'); }
+
+// ---------- 🗳️ 캐릭터 인기투표 (기획: 구예준) ----------
+// 유저당 1표, 언제든 바꿀 수 있다. 서버에 닉네임별로 저장해 실시간 집계.
+const VOTE_PATH = () => `${RANK_DB}/party/_vote`;
+let VOTES = {};
+async function loadVotes() {
+  try { VOTES = await (await fetch(`${VOTE_PATH()}.json`)).json() || {}; } catch (e) { VOTES = {}; }
+}
+async function castVote(type) {
+  const nick = getNick();
+  if (!nick || !RANK_DB) { openNickModal(); return; }
+  VOTES[nick] = { type, t: Date.now() };
+  renderVote(); // 즉시 반영 후 서버 저장
+  try { await fetch(`${VOTE_PATH()}/${encodeURIComponent(nick)}.json`, { method: 'PUT', body: JSON.stringify(VOTES[nick]) }); } catch (e) {}
+  sfx('merge');
+}
+function renderVote() {
+  const me = getNick();
+  const myVote = VOTES[me] && VOTES[me].type;
+  const counts = {};
+  for (const v of Object.values(VOTES)) if (v && v.type) counts[v.type] = (counts[v.type] || 0) + 1;
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const mineName = myVote ? (UNITS.find(u => u.type === myVote) || {}).name : null;
+  $('voteMine').innerHTML = mineName
+    ? `내 한 표: <b style="color:#ffd54f">${mineName}</b> — 총 ${total}표 (다시 눌러 바꿀 수 있어요)`
+    : `가장 좋아하는 캐릭터에게 한 표를! — 총 ${total}표`;
+  const ranked = UNITS.map(u => ({ u, n: counts[u.type] || 0 }))
+    .sort((a, b) => b.n - a.n || a.u.grade - b.u.grade);
+  const top = Math.max(1, ranked[0].n);
+  $('voteList').innerHTML = ranked.map(({ u, n }, i) => {
+    const pct = total ? Math.round(n / total * 100) : 0;
+    const pic = u.img ? `<img class="vpic" src="${u.img}" alt="">` : `<span class="vemoji">${u.emoji}</span>`;
+    return `<button class="vrow${myVote === u.type ? ' mine' : ''}" data-t="${u.type}">
+      <span class="vbar" style="width:${n / top * 100}%"></span>
+      <span class="vcount" style="min-width:26px">${i === 0 && n > 0 ? '👑' : i + 1 + '위'}</span>
+      ${pic}
+      <span class="vname">${u.name}${u.disabled ? ' <small style="color:#8a96b8">(미출시)</small>' : ''}</span>
+      <span class="vgrade" style="background:${GRADES[u.grade].color};color:#1a1430">${GRADES[u.grade].name}</span>
+      <span class="vcount">${n}표 ${pct}%</span>
+    </button>`;
+  }).join('');
+  $('voteList').querySelectorAll('.vrow').forEach(b => b.onclick = () => castVote(b.dataset.t));
+}
+async function openVote() {
+  $('vote').classList.remove('hidden');
+  $('voteList').innerHTML = '<div style="color:#b39ddb;padding:16px">불러오는 중...</div>';
+  await loadVotes();
+  renderVote();
+}
+$('ovBtn7').addEventListener('click', openVote);
+$('voteClose').addEventListener('click', () => $('vote').classList.add('hidden'));
 
 // ---------- 🏰 고블린의 저택 (기간 한정 이벤트, 기획: 구예준) ----------
 // 30웨이브마다 🔑열쇠 → 📦상자에서 🍝면 조각 → 10개 모으면 🍜누들 완성 → 게임에서 사용
@@ -3067,6 +3154,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   setTR: (t, p, f) => { TR = t; PEARL = p; if (f !== undefined) FREEFISH = f; saveTreasure(); },
   setLava: ms => { LAVA_UNTIL = ms; updateEventUI(); }, setRankDb: u => { RANK_DB = u; },
   NOODLES, startGob, loadGobEvent, gobOn, gobOpenBox, gobCook, useNoodle, renderGob, renderNoodleBar,
+  UNITS, openVote, loadVotes, castVote, renderVote, getVotes: () => VOTES,
   getGob: () => ({ ...GOB, until: GOB_UNTIL }),
   setGob: (g2, until) => { GOB = { ...GOB, ...g2 }; if (until !== undefined) GOB_UNTIL = until; saveGob(); updateEventUI(); } };
 </script>
