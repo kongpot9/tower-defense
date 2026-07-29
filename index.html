@@ -482,8 +482,8 @@ const FARMER_DMG_TIME = 8, FARMER_FREEZE_TIME = 11; // 얼어버리는 일륜도
 const SHOCK_CHANCE = 0.3, SHOCK_RADIUS = 70, SHOCK_MAX = 3;  // 🤡 데스삐에로: 전기 연쇄 공격
 const CAT_HOMING_CHANCE = 0.25, CAT_HOMING_SPLASH = 50;      // 🐱 캣머신: 끝까지 추적하는 유도 미사일
 // 🕴️ 제프(회사원): 평소엔 근무 모드(약하지만 빠름), 7웨이브마다 파티 모드!
-const JEFF_PARTY_EVERY = 7, JEFF_WORK_DMG = 30, JEFF_WORK_CD = 0.35;
-const JEFF_PARTY_BONUS = 30, JEFF_TEAM_BUFF = 1.1;
+const JEFF_PARTY_EVERY = 5, JEFF_WORK_DMG = 30, JEFF_WORK_CD = 0.35;
+const JEFF_PARTY_BONUS = 30, JEFF_TEAM_BUFF = 1.1, JEFF_WARMUP = 0.6; // 파티 준비 0.6초 후 자기 강화 + 팀 강화 동시 발동
 const BLEED_MUL = 5;       // 피의 석궁: 적 방어력 5배 하락 = 받는 피해 5배
 const FOODS = [
   { id:'pancake', emoji:'🥞', name:'팬케이크', msg:'공격력 30% UP!' },
@@ -746,10 +746,9 @@ function startWave() {
   }
   // 🕴️ 제프: 7웨이브마다 파티 모드! (자기 강화 or 팀 회식 중 랜덤)
   if (S.wave % JEFF_PARTY_EVERY === 0 && slots.some(sl => sl.unit && sl.unit.special === 'office')) {
-    S.jeffParty = Math.random() < 0.5 ? 'boost' : 'team';
-    addText(WORLD_W / 2, 292, S.jeffParty === 'boost'
-      ? `🎤 제프 파티 타임! 공격력 +${JEFF_PARTY_BONUS}!`
-      : `🎉 제프의 회식! 아군 전체 공격력 +${Math.round((JEFF_TEAM_BUFF - 1) * 100)}%!`, '#ffd54f', 16);
+    S.jeffParty = 'both';
+    for (const sl of slots) if (sl.unit && sl.unit.special === 'office') sl.unit.partyWarm = JEFF_WARMUP; // 마이크 잡는 시간
+    addText(WORLD_W / 2, 292, `🎤 제프 파티 타임! 공격력 +${JEFF_PARTY_BONUS} & 아군 전체 +${Math.round((JEFF_TEAM_BUFF - 1) * 100)}%!`, '#ffd54f', 15);
     sfx('food');
   } else S.jeffParty = null;
   const cr = trLv('car'); // 🚗 시공간 초월 자동차: 50% 확률로 공격력 2배
@@ -980,6 +979,7 @@ function update(dt) {
     if (!u) continue;
     if (u.popT > 0) u.popT -= dt;
     if (u.cheerT > 0) u.cheerT -= dt; // 🤠 인디의 응원 버프
+    if (u.partyWarm > 0) { u.partyWarm -= dt; continue; } // 🎤 제프: 마이크 잡는 동안 공격 불가
     if (u.moveT > 0) { u.moveT -= dt; continue; } // 이동 직후엔 공격 불가
     u.cdT -= dt;
     if (u.cdT > 0) continue;
@@ -1010,13 +1010,13 @@ function update(dt) {
       // 🕴️ 제프: 근무 모드는 약하지만 빠르고, 파티 모드는 강해진다
       let jeffDmg = 0;
       if (u.special === 'office') {
-        if (S.jeffParty) jeffDmg = S.jeffParty === 'boost' ? u.dmg + JEFF_PARTY_BONUS : u.dmg;
+        if (S.jeffParty) jeffDmg = u.dmg + JEFF_PARTY_BONUS;
         else { jeffDmg = JEFF_WORK_DMG; u.cdT = u.cdT * (JEFF_WORK_CD / u.cd); }
       }
       // 강화(⚔️ +10%씩 복리) × 팬케이크(+30%) × 펭귄 연주(+25%) 적용 공격력
       const D = DEV_POWER ? 100000 // 🌑 DARK KAKAO: 기본 공격력 10만
         : Math.round((jeffDmg || u.dmg) * Math.pow(1.1, S.atkLv) * (S.buffT.dmg > 0 ? 1.3 : 1) * (S.buffT.hyper > 0 ? HYPER_DMG_MUL : 1) * (juraHyper ? 5 : 1) * (aura ? AURA_DMG : 1)
-          * (S.jeffParty === 'team' ? JEFF_TEAM_BUFF : 1) // 🎉 제프의 회식: 아군 전체 강화
+          * (S.jeffParty ? JEFF_TEAM_BUFF : 1) // 🎉 제프의 회식: 아군 전체 강화
           * (S.buffT.bleed > 0 ? BLEED_MUL : 1) // 🩸 피의 석궁: 적 방어력 하락
           * (1 + Math.min(S.gold / 100, trLv('ring') * 2) / 100) // 💍 부자의 반지: 골드 비례
           * (S.buffT.car > 0 ? 2 : 1)                            // 🚗 시공간 초월 자동차
@@ -1460,7 +1460,7 @@ function draw() {
     }
     if (u.special === 'office') { // 🕴️ 제프의 현재 모드
       ctx.font = '13px sans-serif';
-      ctx.fillText(S.jeffParty ? '🎤' : '💼', sl.cx - 17, sl.cy - 17);
+      ctx.fillText(u.partyWarm > 0 ? '🎶' : S.jeffParty ? '🎤' : '💼', sl.cx - 17, sl.cy - 17);
     }
     if (locked) {
       ctx.globalAlpha = 1;
@@ -1873,8 +1873,8 @@ function updateInfoPanel() {
       + (u.type === 'catmachine' ? ` · 🎯${Math.round(CAT_HOMING_CHANCE * 100)}% 유도 미사일` : '')
       + (u.special === 'cheer' ? ' · 📣15% 주변 공속 UP' : '')
       + (u.special === 'office' ? (S.jeffParty
-          ? (S.jeffParty === 'boost' ? ` · 🎤파티 모드! 공격 ${u.dmg + JEFF_PARTY_BONUS}` : ' · 🎉회식 중! 아군 전체 +10%')
-          : ` · 🕴️근무 모드(공격 ${JEFF_WORK_DMG} · 속도 ${JEFF_WORK_CD}s) · ${JEFF_PARTY_EVERY}웨이브마다 파티!`) : '')
+          ? ` · 🎤파티 모드! 공격 ${u.dmg + JEFF_PARTY_BONUS} + 아군 전체 +${Math.round((JEFF_TEAM_BUFF - 1) * 100)}%`
+          : ` · 💼근무 모드(공격 ${JEFF_WORK_DMG} · 속도 ${JEFF_WORK_CD}s) · ${JEFF_PARTY_EVERY}웨이브마다 파티!`) : '')
       + ((u.atk === 'slash' || u.atk === 'bite' || u.atk === 'axe' || u.atk === 'ronin') ? ' · 근접' : '')
       + (u.hyper ? ` · ⚡${u.hyper}` : '');
     const head = `<span class="emoji">${u.emoji}</span> <b style="color:${GRADES[u.grade].color}">[${GRADES[u.grade].name}] ${u.name}</b>&nbsp; `;
