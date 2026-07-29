@@ -443,31 +443,31 @@ const GRADE_PROB = [0.54, 0.30, 0.10, 0.045, 0.015]; // 소환 등급 확률
 const UNITS = [
   // 일반
   { type:'swordsman',  grade:0, emoji:'⚔️', name:'검사',  dmg:12, cd:0.90, range:95,  atk:'slash',  img:'character/normal1.png' },
-  { type:'archer',     grade:0, emoji:'🏹', name:'궁수',  dmg:5,  cd:0.55, range:204, atk:'arrow',  hyper:'피의 석궁', img:'character/normal2.png' },
+  { type:'archer',     grade:0, emoji:'🏹', name:'궁수',  dmg:5,  cd:0.85, range:204, atk:'arrow',  hyper:'피의 석궁', img:'character/normal2.png' },
   { type:'farmer',     grade:0, emoji:'🌾', name:'농부',  dmg:7,  cd:0.80, range:130, atk:'scythe', hyper:'얼어버리는 일륜도', img:'character/normal3.png' },
   // 희귀
   { type:'jurasaurus', grade:1, emoji:'🦕', name:'쥬라사우르스', dmg:32, cd:0.45, range:100, atk:'bite', hyper:'하이퍼 사우르스', img:'character/rare1.png' },
-  { type:'wonkkataein',grade:1, emoji:'⚾', name:'원까태인', dmg:22, cd:0.50, range:175, atk:'ball', special:'fireball', img:'character/rare2.png' },
+  { type:'wonkkataein',grade:1, emoji:'⚾', name:'원까태인', dmg:22, cd:0.30, range:175, atk:'ball', special:'fireball', img:'character/rare2.png' },
   { type:'tankboy',    grade:1, emoji:'🚜', name:'탱크보이', dmg:45, cd:1.60, range:165, splash:50, atk:'shell', hyper:'기가파르도 장군님', img:'character/rare3.png' },
   // 영웅 — 아들 그림!
   { type:'deathpierrot', grade:2, emoji:'🤡', name:'데스삐에로', dmg:72,  cd:0.80, range:140, atk:'punch', special:'shock', img:'character/hero1.png' },
   { type:'lumberjack',   grade:2, emoji:'🪓', name:'나무꾼',     dmg:91,  cd:1.00, range:100, atk:'axe',      img:'character/hero2.png' },
   { type:'darkrider',    grade:2, emoji:'🥷', name:'다크라이더', dmg:16,  cd:0.22, range:165, atk:'shuriken', img:'character/hero3.png' },
   // 신화 — 아들 그림!
-  { type:'miner',    grade:3, emoji:'⛏️', name:'능력자광부',   dmg:30,  cd:0.30, range:130, atk:'drill',     special:'bomb',   img:'character/myth1.png' },
+  { type:'miner',    grade:3, emoji:'⛏️', name:'능력자광부',   dmg:30,  cd:0.50, range:130, atk:'drill',     special:'bomb',   img:'character/myth1.png' },
   { type:'ricecake', grade:3, emoji:'🍡', name:'떡장수',       dmg:45,  cd:0.75, range:170, atk:'songpyeon', special:'multi4', img:'character/myth2.png' },
   { type:'ronin',    grade:3, emoji:'🗡️', name:'낭인',         dmg:170, cd:1.10, range:120, atk:'ronin',     special:'baldo',  img:'character/myth3.png' },
   { type:'angeldog', grade:3, emoji:'😇', name:'천사 도베르만', dmg:35,  cd:0.60, range:160, atk:'holy',      special:'smite',  img:'character/myth4.png' },
   // 전설 — 아들 그림! (신화 등장에 맞춰 전반 상향)
-  { type:'reddragon',  grade:4, emoji:'🐉', name:'레드드래곤', dmg:312, cd:1.70, range:320, splash:70, atk:'breath',  img:'character/legend1.png' },
-  { type:'dosa',       grade:4, emoji:'🧙', name:'도사',       dmg:129, cd:0.80, range:180, atk:'fan', homing:true, img:'character/legend2.png' },
+  { type:'reddragon',  grade:4, emoji:'🐉', name:'레드드래곤', dmg:323, cd:1.70, range:320, splash:70, atk:'breath',  img:'character/legend1.png' },
+  { type:'dosa',       grade:4, emoji:'🧙', name:'도사',       dmg:344, cd:2.30, range:180, atk:'fan', homing:true, img:'character/legend2.png' },
   { type:'catmachine', grade:4, emoji:'🐱', name:'캣머신',     dmg:170, cd:0.50, range:110, splash:30, atk:'missile', img:'character/legend3.png' },
   { type:'royalchef',  grade:4, emoji:'👨‍🍳', name:'로얄 셰프', dmg:0,   cd:30,   range:0,   support:'chef', disabled:true }, // 서포터! (그림 완성되면 disabled 제거하고 공개)
   { type:'penguin',    grade:4, emoji:'🐧', name:'펭귄악사',   dmg:0,   cd:1,    range:130, support:'aura', img:'character/legend4.png' }, // 오라 서포터
   // 신화 추가
   { type:'bane',       grade:3, emoji:'😈', name:'베인',       dmg:330, cd:2.20, range:110, splash:45, atk:'bane', img:'character/myth5.png' },
   // 영웅 추가
-  { type:'indie',      grade:2, emoji:'🤠', name:'인디',       dmg:40,  cd:0.70, range:140, atk:'paper', special:'cheer', img:'character/hero4.png' },
+  { type:'indie',      grade:2, emoji:'🤠', name:'인디',       dmg:44,  cd:0.70, range:140, atk:'paper', special:'cheer', img:'character/hero4.png' },
   { type:'jeff',       grade:2, emoji:'🕴️', name:'제프',       dmg:51,  cd:0.80, range:130, atk:'orb',   special:'office', img:'character/hero5.png' },
 ];
 // 🐧 펭귄악사의 연주 오라 (기획: 구예준) — 범위 내 아군 강화 + 적 약화
@@ -493,9 +493,9 @@ const FOODS = [
   { id:'candy',   emoji:'🍬', name:'사탕',     msg:'달콤한 대폭발!' },
 ];
 // 신화 특수 능력
-const BOMB_CHANCE = 0.15, BOMB_DMG = 150, BOMB_RADIUS = 60, BOMB_FUSE = 1.0; // 능력자광부: 폭탄 설치
+const BOMB_CHANCE = 0.15, BOMB_DMG = 288, BOMB_RADIUS = 60, BOMB_FUSE = 1.0; // 능력자광부: 폭탄 설치
 const BALDO_CHANCE = 0.25, BALDO_RADIUS = 90;                                // 낭인: 발도술 광역
-const SMITE_CHANCE = 0.03, SMITE_BOSS_PCT = 0.03;                            // 천사 도베르만: 즉사 (보스는 최대체력 3% 추가)
+const SMITE_CHANCE = 0.02, SMITE_BOSS_PCT = 0.03;                            // 천사 도베르만: 즉사 (보스는 최대체력 3% 추가)
 const MULTI_TARGETS = 5;                                                     // 떡장수: 동시 공격 대상 수
 const FIREBALL_CHANCE = 0.25, FIREBALL_MUL = 4; // 원까태인 불꽃공 확률 (피해 4배 + 소범위)
 const PROJ_SPEED = { arrow:700, scythe:420, ball:560, fire:480, shell:320, shuriken:650, fan:560, missile:430, drill:620, songpyeon:520, holy:560, paper:540, orb:500 };
