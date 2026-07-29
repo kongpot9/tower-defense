@@ -759,6 +759,7 @@ function resetGame() {
   S.eid = 1;
   S.noodle = {};
   S.nextKey = GOB_KEY_EVERY;
+  S.startedAt = Date.now(); // 🛡️ 기록 검증용 시작 시각
   renderNoodleBar();
   const sf = trLv('safe'); // 🔒 금고: 게임 시작 시 70% 확률로 보너스 골드
   if (sf && Math.random() < 0.7) {
@@ -1347,13 +1348,21 @@ async function submitScore(kind, data, isBetter) {
     }
   } catch (e) { /* 오프라인이면 조용히 넘어감 */ }
 }
+// 🛡️ 부정 기록 방지 — 한 웨이브는 최소 시간이 걸린다(2배속·일시정지 감안해 넉넉히)
+const MAX_SUBMIT_WAVE = 200, MIN_SEC_PER_WAVE = 8;
+function scoreLooksReal(wave) {
+  if (!Number.isFinite(wave) || wave <= 0 || wave > MAX_SUBMIT_WAVE) return false;
+  const played = (Date.now() - (S.startedAt || 0)) / 1000;
+  return played >= (wave - 1) * MIN_SEC_PER_WAVE;
+}
 function submitClassicScore(wave) {
+  if (!scoreLooksReal(wave)) return;
   submitScore('classic', { wave, t: Date.now() }, cur => wave > (cur.wave || 0));
 }
 function submitStoryScore() {
   let stars = 0;
   for (let i = 0; i < STAGES.length; i++) if (clearedOf(i)) stars++;
-  if (stars > 0) submitScore('story', { stars, t: Date.now() }, cur => stars > (cur.stars || 0));
+  if (stars > 0 && stars <= STAGES.length) submitScore('story', { stars, t: Date.now() }, cur => stars > (cur.stars || 0));
 }
 let rankTab = 'classic';
 async function renderRank() {
@@ -3061,7 +3070,7 @@ function duoStartGame() { // 양쪽 각자 필드에서 동시 시작!
 }
 async function duoGameOver() { // 팀 기록 제출 (양쪽 모두 시도 — 더 높은 웨이브만 남는다)
   try {
-    if (!DUO.partner) return;
+    if (!DUO.partner || !scoreLooksReal(S.wave)) return; // 🛡️ 비정상 기록은 제출하지 않음
     const key = [DUO.myNick, DUO.partner].sort().join('+').replace(/[.#$/\[\]]/g, '').slice(0, 20);
     const url = `${RANK_DB}/rank/duo/${encodeURIComponent(key)}.json`;
     const cur = await (await fetch(url)).json();
