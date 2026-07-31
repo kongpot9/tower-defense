@@ -2376,13 +2376,45 @@ try {
   }
 } catch (e) {}
 
-function trackPick(type) { // 픽률 집계 (이 기기 기준, DARK KAKAO 제외)
+let usePushT = 0;
+function pushUse() { // 내 픽 기록을 서버에 올린다 (5초 디바운스 — 소환 연타 시 요청 폭주 방지)
+  const nick = getNick();
+  if (!nick || !RANK_DB || DEV || ORGOL) return;
+  clearTimeout(usePushT);
+  usePushT = setTimeout(() => {
+    try {
+      const m = localStorage.getItem('ltd_use') || '{}';
+      fetch(`${RANK_DB}/party/_use/${encodeURIComponent(nick)}.json`, { method: 'PUT', body: m }).catch(() => {});
+    } catch (e) {}
+  }, 5000);
+}
+function trackPick(type) { // 픽률 집계 (DARK KAKAO 제외)
   if (DEV) return;
   try {
     const m = JSON.parse(localStorage.getItem('ltd_use') || '{}');
     m[type] = (m[type] || 0) + 1;
     localStorage.setItem('ltd_use', JSON.stringify(m));
   } catch (e) {}
+  pushUse();
+}
+// 홀리베리 전체 픽률: 유저별 기록을 합산
+let GLOBAL_USE = null, globalUseLoading = false;
+async function loadGlobalUse() {
+  if (!RANK_DB || globalUseLoading) return;
+  globalUseLoading = true;
+  try {
+    const d = await (await fetch(`${RANK_DB}/party/_use.json`)).json() || {};
+    const agg = {};
+    let picks = 0;
+    for (const nick in d) {
+      const m = d[nick] || {};
+      for (const t in m) { const n = +m[t] || 0; agg[t] = (agg[t] || 0) + n; picks += n; }
+    }
+    GLOBAL_USE = { agg, users: Object.keys(d).length, picks };
+    const el = $('holly');
+    if (el && !el.classList.contains('hidden')) renderHolly('units'); // 열려 있으면 즉시 갱신
+  } catch (e) {}
+  globalUseLoading = false;
 }
 const HOLLY_TIER = { // 현 메타 티어 (일반 모드 기준)
   reddragon:'S', dosa:'S', angeldog:'S',
@@ -2452,12 +2484,18 @@ function renderHolly(tab) {
   document.querySelectorAll('.htab').forEach(b => b.classList.toggle('on', b.dataset.t === tab));
   const body = $('hollyBody');
   if (tab === 'units') {
-    let use = {};
-    try { use = JSON.parse(localStorage.getItem('ltd_use') || '{}'); } catch (e) {}
+    let mine = {};
+    try { mine = JSON.parse(localStorage.getItem('ltd_use') || '{}'); } catch (e) {}
+    if (!GLOBAL_USE) loadGlobalUse();
+    const hasGlobal = !!(GLOBAL_USE && GLOBAL_USE.picks);
+    const use = hasGlobal ? GLOBAL_USE.agg : mine;
     const total = Object.values(use).reduce((a, n) => a + n, 0);
+    const pickLabel = hasGlobal ? `전체 ${GLOBAL_USE.users}명` : (GLOBAL_USE || !RANK_DB ? '이 기기' : '집계 중…');
     body.innerHTML = UNITS.map(u => {
       const dps = u.support ? '서포터' : (u.dmg / u.cd).toFixed(1);
       const pick = total ? ((use[u.type] || 0) / total * 100).toFixed(1) + '%' : '기록 없음';
+      const myTotal = Object.values(mine).reduce((a, n) => a + n, 0);
+      const myPick = myTotal ? ((mine[u.type] || 0) / myTotal * 100).toFixed(1) + '%' : '';
       const extra = [u.splash ? `범위 ${u.splash}` : '', u.slow ? '감속' : '',
         u.special === 'fireball' ? '25% 불꽃공' : '', u.special === 'bomb' ? '15% 폭탄' : '',
         u.special === 'multi4' ? `${MULTI_TARGETS}연발·보스무시` : '', u.special === 'baldo' ? `${Math.round(BALDO_CHANCE * 100)}% 발도술` : '',
@@ -2475,7 +2513,7 @@ function renderHolly(tab) {
           <span class="hbadge" style="background:${GRADES[u.grade].color};color:#2c0a16">${GRADES[u.grade].name}</span>
           ${u.disabled ? '<span class="hbadge" style="background:#5a708f;color:#fff">미출시</span>' : ''}</div>
         <div class="hstat">공격 ${u.dmg} · 속도 ${u.cd}s · 사거리 ${u.range} · DPS ${dps}${extra ? ' · ' + extra : ''}</div>
-        <div class="hstat">픽률(이 기기): ${pick}</div>
+        <div class="hstat">픽률(${pickLabel}): ${pick}${hasGlobal && myPick ? ` · 나: ${myPick}` : ''}</div>
         <div class="heval">"${HOLLY_EVAL[u.type] || ''}"</div>
         <div class="hstat">📍 사용처: ${HOLLY_USE[u.type] || ''}</div>
       </div>`;
