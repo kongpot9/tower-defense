@@ -579,7 +579,7 @@ const NOODLES = [
 const NOODLE_ATK = 1.2, NOODLE_CD_CUT = 0.9, NOODLE_CD_MIN = 0.15, NOODLE_DEF = 1.1;
 const SHOCK_CHANCE = 0.3, SHOCK_RADIUS = 70, SHOCK_MAX = 3;  // 🤡 데스삐에로: 전기 연쇄 공격
 const CAT_HOMING_CHANCE = 0.25, CAT_HOMING_SPLASH = 50;      // 🐱 캣머신: 끝까지 추적하는 유도 미사일
-// 🕴️ 제프(회사원): 평소엔 근무 모드(약하지만 빠름), 7웨이브마다 파티 모드!
+// 🕴️ 제프(회사원): 평소엔 근무 모드(약하지만 빠름), 5웨이브마다 파티 모드!
 const JEFF_PARTY_EVERY = 5, JEFF_WORK_DMG = 30, JEFF_WORK_CD = 0.35;
 const JEFF_PARTY_BONUS = 30, JEFF_TEAM_BUFF = 1.1, JEFF_WARMUP = 0.6; // 파티 준비 0.6초 후 자기 강화 + 팀 강화 동시 발동
 const BLEED_MUL = 5;       // 피의 석궁: 적 방어력 5배 하락 = 받는 피해 5배
@@ -855,7 +855,7 @@ function startWave() {
     addText(WORLD_W / 2, 348, `🔑 열쇠 획득! (총 ${GOB.key}개) — 저택에서 상자를 열자!`, '#ffcc80', 15);
     sfx('jackpot');
   }
-  // 🕴️ 제프: 7웨이브마다 파티 모드! (자기 강화 or 팀 회식 중 랜덤)
+  // 🕴️ 제프: 5웨이브마다 파티 모드! (자기 강화 or 팀 회식 중 랜덤)
   if (S.wave % JEFF_PARTY_EVERY === 0 && slots.some(sl => sl.unit && sl.unit.special === 'office')) {
     S.jeffParty = 'both';
     for (const sl of slots) if (sl.unit && sl.unit.special === 'office') sl.unit.partyWarm = JEFF_WARMUP; // 마이크 잡는 시간
@@ -2389,13 +2389,13 @@ const HOLLY_TIER = { // 현 메타 티어 (일반 모드 기준)
   catmachine:'A', lumberjack:'A', jurasaurus:'A', farmer:'A',
   deathpierrot:'B', darkrider:'B', miner:'B', tankboy:'B', ronin:'B',
   wonkkataein:'C', ricecake:'C', swordsman:'C',
-  archer:'D', royalchef:'?',
+  archer:'S', royalchef:'?',
   penguin:'S', bane:'A', indie:'B', jeff:'B',
 };
 const TIER_COLOR = { S:'#ffd54f', A:'#4fc3f7', B:'#9ccc65', C:'#ffb74d', D:'#b0bec5', '?':'#8ab8ff' };
 const HOLLY_EVAL = {
   swordsman: '초반 3웨이브의 왕 — 이후엔 최고급 합성 재료',
-  archer: '하층민 — 자리 안 가리는 게 유일한 재능. 다음 하이퍼차지 주인공 유력',
+  archer: '공격력 5의 최약체가 채용률 1위 — 피의 석궁이 아군 전체를 5배로 만든다',
   farmer: '낫질은 그대로지만 일륜도가 모든 걸 바꿨다 — 대반전의 주인공',
   jurasaurus: '쥬라코인 최고가 갱신 중 — 평시 보스킬러, 20웨이브마다 핵무기',
   wonkkataein: '4번 중 1번의 사나이 — 기대값은 정직, 분산이 낭만',
@@ -2414,11 +2414,11 @@ const HOLLY_EVAL = {
   penguin: '한 곡으로 판을 바꾸는 지휘자 — 강한 딜러 옆에 둘수록 이득이 곱해진다',
   bane: '한 방의 무게 330 — 뭉친 적을 통째로 지우는 신화의 파괴자',
   indie: '혼자선 약하지만 팀을 빠르게 만든다 — 공격력이 전부가 아니라는 증명',
-  jeff: '근무 중엔 성실한 연사, 7웨이브마다 마이크를 잡는 회사원 🎤',
+  jeff: '근무 중엔 성실한 연사, 5웨이브마다 마이크를 잡는 회사원 🎤 — 술은 싫어하는데 맥주만 마신다',
 };
 const HOLLY_USE = { // 사용처
   swordsman: '시작 직후 트랙 옆 배치 → 중반부터 합성 재료',
-  archer: '초반 가운데 칸 커버 → 최우선 합성 재료',
+  archer: '어느 덱이든 1마리 보존 — 위기·보스 웨이브에 피의 석궁으로 적 집결 + 전체 5배 딜 창',
   farmer: '모든 덱에 1마리 보존(구석 칸) — 위기·보스전에 일륜도 발동',
   jurasaurus: '트랙 옆 칸 — 보스전 단일딜 · 쥬라공장 · 하이퍼 사우르스 폭딜',
   wonkkataein: '중반 원거리 보강, 아무 칸 OK',
@@ -2437,7 +2437,7 @@ const HOLLY_USE = { // 사용처
   penguin: '전설·신화 딜러가 몰린 구역 한가운데 — 커버하는 아군이 많을수록 강해짐',
   bane: '트랙 옆 칸 필수 — 물량 웨이브·보스 모두 대응하는 신화 주력',
   indie: '딜러 여럿 사이 가운데 칸 — 응원이 닿는 아군이 많은 자리에 배치',
-  jeff: '평소엔 빠른 연사로 잔몹 처리, 7의 배수 웨이브에 파티 모드로 한 방 — 보스 웨이브(5·10·15…)와 겹치는 35웨이브가 최고의 순간',
+  jeff: '평소엔 빠른 연사로 잔몹 처리, 5웨이브마다 파티 모드 — 보스 웨이브와 항상 겹치므로 준비 0.6초를 미리 계산할 것',
 };
 const HOLLY_DECKS = [
   ['🐉 전개덱', '드래곤을 겁나 모으고 강화 때리기 — 광역×강화의 화끈한 정공법'],
@@ -2446,6 +2446,7 @@ const HOLLY_DECKS = [
   ['⛏️ 싸이클덱', '운영 카드를 연속 소환하는 경제 순환형 (운영 파생)'],
   ['🦕 애정덱', '좋아하는 캐릭터로 진지하게 이기러 간다 — 대표작 쥬라공장 (예능 파생)'],
   ['🐸 안티메타덱', '드래곤 메타를 무시하는 청개구리 — 다음 메타의 연구실'],
+  ['🤡 데무덱', '데스삐에로 단일 주력. 전기 연쇄가 감소 없이 3명에게 풀 데미지 → 강화 배율이 3배로 먹힌다 (개척: 이안짱)'],
 ];
 function renderHolly(tab) {
   document.querySelectorAll('.htab').forEach(b => b.classList.toggle('on', b.dataset.t === tab));
