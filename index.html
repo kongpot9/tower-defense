@@ -582,7 +582,7 @@ const CAT_HOMING_CHANCE = 0.25, CAT_HOMING_SPLASH = 50;      // 🐱 캣머신: 
 // 🕴️ 제프(회사원): 평소엔 근무 모드(약하지만 빠름), 5웨이브마다 파티 모드!
 const JEFF_PARTY_EVERY = 5, JEFF_WORK_DMG = 30, JEFF_WORK_CD = 0.35;
 const JEFF_PARTY_BONUS = 30, JEFF_TEAM_BUFF = 1.1, JEFF_WARMUP = 0.6; // 파티 준비 0.6초 후 자기 강화 + 팀 강화 동시 발동
-const BLEED_MUL = 5;       // 피의 석궁: 적 방어력 5배 하락 = 받는 피해 5배
+const BLEED_MUL = 3;       // 피의 석궁: 적 방어력 3배 하락 = 받는 피해 3배 (2026-07-31 너프: 5 → 3)
 const FOODS = [
   { id:'pancake', emoji:'🥞', name:'팬케이크', msg:'공격력 30% UP!' },
   { id:'cupcake', emoji:'🧁', name:'컵케이크', msg:'공격속도 50% UP!' },
@@ -2395,7 +2395,7 @@ const HOLLY_TIER = { // 현 메타 티어 (일반 모드 기준)
 const TIER_COLOR = { S:'#ffd54f', A:'#4fc3f7', B:'#9ccc65', C:'#ffb74d', D:'#b0bec5', '?':'#8ab8ff' };
 const HOLLY_EVAL = {
   swordsman: '초반 3웨이브의 왕 — 이후엔 최고급 합성 재료',
-  archer: '공격력 5의 최약체가 채용률 1위 — 피의 석궁이 아군 전체를 5배로 만든다',
+  archer: '공격력 5의 최약체가 채용률 1위 — 피의 석궁이 아군 전체를 3배로 만든다',
   farmer: '낫질은 그대로지만 일륜도가 모든 걸 바꿨다 — 대반전의 주인공',
   jurasaurus: '쥬라코인 최고가 갱신 중 — 평시 보스킬러, 20웨이브마다 핵무기',
   wonkkataein: '4번 중 1번의 사나이 — 기대값은 정직, 분산이 낭만',
