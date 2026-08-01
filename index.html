@@ -128,7 +128,22 @@
   }
   .ncard .nicon { font-size:24px; }
   .ncard .ncount { margin-left:auto; color:#ffd54f; font-weight:800; }
-  #noodleBar { display:flex; gap:6px; margin-bottom:8px; }
+  /* 🏀 베인오락실 */
+  #arcTop { display:flex; gap:10px; align-items:center; justify-content:center; margin:6px 0; flex-wrap:wrap; font-weight:800; }
+  #court { background:#20263a; border-radius:12px; padding:10px; margin:8px 0; }
+  #courtHoop { text-align:center; font-size:26px; letter-spacing:6px; margin-bottom:6px; }
+  .gauge { position:relative; height:26px; background:#141a2b; border-radius:8px; margin:8px 0; overflow:hidden;
+           display:flex; align-items:center; }
+  .gauge .zone { flex:1; text-align:center; font-size:10px; color:#7f8db3; }
+  .gauge .z3 { background:rgba(255,107,214,.18); }
+  .gauge .z2 { background:rgba(79,195,247,.15); }
+  .gball { position:absolute; top:2px; font-size:19px; transform:translateX(-50%); pointer-events:none; }
+  .gwin { position:absolute; top:0; bottom:0; background:rgba(129,232,140,.35); border-left:2px solid #81e88c; border-right:2px solid #81e88c; }
+  .gmark { position:absolute; top:0; bottom:0; width:3px; background:#ffd54f; }
+  #court button { margin:4px 4px 0; }
+  #arcResult, #gachaResult { min-height:22px; text-align:center; font-weight:800; margin:6px 0; }
+  #arcPickGrid img { width:38px; height:38px; }
+  #noodleBar { display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap; }
   #noodleBar button {
     flex:1; padding:8px 0; font-size:12px; border-radius:10px;
     background:#5d4037; box-shadow:0 3px 0 #3e2723;
@@ -360,6 +375,7 @@
     <button class="devbtn" id="devPower">💪공10만</button>
     <button class="devbtn" id="devLava">🌋라바</button>
     <button class="devbtn" id="devGob">🏰저택</button>
+    <button class="devbtn" id="devArc">🏀오락실</button>
   </div>
   <div id="noodleBar" class="hidden"></div>
   <div id="btnrow">
@@ -379,10 +395,13 @@
   <div class="record" id="ovRecord"></div>
   <div id="homeEvent" class="hidden"></div>
   <button id="ovBtn">시작하기</button>
+  <button id="ovBtnK" class="hidden">🔑 키링</button>
   <button id="ovBtn2" class="hidden">스테이지 선택</button>
   <button id="ovBtn3" class="hidden">🏆 랭킹</button>
   <button id="ovBtn4" class="hidden">👥 더블큐</button>
+  <button id="ovBtnA" class="hidden">🏀 베인오락실</button>
   <button id="ovBtn5" class="hidden">💬 채팅방</button>
+  <button id="ovBtnB" class="hidden">🎁 인형뽑기</button>
   <button id="ovBtn6" class="hidden">🎣 낚시터</button>
   <button id="ovBtn7" class="hidden">🗳️ 인기투표</button>
   <div id="nickLine" class="hidden">👤 <span id="nickName"></span> <button id="nickEdit">✏️ 바꾸기</button></div>
@@ -461,6 +480,46 @@
   <div id="noodleList"></div>
   <p class="sub">30웨이브를 채울 때마다 🔑열쇠를 얻어요<br>상자를 열면 🍝면 조각이 나오고, 10개를 모으면 🍜누들 완성!</p>
   <button class="close" id="gobClose">나가기</button>
+</div>
+
+<div id="arcade" class="hidden">
+  <h2>🏀 베인오락실</h2>
+  <p class="sub" id="arcTime"></p>
+  <div id="arcTop">
+    <span id="arcShots">🏀 0</span>
+    <span id="arcCoin">💰 0원</span>
+  </div>
+  <p class="sub" id="arcPickMsg">슛을 던질 캐릭터를 고르세요</p>
+  <div class="grid" id="arcPickGrid"></div>
+  <div id="court">
+    <div id="courtHoop">🏀 &nbsp; 🥅</div>
+    <div class="gauge"><div class="gball" id="arcBall">🏀</div>
+      <span class="zone z3">3점</span><span class="zone z2">2점</span><span class="zone z1">1점</span>
+      <span class="zone z2">2점</span><span class="zone z3">3점</span></div>
+    <div class="gauge" id="arcPowerWrap"><div class="gwin" id="arcWin"></div><div class="gmark" id="arcMark"></div></div>
+    <button id="arcCatchBtn">✋ 잡는다</button>
+    <button id="arcShootBtn" disabled>🏀 슛!</button>
+  </div>
+  <div id="arcResult"></div>
+  <p class="sub">멀리서 던질수록 점수가 높지만 성공하기 어려워요<br>1점 100원 · 2점 200원 · 3점 300원 — 슛 기회는 7분마다 1개씩 충전!</p>
+  <button class="close" id="arcClose">나가기</button>
+</div>
+
+<div id="gacha" class="hidden">
+  <h2>🎁 인형뽑기</h2>
+  <p class="sub">베인오락실 안쪽 — 우리 캐릭터 인형(키링)이 잔뜩!</p>
+  <div id="arcTop"><span id="gachaCoin">💰 0원</span>
+    <button id="gachaBtn">🎁 뽑기 (100원)</button></div>
+  <div id="gachaResult"></div>
+  <div id="krList"></div>
+  <button class="close" id="gachaClose">나가기</button>
+</div>
+
+<div id="keyring" class="hidden">
+  <h2>🔑 내 키링</h2>
+  <p class="sub">게임 중에 <b>1개만</b> 사용할 수 있어요<br>🍜누들과 키링은 <b>둘 중 하나만</b> 쓸 수 있습니다</p>
+  <div id="krPageList"></div>
+  <button class="close" id="krClose">나가기</button>
 </div>
 
 <div id="fish" class="hidden">
@@ -599,6 +658,18 @@ const FIREBALL_CHANCE = 0.25, FIREBALL_MUL = 4; // 원까태인 불꽃공 확률
 const PROJ_SPEED = { arrow:700, scythe:420, ball:560, fire:480, shell:320, shuriken:650, fan:560, missile:430, drill:620, songpyeon:520, holy:560, paper:540, orb:500 };
 const INSTANT_ATK = new Set(['slash', 'bite', 'punch', 'axe', 'breath', 'ronin', 'bane']); // 즉발(투사체 없는) 공격
 const INSTANT_DECAY = { bite:1.6, breath:1.4, axe:1.8, punch:2.2, ronin:1.8, bane:1.5 };   // 이펙트 지속(작을수록 오래)
+
+// 🏀 베인오락실 (기간 한정 이벤트, 기획: 구예준) — 농구 슛으로 원을 벌어 인형뽑기 → 키링 수집
+const ARCADE_DURATION = (7 * 86400 + 7 * 3600 + 7 * 60 + 7) * 1000; // 7일 7시간 7분 7초
+const ARCADE_SHOT_MAX = 7, ARCADE_SHOT_REGEN = 7 * 60 * 1000;       // 슛 기회: 7분마다 1개, 최대 7개
+const GACHA_COST = 100;                                             // 인형뽑기 1회 = 100원
+const SHOT_WIN = { 1: 0.30, 2: 0.20, 3: 0.12 };                     // 점수별 파워 게이지 성공 폭(멀수록 좁다)
+const KEYRINGS = [
+  { id:'sword', icon:'⚔️', name:'검사 키링',        desc:'아군 공격력 +20%',    unit:'swordsman'  },
+  { id:'jura',  icon:'🦕', name:'쥬라사우르스 키링', desc:'보스 체력 30% 하락',  unit:'jurasaurus' },
+  { id:'indie', icon:'📄', name:'인디 키링',        desc:'아군 공격속도 +30%',  unit:'indie'      },
+];
+const KR_ATK = 1.2, KR_BOSS_HP = 0.7, KR_SPD = 1.3; // 검사: 공격력 ×1.2 / 쥬라: 보스 체력 ×0.7 / 인디: 공속 ×1.3
 
 // 그림 파일 미리 불러오기 (img 지정된 캐릭터용)
 const IMAGES = {};
@@ -758,6 +829,7 @@ function resetGame() {
   S.nextHyper = HYPER_EVERY;
   S.eid = 1;
   S.noodle = {};
+  S.keyring = null; // 🔑 판당 1개
   S.nextKey = GOB_KEY_EVERY;
   S.startedAt = Date.now(); // 🛡️ 기록 검증용 시작 시각
   renderNoodleBar();
@@ -896,6 +968,7 @@ function spawnEnemy() {
   const isBoss = S.bossLeft > 0;
   if (isBoss) S.bossLeft--;
   let hp = Math.round(hpFor(w) * stg.hpMul * (isBoss ? stg.bossMul || 30 : 1));
+  if (isBoss && S.keyring === 'jura') hp = Math.max(1, Math.round(hp * KR_BOSS_HP)); // 🦕 쥬라사우르스 키링
   const gm = trLv('gem'); // 💎 간트네스의 반지: 40% 확률로 적 체력 삭감
   if (gm && Math.random() < 0.4) hp = Math.max(1, Math.round(hp * (1 - (10 + gm) / 100)));
   S.enemies.push({
@@ -1117,6 +1190,7 @@ function update(dt) {
            * (1 + trLv('flute') * 0.01)                                    // 🎵 피터의 피리
            * (trLv('bell') ? 1.2 + (trLv('bell') - 1) * 0.01 : 1));        // 🔔 인디의 구구단종
       if (S.noodle[2]) u.cdT = Math.max(NOODLE_CD_MIN, u.cdT - NOODLE_CD_CUT); // 🍲 누들 두울
+      if (S.keyring === 'indie') u.cdT /= KR_SPD;                              // 📄 인디 키링: 공속 +30%
       const juraHyper = u.type === 'jurasaurus' && S.buffT.jura > 0; // 🦕 하이퍼 사우르스!
       if (juraHyper) u.cdT = u.cd / 51; // 공속 +5000%
       // 🕴️ 제프: 근무 모드는 약하지만 빠르고, 파티 모드는 강해진다
@@ -1134,7 +1208,8 @@ function update(dt) {
           * (S.buffT.car > 0 ? 2 : 1)                            // 🚗 시공간 초월 자동차
           * (trLv('rocket') ? 1.1 + (trLv('rocket') - 1) * 0.01 : 1) // 🚀 살라자르 드래곤의 로켓
           * (S.noodle[1] ? NOODLE_ATK : 1)   // 🍜 누들 하나: 공격력 +20%
-          * (S.noodle[3] ? NOODLE_DEF : 1)); // 🍥 누들 세엣: 적 방어력 -10%
+          * (S.noodle[3] ? NOODLE_DEF : 1)  // 🍥 누들 세엣: 적 방어력 -10%
+          * (S.keyring === 'sword' ? KR_ATK : 1)); // ⚔️ 검사 키링: 공격력 +20%
       if (u.special === 'cheer' && Math.random() < CHEER_CHANCE) { // 🤠 인디: 주변 아군에게 응원!
         let n = 0;
         for (const s2 of slots) {
@@ -2128,6 +2203,9 @@ function showOverlay(mode) {
   $('ovBtn5').classList.add('hidden');
   $('ovBtn6').classList.add('hidden');
   $('ovBtn7').classList.add('hidden');
+  $('ovBtnA').classList.add('hidden');
+  $('ovBtnB').classList.add('hidden');
+  $('ovBtnK').classList.add('hidden');
   $('nickLine').classList.add('hidden');
   if (mode === 'home') { // 첫 화면: 모드 선택
     ov.querySelector('h1').textContent = '🏰 타워 디펜스 777';
@@ -2150,6 +2228,7 @@ function showOverlay(mode) {
     $('ovRecord').textContent = best > 0 ? `🏆 일반 모드 최고 기록: 웨이브 ${best}` : '';
     loadLava(); // 🌋 이벤트 진행 여부 확인
     loadGobEvent(); // 🏰 고블린의 저택 진행 여부 확인
+    loadArcEvent(); // 🏀 베인오락실 진행 여부 확인
     updateEventUI();
   } else if (mode === 'rank') { // 🏆 랭킹
     ov.querySelector('h1').textContent = '🏆 랭킹';
@@ -2336,6 +2415,7 @@ $('devPower').addEventListener('click', () => {
 });
 $('devLava').addEventListener('click', () => { if (DEV) startLava(); }); // 🌋 라바 이벤트 개시 (3시간)
 $('devGob').addEventListener('click', () => { if (DEV) startGob(); });   // 🏰 고블린의 저택 개시 (7일 7시간 7분)
+$('devArc').addEventListener('click', () => { if (DEV) startArc(); });   // 🏀 베인오락실 개시 (7일 7시간 7분 7초)
 $('devPickBtn').addEventListener('click', () => {
   if (!DEV) return;
   const grid = $('devPickGrid');
@@ -2672,8 +2752,8 @@ function gobCook() {
   renderGob();
   sfx('jackpot');
 }
-function useNoodle(id) { // 게임 중 누들 사용 (판당 종류별 1회)
-  if (!S.running || S.over || S.noodle[id] || GOB['n' + id] < 1) return;
+function useNoodle(id) { // 게임 중 누들 사용 (판당 종류별 1회, 키링과 배타)
+  if (!S.running || S.over || S.noodle[id] || GOB['n' + id] < 1 || S.keyring) return;
   GOB['n' + id]--;
   S.noodle[id] = true;
   saveGob();
@@ -2683,21 +2763,195 @@ function useNoodle(id) { // 게임 중 누들 사용 (판당 종류별 1회)
   renderNoodleBar();
   updateButtons();
 }
-function renderNoodleBar() {
+function renderNoodleBar() { // 🍜누들 + 🔑키링 (둘 중 하나만 사용 가능)
   const bar = $('noodleBar');
-  const usable = gobOn() && (GOB.n1 + GOB.n2 + GOB.n3 > 0 || S.noodle[1] || S.noodle[2] || S.noodle[3]);
-  bar.classList.toggle('hidden', !usable);
-  if (!usable) return;
-  bar.innerHTML = NOODLES.map(n =>
-    `<button data-n="${n.id}" ${S.noodle[n.id] || GOB['n' + n.id] < 1 ? 'disabled' : ''}>
+  const anyNoodle = S.noodle[1] || S.noodle[2] || S.noodle[3];
+  const noodleOK = gobOn() && (GOB.n1 + GOB.n2 + GOB.n3 > 0 || anyNoodle);
+  const krOK = arcOn() && (arcOwned() > 0 || S.keyring);
+  bar.classList.toggle('hidden', !noodleOK && !krOK);
+  if (!noodleOK && !krOK) return;
+  let html = '';
+  if (noodleOK) html += NOODLES.map(n =>
+    `<button data-n="${n.id}" ${S.noodle[n.id] || GOB['n' + n.id] < 1 || S.keyring ? 'disabled' : ''}>
       ${n.icon}${S.noodle[n.id] ? ' 사용중' : ' ×' + GOB['n' + n.id]}</button>`).join('');
-  bar.querySelectorAll('button').forEach(b => b.onclick = () => useNoodle(+b.dataset.n));
+  if (krOK) html += KEYRINGS.map(k =>
+    `<button data-k="${k.id}" ${S.keyring === k.id ? 'disabled' : ''} ${!(ARC.kr[k.id] > 0) || S.keyring || anyNoodle ? 'disabled' : ''}>
+      ${k.icon}${S.keyring === k.id ? ' 사용중' : ' ×' + (ARC.kr[k.id] || 0)}</button>`).join('');
+  bar.innerHTML = html;
+  bar.querySelectorAll('button[data-n]').forEach(b => b.onclick = () => useNoodle(+b.dataset.n));
+  bar.querySelectorAll('button[data-k]').forEach(b => b.onclick = () => useKeyring(b.dataset.k));
 }
 $('gobOpenBtn').addEventListener('click', gobOpenBox);
 $('gobCookBtn').addEventListener('click', gobCook);
 $('gobClose').addEventListener('click', () => $('gob').classList.add('hidden'));
 $('gobBtn').addEventListener('click', () => { $('gob').classList.remove('hidden'); $('gobResult').textContent = ''; renderGob(); });
 loadGob();
+
+// ---------- 🏀 베인오락실 (기간 한정 이벤트, 기획: 구예준) ----------
+// 캐릭터를 골라 농구 슛 → 성공하면 원 획득 → 인형뽑기로 키링 수집 → 게임에서 1개 사용
+let ARC = { coin: 0, shots: ARCADE_SHOT_MAX, shotT: 0, kr: {}, unlocked: false }, ARC_UNTIL = 0;
+let arcPick = null, arcPhase = 'catch', arcBallPos = 0, arcPower = 0, arcPts = 0, arcRaf = 0;
+const arcOn = () => Date.now() < ARC_UNTIL;
+const arcOwned = () => KEYRINGS.reduce((n, k) => n + (ARC.kr[k.id] || 0), 0);
+function arcLeftText() {
+  const ms = ARC_UNTIL - Date.now();
+  if (ms <= 0) return '이벤트 종료';
+  const d = Math.floor(ms / 86400000), h = Math.floor(ms / 3600000) % 24, m = Math.floor(ms / 60000) % 60, s = Math.floor(ms / 1000) % 60;
+  return d > 0 ? `${d}일 ${h}시간 ${m}분 ${s}초 남음` : h > 0 ? `${h}시간 ${m}분 ${s}초 남음` : `${m}분 ${s}초 남음`;
+}
+function loadArc() {
+  try { ARC = { coin: 0, shots: ARCADE_SHOT_MAX, shotT: Date.now(), kr: {}, unlocked: false, ...JSON.parse(localStorage.getItem('ltd_arc') || '{}') }; } catch (e) {}
+  if (!ARC.kr) ARC.kr = {};
+}
+function saveArc() { try { localStorage.setItem('ltd_arc', JSON.stringify(ARC)); } catch (e) {} }
+function arcRegen() { // 슛 기회 자동 충전
+  if (!ARC.shotT) ARC.shotT = Date.now();
+  if (ARC.shots >= ARCADE_SHOT_MAX) { ARC.shotT = Date.now(); return; }
+  const gain = Math.floor((Date.now() - ARC.shotT) / ARCADE_SHOT_REGEN);
+  if (gain > 0) {
+    ARC.shots = Math.min(ARCADE_SHOT_MAX, ARC.shots + gain);
+    ARC.shotT += gain * ARCADE_SHOT_REGEN;
+    saveArc();
+  }
+}
+async function loadArcEvent() {
+  if (!RANK_DB) return;
+  try {
+    const d = await (await fetch(`${RANK_DB}/party/_event/arcade.json`)).json();
+    ARC_UNTIL = (d && d.until) || 0;
+    updateEventUI();
+  } catch (e) {}
+}
+async function startArc() { // 🌑 DARK KAKAO 전용 — 이벤트 개시
+  ARC_UNTIL = Date.now() + ARCADE_DURATION;
+  try { await fetch(`${RANK_DB}/party/_event/arcade.json`, { method: 'PUT', body: JSON.stringify({ until: ARC_UNTIL }) }); } catch (e) {}
+  updateEventUI();
+  addText(WORLD_W / 2, 300, '🏀 베인오락실 개장!!', '#ffd54f', 20);
+}
+const arcPtsOf = p => [3, 2, 1, 2, 3][Math.min(4, Math.max(0, Math.floor(p * 5)))]; // 가운데가 가까운 자리 = 1점
+function arcPaint() {
+  const ball = $('arcBall'), mark = $('arcMark'), win = $('arcWin');
+  if (!ball) return;
+  ball.style.left = (arcBallPos * 100) + '%';
+  const showPower = arcPhase === 'shoot';
+  $('arcPowerWrap').style.visibility = showPower ? 'visible' : 'hidden';
+  if (showPower) {
+    const half = SHOT_WIN[arcPts] / 2;
+    win.style.left = ((0.5 - half) * 100) + '%';
+    win.style.width = (half * 2 * 100) + '%';
+    mark.style.left = (arcPower * 100) + '%';
+  }
+}
+function arcLoop() {
+  const t = performance.now();
+  if (arcPhase === 'catch') arcBallPos = (Math.sin(t / 380) + 1) / 2;
+  else if (arcPhase === 'shoot') arcPower = (Math.sin(t / 300) + 1) / 2;
+  arcPaint();
+  arcRaf = requestAnimationFrame(arcLoop);
+}
+function arcStopLoop() { if (arcRaf) cancelAnimationFrame(arcRaf); arcRaf = 0; }
+function arcCatch() {
+  if (!arcOn() || arcPhase !== 'catch' || !arcPick || ARC.shots < 1) return;
+  arcPts = arcPtsOf(arcBallPos);
+  arcPhase = 'shoot';
+  $('arcResult').innerHTML = `${arcPts}점 라인에서 잡았다! 초록 구간에 맞춰 슛!`;
+  arcButtons();
+}
+function arcShoot() {
+  if (!arcOn() || arcPhase !== 'shoot' || ARC.shots < 1) return;
+  ARC.shots--;
+  if (ARC.shots === ARCADE_SHOT_MAX - 1) ARC.shotT = Date.now(); // 가득 찬 상태에서 처음 쓰면 충전 시작
+  const ok = Math.abs(arcPower - 0.5) <= SHOT_WIN[arcPts] / 2;
+  const u = UNITS.find(x => x.type === arcPick);
+  if (ok) {
+    const won = arcPts * 100;
+    ARC.coin += won;
+    ARC.unlocked = true;
+    $('arcResult').innerHTML = `🏀 <b>${u.emoji} ${u.name}</b>의 ${arcPts}점 슛 <b>성공!</b> 💰${won}원 획득!`;
+    sfx('jackpot');
+  } else {
+    $('arcResult').innerHTML = `😵 ${u.emoji} ${u.name}의 ${arcPts}점 슛 — 링을 맞고 튕겼다...`;
+    sfx('merge');
+  }
+  saveArc();
+  arcPhase = 'catch';
+  renderArc();
+  updateEventUI();
+}
+function arcButtons() {
+  const canPlay = arcOn() && arcPick && ARC.shots > 0;
+  $('arcCatchBtn').disabled = !canPlay || arcPhase !== 'catch';
+  $('arcShootBtn').disabled = !canPlay || arcPhase !== 'shoot';
+  arcPaint();
+}
+function renderArc() {
+  arcRegen();
+  $('arcTime').textContent = arcOn() ? `⏳ ${arcLeftText()}` : '이벤트가 열려 있지 않아요';
+  const nextIn = ARC.shots >= ARCADE_SHOT_MAX ? '' :
+    ` (다음 충전 ${Math.max(0, Math.ceil((ARCADE_SHOT_REGEN - (Date.now() - ARC.shotT)) / 60000))}분)`;
+  $('arcShots').textContent = `🏀 ${ARC.shots}/${ARCADE_SHOT_MAX}${nextIn}`;
+  $('arcCoin').textContent = `💰 ${ARC.coin}원`;
+  $('arcPickMsg').innerHTML = arcPick
+    ? `선수: <b>${UNITS.find(u => u.type === arcPick).emoji} ${UNITS.find(u => u.type === arcPick).name}</b> (다시 고를 수 있어요)`
+    : '슛을 던질 캐릭터를 고르세요';
+  $('arcPickGrid').innerHTML = UNITS.filter(u => !u.disabled).map(u =>
+    `<button data-t="${u.type}" style="${u.type === arcPick ? 'outline:3px solid #ffd54f' : ''}">
+      ${u.img ? `<img src="${u.img}" alt="${u.name}">` : u.emoji}<span>${u.name}</span></button>`).join('');
+  $('arcPickGrid').querySelectorAll('button').forEach(b => b.onclick = () => {
+    arcPick = b.dataset.t; arcPhase = 'catch'; renderArc();
+  });
+  arcButtons();
+}
+function gachaDraw() {
+  if (!arcOn() || ARC.coin < GACHA_COST) return;
+  ARC.coin -= GACHA_COST;
+  const k = rand(KEYRINGS);
+  ARC.kr[k.id] = (ARC.kr[k.id] || 0) + 1;
+  saveArc();
+  $('gachaResult').innerHTML = `🎁 <b>${k.icon} ${k.name}</b> 획득! <span style="color:#bfa88c">(${k.desc})</span>`;
+  sfx('jackpot');
+  renderGacha();
+  updateEventUI();
+}
+function krCards(sel) {
+  return KEYRINGS.map(k => `<div class="ncard">
+    <span class="nicon">${k.icon}</span>
+    <div style="flex:1"><b>${k.name}</b><div style="color:#bfa88c;font-size:11px">${k.desc}</div></div>
+    <span class="ncount">×${ARC.kr[k.id] || 0}</span></div>`).join('');
+}
+function renderGacha() {
+  $('gachaCoin').textContent = `💰 ${ARC.coin}원`;
+  $('gachaBtn').disabled = ARC.coin < GACHA_COST;
+  $('krList').innerHTML = krCards();
+}
+function renderKeyringPage() {
+  $('krPageList').innerHTML = arcOwned()
+    ? krCards()
+    : '<p class="sub">아직 키링이 없어요 — 🏀베인오락실에서 슛을 넣고 🎁인형뽑기를 해보세요!</p>';
+}
+function useKeyring(id) { // 게임 중 키링 사용 (판당 1개, 누들과 배타)
+  if (!arcOn() || !S.running || S.over || S.keyring || S.noodle[1] || S.noodle[2] || S.noodle[3]) return;
+  if (!(ARC.kr[id] > 0)) return;
+  S.keyring = id;
+  const k = KEYRINGS.find(x => x.id === id);
+  addText(WORLD_W / 2, 280, `${k.icon} ${k.name}! ${k.desc}`, '#ffd54f', 16);
+  sfx('food');
+  renderNoodleBar();
+  updateButtons();
+}
+$('arcCatchBtn').addEventListener('click', arcCatch);
+$('arcShootBtn').addEventListener('click', arcShoot);
+$('arcClose').addEventListener('click', () => { arcStopLoop(); $('arcade').classList.add('hidden'); });
+$('ovBtnA').addEventListener('click', () => {
+  $('arcade').classList.remove('hidden'); $('arcResult').textContent = '';
+  arcPhase = 'catch'; renderArc(); arcStopLoop(); arcLoop();
+});
+$('gachaBtn').addEventListener('click', gachaDraw);
+$('gachaClose').addEventListener('click', () => $('gacha').classList.add('hidden'));
+$('ovBtnB').addEventListener('click', () => { $('gacha').classList.remove('hidden'); $('gachaResult').textContent = ''; renderGacha(); });
+$('krClose').addEventListener('click', () => $('keyring').classList.add('hidden'));
+$('ovBtnK').addEventListener('click', () => { $('keyring').classList.remove('hidden'); renderKeyringPage(); });
+loadArc();
 
 // ---------- 🎣 낚시터 & 보물 (기획: 구예준) ----------
 // 진주로 낚시 → 보물 획득, 중복이면 레벨업(최대 15). 효과는 레벨에 비례.
@@ -2752,6 +3006,12 @@ async function startLava() { // 🌑 DARK KAKAO 전용 — 이벤트 개시
 function updateEventUI() {
   const gb = $('gobBtn'); // 🏰 이벤트 중에만 상단바에 버튼 노출
   if (gb) gb.classList.toggle('hidden', !gobOn());
+  // 🏀 베인오락실: 이벤트 중에만 노출 / 🎁인형뽑기는 첫 골 이후 / 🔑키링은 1개라도 있으면
+  const atHome = !$('overlay').classList.contains('hidden') && $('ovBtn4') && !$('ovBtn4').classList.contains('hidden');
+  const show = (id, on) => { const b = $(id); if (b) b.classList.toggle('hidden', !(atHome && on)); };
+  show('ovBtnA', arcOn());
+  show('ovBtnB', arcOn() && ARC.unlocked);
+  show('ovBtnK', arcOn() || arcOwned() > 0);
   const on = lavaOn();
   const he = $('homeEvent');
   if (he) {
@@ -3204,7 +3464,13 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   NOODLES, startGob, loadGobEvent, gobOn, gobOpenBox, gobCook, useNoodle, renderGob, renderNoodleBar,
   UNITS, openVote, loadVotes, castVote, renderVote, getVotes: () => VOTES,
   getGob: () => ({ ...GOB, until: GOB_UNTIL }),
-  setGob: (g2, until) => { GOB = { ...GOB, ...g2 }; if (until !== undefined) GOB_UNTIL = until; saveGob(); updateEventUI(); } };
+  setGob: (g2, until) => { GOB = { ...GOB, ...g2 }; if (until !== undefined) GOB_UNTIL = until; saveGob(); updateEventUI(); },
+  ARC, KEYRINGS, startArc, arcOn, renderArc, arcCatch, arcShoot, gachaDraw, useKeyring, renderNoodleBar,
+  getArc: () => ({ ...ARC, until: ARC_UNTIL }),
+  setArc: (a, until) => { ARC = { ...ARC, ...a }; if (until !== undefined) ARC_UNTIL = until; saveArc(); updateEventUI(); },
+  arcState: () => ({ phase: arcPhase, pick: arcPick, ball: arcBallPos, power: arcPower, pts: arcPts }),
+  setArcState: o => { if (o.pick !== undefined) arcPick = o.pick; if (o.ball !== undefined) arcBallPos = o.ball;
+    if (o.power !== undefined) arcPower = o.power; if (o.phase !== undefined) arcPhase = o.phase; if (o.pts !== undefined) arcPts = o.pts; } };
 </script>
 </body>
 </html>
