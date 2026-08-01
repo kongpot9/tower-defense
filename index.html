@@ -717,12 +717,15 @@ const UNITS = [
   { type:'dosa',       grade:4, emoji:'🧙', name:'도사',       dmg:129, cd:0.80, range:180, atk:'fan', homing:true, img:'character/legend2.png' },
   { type:'catmachine', grade:4, emoji:'🐱', name:'캣머신',     dmg:170, cd:0.50, range:110, splash:30, atk:'missile', img:'character/legend3.png' },
   { type:'royalchef',  grade:4, emoji:'👨‍🍳', name:'로얄 셰프', dmg:0,   cd:30,   range:0,   support:'chef', disabled:true }, // 서포터! (그림 완성되면 disabled 제거하고 공개)
+  { type:'tez',        grade:4, emoji:'👊', name:'테즈',       dmg:211, cd:1.20, range:100, splash:45, atk:'tez', special:'chain', img:'character/legend5.png' },
   { type:'penguin',    grade:4, emoji:'🐧', name:'펭귄악사',   dmg:0,   cd:1,    range:130, support:'aura', img:'character/legend4.png' }, // 오라 서포터
   // 신화 추가
+  { type:'blader',     grade:3, emoji:'🗡️', name:'블레이더',   dmg:159, cd:0.56, range:290, atk:'dagger', special:'daggers', img:'character/myth6.png' },
   { type:'bane',       grade:3, emoji:'😈', name:'베인',       dmg:330, cd:2.20, range:110, splash:45, atk:'bane', img:'character/myth5.png' },
   // 영웅 추가
   { type:'indie',      grade:2, emoji:'🤠', name:'인디',       dmg:44,  cd:0.70, range:140, atk:'paper', special:'cheer', img:'character/hero4.png' },
   { type:'jeff',       grade:2, emoji:'🕴️', name:'제프',       dmg:51,  cd:0.80, range:130, atk:'orb',   special:'office', img:'character/hero5.png' },
+  { type:'willy',      grade:2, emoji:'🛟', name:'윌리',       dmg:24,  cd:0.80, range:140, atk:'tube',  special:'pool',   img:'character/hero6.png' },
 ];
 // 🐧 펭귄악사의 연주 오라 (기획: 구예준) — 범위 내 아군 강화 + 적 약화
 const AURA_DMG = 1.25, AURA_SPD = 1.2, AURA_ENEMY_SLOW = 0.65;
@@ -759,11 +762,14 @@ const FOODS = [
 const BOMB_CHANCE = 0.15, BOMB_DMG = 288, BOMB_RADIUS = 60, BOMB_FUSE = 1.0; // 능력자광부: 폭탄 설치
 const BALDO_CHANCE = 0.25, BALDO_RADIUS = 90;                                // 낭인: 발도술 광역
 const SMITE_CHANCE = 0.02, SMITE_BOSS_PCT = 0.03;                            // 천사 도베르만: 즉사 (보스는 최대체력 3% 추가)
+const TEZ_CHAIN_CHANCE = 0.4, TEZ_CHAIN_HITS = 2;                            // 👊 테즈: 40% 확률로 연쇄펀치(추가 2연타)
+const BLADER_MIN = 2, BLADER_MAX = 3, BLADER_FRAC = 0.4;                     // 🗡️ 블레이더: 단검 2~3개, 각 공격력의 40%
+const POOL_TIME = 8, POOL_SLOW = 8, POOL_ATK = 1.1;                          // 🛟 윌리: 풀장 8초 — 적 감속 + 아군 공격력 +10%
 const MULTI_TARGETS = 5;                                                     // 떡장수: 동시 공격 대상 수
 const FIREBALL_CHANCE = 0.25, FIREBALL_MUL = 4; // 원까태인 불꽃공 확률 (피해 4배 + 소범위)
-const PROJ_SPEED = { arrow:700, scythe:420, ball:560, fire:480, shell:320, shuriken:650, fan:560, missile:430, drill:620, songpyeon:520, holy:560, paper:540, orb:500 };
-const INSTANT_ATK = new Set(['slash', 'bite', 'punch', 'axe', 'breath', 'ronin', 'bane']); // 즉발(투사체 없는) 공격
-const INSTANT_DECAY = { bite:1.6, breath:1.4, axe:1.8, punch:2.2, ronin:1.8, bane:1.5 };   // 이펙트 지속(작을수록 오래)
+const PROJ_SPEED = { dagger:760, tube:400, arrow:700, scythe:420, ball:560, fire:480, shell:320, shuriken:650, fan:560, missile:430, drill:620, songpyeon:520, holy:560, paper:540, orb:500 };
+const INSTANT_ATK = new Set(['slash', 'bite', 'punch', 'axe', 'breath', 'ronin', 'bane', 'tez']); // 즉발(투사체 없는) 공격
+const INSTANT_DECAY = { tez:1.7, bite:1.6, breath:1.4, axe:1.8, punch:2.2, ronin:1.8, bane:1.5 };   // 이펙트 지속(작을수록 오래)
 
 // 🏀 베인오락실 (기간 한정 이벤트, 기획: 구예준) — 농구 슛으로 원을 벌어 인형뽑기 → 키링 수집
 const ARCADE_DURATION = (7 * 86400 + 7 * 3600 + 7 * 60 + 7) * 1000; // 7일 7시간 7분 7초
@@ -916,7 +922,7 @@ const S = {
   wave: 0, gold: 80, summonCost: SUMMON_BASE,
   roundT: 0, toSpawn: 0, spawnTimer: 0, spawnInterval: 1,
   enemies: [], projectiles: [], texts: [], effects: [], bombs: [],
-  buffT: { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0, jura: 0, bleed: 0, car: 0 }, // 셰프 요리 + 하이퍼차지 + 보물 버프
+  buffT: { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0, jura: 0, bleed: 0, car: 0, pool: 0 }, // 셰프 요리 + 하이퍼차지 + 보물 + 윌리 풀장
   hyperCharges: 0, // ⚡ 하이퍼차지 보유 개수 (20웨이브마다 +1)
   nextHyper: HYPER_EVERY, // 다음 하이퍼차지 충전 웨이브 (일기장으로 단축 가능)
   noodle: {}, nextKey: GOB_KEY_EVERY, // 🏰 이번 판에 쓴 누들 / 다음 열쇠 웨이브
@@ -929,7 +935,7 @@ function resetGame() {
   S.over = false; S.wave = 0; S.gold = 80; S.summonCost = SUMMON_BASE;
   S.roundT = 0; S.toSpawn = 0;
   S.enemies = []; S.projectiles = []; S.texts = []; S.effects = []; S.bombs = [];
-  S.buffT = { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0, jura: 0, bleed: 0, car: 0 };
+  S.buffT = { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0, jura: 0, bleed: 0, car: 0, pool: 0 };
   S.atkLv = 0;
   S.hyperCharges = 0;
   S.nextHyper = HYPER_EVERY;
@@ -1047,6 +1053,15 @@ function startWave() {
     addText(WORLD_W / 2, 292, `🎤 제프 파티 타임! 공격력 +${JEFF_PARTY_BONUS} & 아군 전체 +${Math.round((JEFF_TEAM_BUFF - 1) * 100)}%!`, '#ffd54f', 15);
     sfx('food');
   } else S.jeffParty = null;
+  // 🛟 윌리: 3의 배수 · 5의 배수 웨이브에 풀장 설치 — 적 감속 + 아군 공격력 +10%
+  if ((S.wave % 3 === 0 || S.wave % 5 === 0) && slots.some(sl => sl.unit && sl.unit.special === 'pool')) {
+    S.buffT.pool = POOL_TIME;
+    for (const e of S.enemies) e.slowT = Math.max(e.slowT, POOL_SLOW);
+    for (const sl of slots) if (sl.unit && sl.unit.special === 'pool')
+      S.effects.push({ kind: 'pool', x: sl.cx, y: sl.cy, r: 70, t: 1, decay: 1 / POOL_TIME });
+    addText(WORLD_W / 2, 292, `🛟 윌리의 풀장 개장! 적 감속 + 아군 공격력 +${Math.round((POOL_ATK - 1) * 100)}% (${POOL_TIME}초)`, '#4fc3f7', 15);
+    sfx('food');
+  }
   const cr = trLv('car'); // 🚗 시공간 초월 자동차: 50% 확률로 공격력 2배
   if (cr && Math.random() < 0.5) {
     S.buffT.car = 10 + (cr - 1) * 0.5;
@@ -1090,7 +1105,7 @@ function spawnEnemy() {
     boss: isBoss,
     emoji: isBoss ? '👹' : stg.mobs[(w - 1) % stg.mobs.length],
     gold: Math.max(1, Math.round((isBoss ? 60 + w * 5 : 1 + Math.floor(w / 3)) * stg.goldMul)),
-    slowT: S.cupSlow || 0, r: isBoss ? 20 : 12, // 🏆 잔 발동 웨이브면 나오자마자 느려짐
+    slowT: Math.max(S.cupSlow || 0, S.buffT.pool), r: isBoss ? 20 : 12, // 🏆 잔 · 🛟 풀장이면 나오자마자 느려짐
   });
 }
 function throwFood(s) { // 로얄 셰프의 요리 타임! 5가지 중 랜덤
@@ -1322,7 +1337,8 @@ function update(dt) {
           * (trLv('rocket') ? 1.1 + (trLv('rocket') - 1) * 0.01 : 1) // 🚀 살라자르 드래곤의 로켓
           * (S.noodle[1] ? NOODLE_ATK : 1)   // 🍜 누들 하나: 공격력 +20%
           * (S.noodle[3] ? NOODLE_DEF : 1)  // 🍥 누들 세엣: 적 방어력 -10%
-          * (S.keyring === 'sword' ? KR_ATK : 1)); // ⚔️ 검사 키링: 공격력 +20%
+          * (S.keyring === 'sword' ? KR_ATK : 1)  // ⚔️ 검사 키링: 공격력 +20%
+          * (S.buffT.pool > 0 ? POOL_ATK : 1));   // 🛟 윌리의 풀장: 아군 공격력 +10%
       if (u.special === 'cheer' && Math.random() < CHEER_CHANCE) { // 🤠 인디: 주변 아군에게 응원!
         let n = 0;
         for (const s2 of slots) {
@@ -1364,12 +1380,19 @@ function update(dt) {
           }
           addText(bp.x, bp.y - 26, `⚡ 전기 연쇄 ×${hit.length}!`, '#80d8ff', 14);
         } else if (u.splash) {
+          // 👊 테즈: 40% 확률로 연쇄펀치 — 같은 범위를 추가로 더 두들긴다
+          const hits = (u.special === 'chain' && Math.random() < TEZ_CHAIN_CHANCE) ? 1 + TEZ_CHAIN_HITS : 1;
           for (const e2 of S.enemies) {
             const p2 = posAt(e2.d);
             if (Math.hypot(p2.x - bp.x, p2.y - bp.y) <= u.splash) {
-              e2.hp -= D;
+              e2.hp -= D * hits;
               if (u.slow) e2.slowT = Math.max(e2.slowT, u.slow);
             }
+          }
+          if (hits > 1) {
+            addText(bp.x, bp.y - 26, `👊 연쇄펀치 ${hits}연타!`, '#ff8a65', 15);
+            for (let k = 1; k < hits; k++) // 연타 잔상
+              S.effects.push({ kind: 'tez', x: bp.x + (k - 1) * 10 - 5, y: bp.y - k * 8, sx: s.cx, sy: s.cy, r: u.splash, t: 1, decay: 2.5 });
           }
         } else {
           best.hp -= D;
@@ -1387,14 +1410,20 @@ function update(dt) {
           if (u.type === 'catmachine' && Math.random() < CAT_HOMING_CHANCE) { // 🐱 끝까지 쫓는 유도 미사일!
             homing = true; splash = CAT_HOMING_SPLASH;
           }
-          S.projectiles.push({
-            x: s.cx, y: s.cy, tgt, tx: tp.x, ty: tp.y,
-            dmg, splash, slow: u.slow || 0, kind,
-            spd: PROJ_SPEED[kind] || 500,
-            color: GRADES[u.grade].color,
-            smite: u.special === 'smite',
-            homing,
-          });
+          // 🗡️ 블레이더: 한 번에 단검 2~3자루, 각각 공격력의 40%
+          const shots = u.special === 'daggers'
+            ? BLADER_MIN + Math.floor(Math.random() * (BLADER_MAX - BLADER_MIN + 1)) : 1;
+          if (shots > 1) dmg = D * BLADER_FRAC;
+          for (let k = 0; k < shots; k++) {
+            S.projectiles.push({
+              x: s.cx + (k - (shots - 1) / 2) * 7, y: s.cy + (k - (shots - 1) / 2) * 5, tgt, tx: tp.x, ty: tp.y,
+              dmg, splash, slow: u.slow || 0, kind,
+              spd: (PROJ_SPEED[kind] || 500) * (1 + k * 0.06), // 살짝씩 시차를 둬 연속으로 꽂히게
+              color: GRADES[u.grade].color,
+              smite: u.special === 'smite',
+              homing,
+            });
+          }
         }
       }
     }
@@ -1482,7 +1511,7 @@ function update(dt) {
     if (S.effects[i].t <= 0) S.effects.splice(i, 1);
   }
   // 로얄 셰프 요리 버프 타이머
-  for (const k of ['dmg', 'spd', 'gold', 'hyper', 'jura', 'bleed', 'car']) if (S.buffT[k] > 0) S.buffT[k] -= dt;
+  for (const k of ['dmg', 'spd', 'gold', 'hyper', 'jura', 'bleed', 'car', 'pool']) if (S.buffT[k] > 0) S.buffT[k] -= dt;
   if (S.buffT.ghost > 0) {
     S.buffT.ghost -= dt;
     if (S.buffT.ghost <= 0) { // 수프 시간 끝 — 분신들 퇴장
@@ -1850,6 +1879,24 @@ function draw() {
       ctx.fillStyle = '#eceff1';
       ctx.beginPath(); ctx.arc(0, 0, 2, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
+    } else if (p.kind === 'dagger') {   // 🗡️ 블레이더: 날아가는 단검
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(ang);
+      ctx.fillStyle = '#b3e5fc'; ctx.strokeStyle = '#1a237e'; ctx.lineWidth = 1.4;
+      ctx.beginPath();               // 칼날
+      ctx.moveTo(11, 0); ctx.lineTo(1, -3.2); ctx.lineTo(-5, -2.4); ctx.lineTo(-5, 2.4); ctx.lineTo(1, 3.2);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#ffd54f';     // 손잡이
+      ctx.fillRect(-9, -2.6, 4.5, 5.2);
+      ctx.strokeStyle = '#8d6e00'; ctx.strokeRect(-9, -2.6, 4.5, 5.2);
+      ctx.restore();
+    } else if (p.kind === 'tube') {     // 🛟 윌리: 던지는 구명튜브
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(S.time * 6);
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#e53935';
+      ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI); ctx.stroke();
+      ctx.strokeStyle = '#1e88e5';
+      ctx.beginPath(); ctx.arc(0, 0, 6, Math.PI, Math.PI * 2); ctx.stroke();
+      ctx.restore();
     } else if (p.kind === 'fan') {      // 도사: 팔랑팔랑 부채
       ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(ang + Math.sin(S.time * 12) * 0.6);
       ctx.fillStyle = '#fff8e1'; ctx.strokeStyle = '#c9a227'; ctx.lineWidth = 2;
@@ -2010,6 +2057,25 @@ function draw() {
       ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = '#ff5722'; ctx.lineWidth = 2.5;
       ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.stroke();
+    } else if (e.kind === 'tez') {     // 👊 테즈: 파란 기운을 두른 주먹
+      const gro = 1 - e.t;
+      const rr = (e.r || 45) * (0.4 + 0.6 * gro);
+      ctx.fillStyle = `rgba(48,86,204,${0.35 * e.t})`;
+      ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = `rgba(120,170,255,${e.t})`; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.stroke();
+      ctx.font = `800 ${20 + gro * 14}px sans-serif`; ctx.textAlign = 'center';
+      ctx.globalAlpha = e.t;
+      ctx.fillText('👊', e.x, e.y + 8);
+      ctx.globalAlpha = 1; ctx.textAlign = 'left';
+    } else if (e.kind === 'pool') {    // 🛟 윌리: 발밑에 퍼지는 물장
+      const rr = (e.r || 70) * (0.6 + 0.4 * Math.sin(S.time * 3));
+      ctx.fillStyle = `rgba(79,195,247,${0.18 * Math.min(1, e.t * 2)})`;
+      ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = `rgba(129,212,250,${0.8 * Math.min(1, e.t * 2)})`; ctx.lineWidth = 2;
+      for (let i = 0; i < 2; i++) {
+        ctx.beginPath(); ctx.arc(e.x, e.y, rr * (0.55 + i * 0.3), 0, Math.PI * 2); ctx.stroke();
+      }
     } else if (e.kind === 'bane') {    // 베인: 묵직한 어둠의 강타
       const rr = (e.r || 45) * (1 - e.t * 0.5);
       ctx.fillStyle = 'rgba(106,27,154,0.35)';
@@ -2116,7 +2182,7 @@ function draw() {
     ctx.fillStyle = ORGOL ? '#8ab8ff' : '#4fc3f7';
     ctx.fillText(lbl, WORLD_W - 52, 18);
   }
-  for (const [k, em] of [['dmg', '🥞'], ['spd', '🧁'], ['gold', '🍜'], ['ghost', '🍲'], ['hyper', '⚡'], ['jura', '🦕'], ['bleed', '🩸'], ['car', '🚗']]) {
+  for (const [k, em] of [['dmg', '🥞'], ['spd', '🧁'], ['gold', '🍜'], ['ghost', '🍲'], ['hyper', '⚡'], ['jura', '🦕'], ['bleed', '🩸'], ['car', '🚗'], ['pool', '🛟']]) {
     if (S.buffT[k] > 0) {
       const label = `${em}${Math.ceil(S.buffT[k])}`;
       ctx.font = '800 13px sans-serif';
@@ -2625,6 +2691,7 @@ const HOLLY_TIER = { // 현 메타 티어 (일반 모드 기준)
   wonkkataein:'C', ricecake:'C', swordsman:'C',
   archer:'S', royalchef:'?',
   penguin:'S', bane:'A', indie:'B', jeff:'B',
+  tez:'A', blader:'A', willy:'B',
 };
 const TIER_COLOR = { S:'#ffd54f', A:'#4fc3f7', B:'#9ccc65', C:'#ffb74d', D:'#b0bec5', '?':'#8ab8ff' };
 const HOLLY_EVAL = {
@@ -2648,6 +2715,9 @@ const HOLLY_EVAL = {
   penguin: '한 곡으로 판을 바꾸는 지휘자 — 강한 딜러 옆에 둘수록 이득이 곱해진다',
   bane: '한 방의 무게 330 — 뭉친 적을 통째로 지우는 신화의 파괴자',
   indie: '혼자선 약하지만 팀을 빠르게 만든다 — 공격력이 전부가 아니라는 증명',
+  tez: '짧은 사거리를 40% 연쇄펀치로 갚는다 — 트랙 옆 명당이 전부인 근접 전설',
+  blader: '전맵에서 단검 2~3자루 — 신화 최고 DPS, 다만 단일 대상 전용',
+  willy: '혼자선 못 이긴다 — 3·5웨이브 풀장이 팀 전체를 밀어 올리는 서포터',
   jeff: '근무 중엔 성실한 연사, 5웨이브마다 마이크를 잡는 회사원 🎤 — 술은 싫어하는데 맥주만 마신다',
 };
 const HOLLY_USE = { // 사용처
@@ -2671,6 +2741,9 @@ const HOLLY_USE = { // 사용처
   penguin: '전설·신화 딜러가 몰린 구역 한가운데 — 커버하는 아군이 많을수록 강해짐',
   bane: '트랙 옆 칸 필수 — 물량 웨이브·보스 모두 대응하는 신화 주력',
   indie: '딜러 여럿 사이 가운데 칸 — 응원이 닿는 아군이 많은 자리에 배치',
+  tez: '트랙 바로 옆 필수 — 사거리 100이라 자리를 못 잡으면 아무것도 못 한다',
+  blader: '아무 칸(전맵 사거리) — 보스·단단한 적 전담, 물량전은 다른 캐릭터에게',
+  willy: '아군이 많이 몰린 구역 — 풀장 범위가 넓을수록 이득, 딜은 기대하지 말 것',
   jeff: '평소엔 빠른 연사로 잔몹 처리, 5웨이브마다 파티 모드 — 보스 웨이브와 항상 겹치므로 준비 0.6초를 미리 계산할 것',
 };
 const HOLLY_DECKS = [
@@ -2706,6 +2779,9 @@ function renderHolly(tab) {
         u.support === 'aura' ? '오라: 아군 공격+25%·공속+20% / 적 이동-35%' : '',
         u.homing ? '유도탄(목표 사망 시 재조준)' : '',
         u.special === 'shock' ? `${Math.round(SHOCK_CHANCE * 100)}% 전기 연쇄(최대 ${SHOCK_MAX})` : '',
+        u.special === 'chain' ? `${Math.round(TEZ_CHAIN_CHANCE * 100)}% 연쇄펀치(${1 + TEZ_CHAIN_HITS}연타)` : '',
+        u.special === 'daggers' ? `단검 ${BLADER_MIN}~${BLADER_MAX}자루(각 ${Math.round(BLADER_FRAC * 100)}%)` : '',
+        u.special === 'pool' ? `3·5웨이브 풀장(적 감속 + 아군 공격 +${Math.round((POOL_ATK - 1) * 100)}%)` : '',
         u.type === 'catmachine' ? `${Math.round(CAT_HOMING_CHANCE * 100)}% 유도 미사일` : '',
         u.hyper ? `⚡${u.hyper}` : ''].filter(Boolean).join(' · ');
       const tier = HOLLY_TIER[u.type] || '?';
@@ -2911,8 +2987,14 @@ loadGob();
 
 // ---------- 📢 공지 ----------
 // 새 공지를 낼 땐 NOTICE_ID를 바꾸면 모든 유저에게 한 번 더 뜬다.
-const NOTICE_ID = 'deck-2026-08-01';
+const NOTICE_ID = 'newchars-2026-08-01';
 const NOTICE_HTML = `
+  <h3>🆕 신규 캐릭터 3종 출시!</h3>
+  <ul>
+    <li><b>👊 테즈</b> (전설) — 사거리는 짧지만 <span class="hl">40% 확률로 연쇄펀치 3연타</span>! 트랙 바로 옆에 놓으세요</li>
+    <li><b>🗡️ 블레이더</b> (신화) — <span class="hl">전맵 사거리</span>에서 단검 2~3자루를 던집니다. 아무 칸에나 놔도 돼요</li>
+    <li><b>🛟 윌리</b> (영웅) — <b>3·5의 배수 웨이브마다 풀장 설치!</b> 적이 느려지고 아군 공격력 +10%</li>
+  </ul>
   <h3>🃏 전투덱이 생겼어요!</h3>
   첫 화면 <b>[🎣 낚시터] 옆 [🃏 전투덱]</b> 버튼을 눌러보세요.<br>
   소환 상자에 넣을 <b>캐릭터 8마리</b>를 직접 고르는 기능이에요.
