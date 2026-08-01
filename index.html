@@ -69,8 +69,10 @@
   #pauseBtn.on { background:#66d36e; color:#0d3312; }
   #overlay {
     position:fixed; inset:0; background:rgba(10,14,26,.88);
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    text-align:center; gap:14px; padding:24px; z-index:10;
+    display:flex; flex-direction:column; align-items:center; justify-content:safe center;
+    text-align:center; gap:10px; z-index:10;
+    padding:20px 24px calc(20px + env(safe-area-inset-bottom));
+    overflow-y:auto; touch-action:pan-y;   /* 버튼이 많아져도 아래까지 닿게 */
   }
   #overlay h1 { font-size:34px; }
   #overlay .big-emoji { font-size:44px; letter-spacing:6px; display:flex; gap:12px; align-items:center; justify-content:center; }
@@ -281,9 +283,23 @@
   }
   #chatRow button { padding:0 18px; background:#2d6cdf; box-shadow:0 3px 0 #1a3f85; border-radius:12px; font-size:14px; }
   #chat .close { background:#3a4566; padding:9px 26px; font-size:14px; border-radius:10px; }
-  #overlay #ovBtn2, #overlay #ovBtn3 {
-    margin-top:0; padding:10px 28px; font-size:15px;
+  /* 홈 보조 버튼: 작게 — 개수가 많아 세로가 넘치지 않도록 */
+  #overlay #ovBtn2, #overlay #ovBtn3, #overlay #ovBtnK, #overlay #ovBtn4,
+  #overlay #ovBtnA, #overlay #ovBtn5, #overlay #ovBtnB, #overlay #ovBtn6,
+  #overlay #ovBtnD, #overlay #ovBtn7, #overlay #ovBtnN {
+    margin-top:0; padding:10px 28px; font-size:15px; min-width:200px;
     background:#3a4566; box-shadow:0 4px 0 #232a42;
+  }
+  #overlay #ovBtnD { background:#3f6ea8; box-shadow:0 4px 0 #26456a; } /* 🃏 전투덱 */
+  #overlay #ovBtnA { background:#a8632f; box-shadow:0 4px 0 #6b3d1c; } /* 🏀 베인오락실 */
+  @media (max-height: 780px) {
+    #overlay h1 { font-size:26px; }
+    #overlay .big-emoji img { width:44px; height:44px; }
+    #overlay p { font-size:13px; line-height:1.5; }
+    #overlay button { padding:12px 40px; font-size:17px; }
+    #overlay #ovBtn2, #overlay #ovBtn3, #overlay #ovBtnK, #overlay #ovBtn4,
+    #overlay #ovBtnA, #overlay #ovBtn5, #overlay #ovBtnB, #overlay #ovBtn6,
+    #overlay #ovBtnD, #overlay #ovBtn7, #overlay #ovBtnN { padding:8px 22px; font-size:14px; }
   }
   #nickLine { color:#9fb0d8; font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px; }
   #nickLine button { background:#3a4566; padding:5px 10px; font-size:12px; border-radius:8px; }
