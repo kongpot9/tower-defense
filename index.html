@@ -278,6 +278,7 @@
   .msg .vidbox video, .msg .vidbox iframe { width:100%; height:130px; display:block; border:0; }
   .msg .vthumb { position:relative; cursor:pointer; }
   .msg .vthumb img { width:100%; height:130px; object-fit:cover; display:block; }
+  .msg .vthumb.vpending { height:130px; background:linear-gradient(135deg,#1c2338,#2a3358); }
   .msg .vplay {
     position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
     font-size:34px; text-shadow:0 2px 8px rgba(0,0,0,.7); background:rgba(0,0,0,.22);
@@ -298,6 +299,9 @@
     background:#12182a; color:#fff; font-size:14px; font-family:inherit; font-weight:600;
   }
   #chatRow button { padding:0 18px; background:#2d6cdf; box-shadow:0 3px 0 #1a3f85; border-radius:12px; font-size:14px; }
+  #chatVidBtn { padding:0 13px !important; background:#4a3a6e !important; box-shadow:0 3px 0 #2c2145 !important; font-size:19px !important; }
+  #chatVidFile { display:none; }
+  #chatUpload { font-size:11px; color:#ffd54f; font-weight:800; min-height:14px; text-align:center; }
   #chat .close { background:#3a4566; padding:9px 26px; font-size:14px; border-radius:10px; }
   /* 홈 보조 버튼: 작게 — 개수가 많아 세로가 넘치지 않도록 */
   #overlay #ovBtn2, #overlay #ovBtn3, #overlay #ovBtnK, #overlay #ovBtn4,
@@ -661,9 +665,12 @@
   <div id="onlineList"></div>
   <div id="chatLog"></div>
   <div id="chatRow">
-    <input id="chatInput" maxlength="200" placeholder="메시지 · 동영상 링크 붙여넣기">
+    <button id="chatVidBtn" title="동영상 보내기">🎬</button>
+    <input id="chatInput" maxlength="200" placeholder="메시지를 입력하세요">
     <button id="chatSend">전송</button>
   </div>
+  <input id="chatVidFile" type="file" accept="video/*" class="hidden">
+  <div id="chatUpload"></div>
   <button class="close" id="chatClose">나가기</button>
 </div>
 
@@ -3497,7 +3504,90 @@ function renderPresence(data) {
     (off.length ? `<div style="width:100%;font-size:11px;color:#5a708f;font-weight:800;margin-top:2px">⚪ 오프라인</div>` +
       off.map(u => `<span class="onchip off">⚪ ${escapeHtml(u.nick)}<small>${ago(u.t)}</small></span>`).join('') : '');
 }
-// 🎬 채팅 동영상 — 링크를 붙여넣으면 재생 카드로 바뀐다 (파일 업로드는 무료 서버로 불가)
+// 🎬 채팅 동영상 — 폰에서 영상을 골라 바로 보낸다
+// 영상은 메시지와 따로(vids 노드) 저장해, 채팅을 열 때가 아니라 재생을 누를 때만 내려받는다.
+const VID_MAX_BYTES = 3 * 1024 * 1024; // 한 개 3MB까지 (무료 서버 용량·데이터 보호)
+const VID_KEEP = 20;                   // 최근 20개만 서버에 보관
+const VID_PATH = () => `${RANK_DB}/party/_chat/vids`;
+const vidCache = {};
+function pickChatVideo() {
+  if (!RANK_DB || !getNick()) return;
+  const f = $('chatVidFile');
+  f.value = '';
+  f.click();
+}
+async function sendChatVideo(file) {
+  if (!file || !RANK_DB) return;
+  const msg = $('chatUpload');
+  if (!/^video\//.test(file.type)) { msg.textContent = '동영상 파일만 보낼 수 있어요'; return; }
+  if (file.size > VID_MAX_BYTES) {
+    msg.textContent = `너무 커요! ${(file.size / 1048576).toFixed(1)}MB → ${VID_MAX_BYTES / 1048576}MB 이하로 잘라주세요`;
+    return;
+  }
+  if (Date.now() - lastChatSend < 2000) { msg.textContent = '조금만 천천히! (2초)'; return; }
+  lastChatSend = Date.now();
+  msg.textContent = '📤 올리는 중...';
+  try {
+    const dataUrl = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.onerror = () => rej(new Error('읽기 실패'));
+      r.readAsDataURL(file);
+    });
+    const put = await (await fetch(`${VID_PATH()}.json`, { method: 'POST', body: JSON.stringify({ d: dataUrl, t: Date.now() }) })).json();
+    const vid = put && put.name;
+    if (!vid) throw new Error('업로드 실패');
+    vidCache[vid] = dataUrl;
+    await fetch(`${CHAT_PATH()}/msgs.json`, { method: 'POST', body: JSON.stringify({ n: getNick(), m: '🎬 동영상', v: vid, t: Date.now() }) });
+    msg.textContent = '✅ 보냈어요!';
+    setTimeout(() => { if (msg.textContent === '✅ 보냈어요!') msg.textContent = ''; }, 2500);
+    pingPresence();
+    pruneChatVideos();
+  } catch (e) {
+    msg.textContent = '보내지 못했어요 😢 (파일이 너무 크거나 인터넷 문제)';
+  }
+}
+async function pruneChatVideos() { // 오래된 영상 정리 — 무료 용량 보호
+  try {
+    const all = await (await fetch(`${VID_PATH()}.json?shallow=true`)).json() || {};
+    const ids = Object.keys(all);
+    if (ids.length <= VID_KEEP) return;
+    const meta = await (await fetch(`${VID_PATH()}.json`)).json() || {};
+    const sorted = Object.entries(meta).sort((a, b) => (a[1].t || 0) - (b[1].t || 0));
+    for (const [id] of sorted.slice(0, sorted.length - VID_KEEP))
+      fetch(`${VID_PATH()}/${id}.json`, { method: 'DELETE' }).catch(() => {});
+  } catch (e) {}
+}
+function buildChatVideo(vid) { // ▶️ 누를 때 내려받아 재생 (채팅 열 때 전부 받지 않게)
+  const box = document.createElement('div');
+  box.className = 'vidbox';
+  const thumb = document.createElement('div');
+  thumb.className = 'vthumb vpending';
+  const play = document.createElement('div');
+  play.className = 'vplay'; play.textContent = '▶️';
+  thumb.appendChild(play);
+  let loading = false;
+  thumb.onclick = async () => {
+    if (loading) return;
+    loading = true;
+    play.textContent = '⏳';
+    try {
+      let data = vidCache[vid];
+      if (!data) {
+        const d = await (await fetch(`${VID_PATH()}/${vid}.json`)).json();
+        data = d && d.d;
+        if (data) vidCache[vid] = data;
+      }
+      if (!data) { play.textContent = '🚫'; thumb.title = '오래되어 사라진 동영상이에요'; loading = false; return; }
+      const v = document.createElement('video');
+      v.controls = true; v.autoplay = true; v.playsInline = true; v.src = data;
+      box.replaceChild(v, thumb);
+    } catch (e) { play.textContent = '🚫'; loading = false; }
+  };
+  box.appendChild(thumb);
+  return box;
+}
+// 링크를 붙여넣어도 재생된다 (유튜브 / mp4 직접 링크)
 const YT_RE = /^https:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{6,20})/;
 const VIDFILE_RE = /^https:\/\/[A-Za-z0-9._~:/?#[\]@!$&'()*+,;=%-]+\.(?:mp4|webm|ogg)(?:\?[^\s]*)?$/i;
 function findLink(text) { // 메시지에서 첫 https 링크만 (문자열 조작만, HTML 삽입 없음)
@@ -3542,7 +3632,8 @@ function addChatMsg(m) {
   const div = document.createElement('div');
   div.className = 'msg ' + (mine ? 'mine' : 'other');
   div.innerHTML = (mine ? '' : `<span class="who">${escapeHtml(m.n)}</span>`) + escapeHtml(m.m);
-  const link = findLink(m.m);
+  if (m.v) div.appendChild(buildChatVideo(m.v)); // 🎬 올린 동영상
+  const link = m.v ? null : findLink(m.m);
   if (link) {
     div.appendChild(buildVideoBox(link));
     const a = document.createElement('a');
@@ -3650,6 +3741,8 @@ $('ovBtn5').addEventListener('click', () => {
 });
 $('chatClose').addEventListener('click', closeChat);
 $('chatSend').addEventListener('click', sendChat);
+$('chatVidBtn').addEventListener('click', pickChatVideo);
+$('chatVidFile').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; if (f) sendChatVideo(f); });
 $('chatInput').addEventListener('keydown', ev => { if (ev.key === 'Enter') sendChat(); });
 
 // ---------- 👥 더블큐 (한 보드 협동, 기획: 구예준) ----------
@@ -3903,6 +3996,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   setGob: (g2, until) => { GOB = { ...GOB, ...g2 }; if (until !== undefined) GOB_UNTIL = until; saveGob(); updateEventUI(); },
   showNotice, maybeShowNotice, NOTICE_ID,
   findLink, addChatMsg, refreshChatBadge, renderChatBadge, chatSeenT, setChatSeen,
+  sendChatVideo, buildChatVideo, pruneChatVideos, VID_MAX_BYTES, VID_KEEP,
   poolOfGrade, openDeck, renderDeck, deckRandom, DECK_SIZE,
   getDeck: () => DECK.slice(), setDeck: d => { DECK = d.slice(); saveDeck(); },
   deckEditState: () => ({ edit: deckEdit.slice(), sel: deckSel }),
