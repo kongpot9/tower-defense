@@ -273,6 +273,12 @@
     display:flex; flex-direction:column; gap:6px; padding:6px 2px;
   }
   .msg { max-width:85%; padding:7px 11px; border-radius:12px; font-size:13px; line-height:1.45; word-break:break-word; }
+  .msg { position:relative; }
+  .msg .hidebtn {
+    position:absolute; top:2px; right:2px; padding:0 4px; font-size:10px; line-height:16px; height:16px;
+    background:rgba(0,0,0,.35); border-radius:6px; opacity:.35; box-shadow:none;
+  }
+  .msg .hidebtn:hover { opacity:1; }
   .msg .who { font-size:10px; color:#8a96b8; font-weight:800; display:block; margin-bottom:2px; }
   .msg .vidbox { margin-top:5px; width:230px; max-width:100%; border-radius:9px; overflow:hidden; background:#000; }
   .msg .vidbox video, .msg .vidbox iframe { width:100%; height:130px; display:block; border:0; }
@@ -3471,7 +3477,25 @@ loadTreasure();
 const CHAT_PATH = () => `${RANK_DB}/party/_chat`;
 const PRESENCE_PATH = () => `${RANK_DB}/party/_presence`;
 const ONLINE_MS = 70000; // 이 시간 안에 신호가 있으면 온라인
-let chatEs = null, presenceEs = null, presenceTimer = null, lastChatSend = 0, chatSeen = {};
+let chatEs = null, presenceTimer = null, lastChatSend = 0, chatSeen = {};
+let presencePoll = 0, chatPoll = 0, chatHandle = null, lastChatText = '';
+// 🚫 채팅 안전장치 — 차단(내 기기에만 적용) · 금지어 · 같은 말 반복 막기
+let BLOCKED = [];
+try { BLOCKED = JSON.parse(localStorage.getItem('ltd_block') || '[]'); } catch (e) { BLOCKED = []; }
+const isBlocked = n => BLOCKED.includes(n);
+function blockUser(n) {
+  if (!n || n === getNick() || isBlocked(n)) return;
+  BLOCKED.push(n);
+  try { localStorage.setItem('ltd_block', JSON.stringify(BLOCKED)); } catch (e) {}
+  document.querySelectorAll(`#chatLog .msg[data-n="${CSS.escape(n)}"]`).forEach(el => el.remove());
+  $('chatUpload').textContent = `🚫 ${n} 님의 메시지를 숨겼어요 (이 기기에서만)`;
+  setTimeout(() => { if ($('chatUpload').textContent.startsWith('🚫')) $('chatUpload').textContent = ''; }, 3000);
+}
+const BAD_WORDS = ['시발','씨발','ㅅㅂ','병신','ㅂㅅ','좆','섹스','fuck','shit','새끼','ㅄ','지랄','개년','보지','자지'];
+function hasBadWord(t) {
+  const flat = String(t).replace(/[\s.,!?~^]/g, '').toLowerCase();
+  return BAD_WORDS.some(w => flat.includes(w));
+}
 function myStatus() { // 지금 뭐 하는 중인지
   if (DUO.on && DUO.playing) return `👥 더블큐 웨이브 ${S.wave}`;
   if (S.running && !S.over) return S.mode === 'story' ? `🗺️ ${STAGES[S.stage].name} 웨이브 ${S.wave}` : `🎮 웨이브 ${S.wave}`;
@@ -3629,9 +3653,17 @@ function buildVideoBox(link) { // DOM으로만 조립 — innerHTML에 사용자
 function addChatMsg(m) {
   const log = $('chatLog');
   const mine = m.n === getNick();
+  if (!mine && isBlocked(m.n)) return; // 🚫 차단한 사람
   const div = document.createElement('div');
   div.className = 'msg ' + (mine ? 'mine' : 'other');
+  div.dataset.n = m.n || '';
   div.innerHTML = (mine ? '' : `<span class="who">${escapeHtml(m.n)}</span>`) + escapeHtml(m.m);
+  if (!mine && m.n) { // 🚫 이 사람 메시지 안 보기
+    const b = document.createElement('button');
+    b.className = 'hidebtn'; b.textContent = '🚫'; b.title = `${m.n} 님 메시지 숨기기`;
+    b.onclick = () => blockUser(m.n);
+    div.appendChild(b);
+  }
   if (m.v) div.appendChild(buildChatVideo(m.v)); // 🎬 올린 동영상
   const link = m.v ? null : findLink(m.m);
   if (link) {
@@ -3685,43 +3717,65 @@ function openChat() {
   startPresence();
   pingPresence();
   if (!RANK_DB) { $('onlineList').innerHTML = '<span class="onchip">서버가 연결되지 않았어요</span>'; return; }
-  // 접속 목록 실시간 구독
-  presenceEs = new EventSource(`${PRESENCE_PATH()}.json`);
-  const onPres = () => fetch(`${PRESENCE_PATH()}.json`).then(r => r.json()).then(renderPresence).catch(() => {});
-  presenceEs.addEventListener('put', onPres);
-  presenceEs.addEventListener('patch', onPres);
-  // 메시지 실시간 구독
-  chatEs = new EventSource(`${CHAT_PATH()}/msgs.json`);
-  const handle = (id, m) => {
+  // 접속 목록: 실시간 연결 대신 폴링 (Firebase 무료 플랜은 동시 연결 100개가 한계)
+  const pollPres = () => fetch(`${PRESENCE_PATH()}.json`).then(r => r.json()).then(renderPresence).catch(() => {});
+  pollPres();
+  presencePoll = setInterval(pollPres, 15000);
+  // 메시지: 실시간 구독하되, 연결이 막히면(동시접속 초과 등) 자동으로 폴링 전환
+  chatHandle = (id, m) => {
     if (!m || !m.m || chatSeen[id]) return;
     chatSeen[id] = 1;
+    if (isBlocked(m.n)) return; // 🚫 차단한 사람
     addChatMsg(m);
   };
-  const onData = ev => {
+  try {
+    chatEs = new EventSource(`${CHAT_PATH()}/msgs.json`);
+    const onData = ev => {
+      try {
+        const { path, data } = JSON.parse(ev.data);
+        if (!data) return;
+        if (path === '/') {
+          const list = Object.entries(data).sort((a, b) => (a[1].t || 0) - (b[1].t || 0)).slice(-40);
+          for (const [id, m] of list) chatHandle(id, m);
+        } else chatHandle(path.slice(1).split('/')[0], data);
+      } catch (e) {}
+    };
+    chatEs.addEventListener('put', onData);
+    chatEs.addEventListener('patch', onData);
+    chatEs.onerror = () => { // 연결 실패 → 폴링으로 갈아탄다
+      try { chatEs && chatEs.close(); } catch (e) {}
+      chatEs = null;
+      startChatPoll();
+    };
+  } catch (e) { startChatPoll(); }
+}
+function startChatPoll() { // 실시간 연결이 안 될 때의 대비책 (사람이 몰려도 채팅이 살아 있게)
+  if (chatPoll) return;
+  const tick = async () => {
     try {
-      const { path, data } = JSON.parse(ev.data);
-      if (!data) return;
-      if (path === '/') {
-        const list = Object.entries(data).sort((a, b) => (a[1].t || 0) - (b[1].t || 0)).slice(-40);
-        for (const [id, m] of list) handle(id, m);
-      } else handle(path.slice(1).split('/')[0], data);
+      const d = await (await fetch(`${CHAT_PATH()}/msgs.json`)).json() || {};
+      const list = Object.entries(d).sort((a, b) => (a[1].t || 0) - (b[1].t || 0)).slice(-40);
+      for (const [id, m] of list) chatHandle(id, m);
     } catch (e) {}
   };
-  chatEs.addEventListener('put', onData);
-  chatEs.addEventListener('patch', onData);
+  tick();
+  chatPoll = setInterval(tick, 5000);
 }
 function closeChat() {
   $('chat').classList.add('hidden');
   setChatSeen(Date.now()); renderChatBadge(0);
   try { chatEs && chatEs.close(); } catch (e) {}
-  try { presenceEs && presenceEs.close(); } catch (e) {}
-  chatEs = presenceEs = null;
+  clearInterval(presencePoll); clearInterval(chatPoll);
+  chatEs = null; presencePoll = chatPoll = 0;
 }
 async function sendChat() {
   const inp = $('chatInput');
   const text = inp.value.trim().slice(0, 200);
   if (!text || !RANK_DB) return;
   if (Date.now() - lastChatSend < 2000) { inp.placeholder = '조금만 천천히! (2초)'; return; }
+  if (hasBadWord(text)) { $('chatUpload').textContent = '🙅 그런 말은 보낼 수 없어요'; inp.value = ''; return; }
+  if (text === lastChatText) { $('chatUpload').textContent = '같은 말은 연달아 못 보내요'; return; }
+  lastChatText = text;
   lastChatSend = Date.now();
   inp.value = '';
   inp.placeholder = '메시지 · 동영상 링크 붙여넣기';
@@ -3996,6 +4050,8 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   setGob: (g2, until) => { GOB = { ...GOB, ...g2 }; if (until !== undefined) GOB_UNTIL = until; saveGob(); updateEventUI(); },
   showNotice, maybeShowNotice, NOTICE_ID,
   findLink, addChatMsg, refreshChatBadge, renderChatBadge, chatSeenT, setChatSeen,
+  hasBadWord, blockUser, isBlocked, startChatPoll, openChat, closeChat,
+  getBlocked: () => BLOCKED.slice(), clearBlocked: () => { BLOCKED = []; localStorage.removeItem('ltd_block'); },
   sendChatVideo, buildChatVideo, pruneChatVideos, VID_MAX_BYTES, VID_KEEP,
   poolOfGrade, openDeck, renderDeck, deckRandom, DECK_SIZE,
   getDeck: () => DECK.slice(), setDeck: d => { DECK = d.slice(); saveDeck(); },
