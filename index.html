@@ -129,6 +129,18 @@
   .ncard .nicon { font-size:24px; }
   .ncard .ncount { margin-left:auto; color:#ffd54f; font-weight:800; }
   /* 🏀 베인오락실 */
+  #arcade, #gacha, #keyring {
+    position:fixed; inset:0; background:#161b2c; z-index:23;
+    padding:16px 14px calc(14px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; align-items:center; gap:8px; overflow-y:auto;
+  }
+  #arcade.hidden, #gacha.hidden, #keyring.hidden { display:none; }
+  #arcade h2, #gacha h2, #keyring h2 { color:#ffd54f; font-size:22px; }
+  #arcade .sub, #gacha .sub, #keyring .sub { color:#9fb0d8; font-size:12px; text-align:center; line-height:1.6; }
+  #arcTime { color:#ff8a65; font-weight:800; }
+  #arcade .close, #gacha .close, #keyring .close { background:#3a4566; padding:9px 26px; font-size:14px; border-radius:10px; }
+  #arcade > .grid, #gacha > div, #keyring > div { width:100%; max-width:420px; }
+  #court, #arcResult, #gachaResult, #krList, #krPageList { width:100%; max-width:420px; }
   #arcTop { display:flex; gap:10px; align-items:center; justify-content:center; margin:6px 0; flex-wrap:wrap; font-weight:800; }
   #court { background:#20263a; border-radius:12px; padding:10px; margin:8px 0; }
   #courtHoop { text-align:center; font-size:26px; letter-spacing:6px; margin-bottom:6px; }
