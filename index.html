@@ -274,6 +274,22 @@
   }
   .msg { max-width:85%; padding:7px 11px; border-radius:12px; font-size:13px; line-height:1.45; word-break:break-word; }
   .msg .who { font-size:10px; color:#8a96b8; font-weight:800; display:block; margin-bottom:2px; }
+  .msg .vidbox { margin-top:5px; width:230px; max-width:100%; border-radius:9px; overflow:hidden; background:#000; }
+  .msg .vidbox video, .msg .vidbox iframe { width:100%; height:130px; display:block; border:0; }
+  .msg .vthumb { position:relative; cursor:pointer; }
+  .msg .vthumb img { width:100%; height:130px; object-fit:cover; display:block; }
+  .msg .vplay {
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:34px; text-shadow:0 2px 8px rgba(0,0,0,.7); background:rgba(0,0,0,.22);
+  }
+  .msg .vlink { display:block; margin-top:4px; font-size:11px; color:#8ecbff; text-decoration:underline; word-break:break-all; }
+  #ovBtn5 { position:relative; }
+  #chatBadge {
+    position:absolute; top:-7px; right:-7px; min-width:21px; height:21px; padding:0 5px;
+    border-radius:11px; background:#e53935; color:#fff; font-size:12px; font-weight:800;
+    display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,.45);
+  }
+  #chatBadge.hidden { display:none; }
   .msg.other { background:#22304f; color:#e8ecf8; align-self:flex-start; border-bottom-left-radius:3px; }
   .msg.mine { background:#2d6cdf; color:#fff; align-self:flex-end; border-bottom-right-radius:3px; }
   #chatRow { width:100%; max-width:420px; display:flex; gap:8px; }
@@ -480,7 +496,7 @@
   <button id="ovBtn3" class="hidden">🏆 랭킹</button>
   <button id="ovBtn4" class="hidden">👥 더블큐</button>
   <button id="ovBtnA" class="hidden">🏀 베인오락실</button>
-  <button id="ovBtn5" class="hidden">💬 채팅방</button>
+  <button id="ovBtn5" class="hidden">💬 채팅방<span id="chatBadge" class="hidden">0</span></button>
   <button id="ovBtnB" class="hidden">🎁 인형뽑기</button>
   <button id="ovBtn6" class="hidden">🎣 낚시터</button>
   <button id="ovBtnD" class="hidden">🃏 전투덱</button>
@@ -645,7 +661,7 @@
   <div id="onlineList"></div>
   <div id="chatLog"></div>
   <div id="chatRow">
-    <input id="chatInput" maxlength="60" placeholder="메시지 입력... (60자)">
+    <input id="chatInput" maxlength="200" placeholder="메시지 · 동영상 링크 붙여넣기">
     <button id="chatSend">전송</button>
   </div>
   <button class="close" id="chatClose">나가기</button>
@@ -2414,6 +2430,7 @@ function showOverlay(mode) {
     loadArcEvent(); // 🏀 베인오락실 진행 여부 확인
     updateEventUI();
     maybeShowNotice(); // 📢 새 공지가 있으면 자동으로 띄운다
+    startChatBadge(); // 🔴 안 읽은 채팅 수
   } else if (mode === 'rank') { // 🏆 랭킹
     ov.querySelector('h1').textContent = '🏆 랭킹';
     $('ovChars').style.display = 'none';
@@ -3480,20 +3497,100 @@ function renderPresence(data) {
     (off.length ? `<div style="width:100%;font-size:11px;color:#5a708f;font-weight:800;margin-top:2px">⚪ 오프라인</div>` +
       off.map(u => `<span class="onchip off">⚪ ${escapeHtml(u.nick)}<small>${ago(u.t)}</small></span>`).join('') : '');
 }
+// 🎬 채팅 동영상 — 링크를 붙여넣으면 재생 카드로 바뀐다 (파일 업로드는 무료 서버로 불가)
+const YT_RE = /^https:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{6,20})/;
+const VIDFILE_RE = /^https:\/\/[A-Za-z0-9._~:/?#[\]@!$&'()*+,;=%-]+\.(?:mp4|webm|ogg)(?:\?[^\s]*)?$/i;
+function findLink(text) { // 메시지에서 첫 https 링크만 (문자열 조작만, HTML 삽입 없음)
+  const tok = String(text).split(/\s+/).find(w => w.startsWith('https://'));
+  if (!tok) return null;
+  const yt = YT_RE.exec(tok);
+  if (yt) return { kind: 'yt', id: yt[1], url: tok };
+  if (VIDFILE_RE.test(tok)) return { kind: 'file', url: tok };
+  return null;
+}
+function buildVideoBox(link) { // DOM으로만 조립 — innerHTML에 사용자 문자열을 넣지 않는다
+  const box = document.createElement('div');
+  box.className = 'vidbox';
+  if (link.kind === 'file') {
+    const v = document.createElement('video');
+    v.controls = true; v.preload = 'metadata'; v.playsInline = true;
+    v.src = link.url;
+    box.appendChild(v);
+    return box;
+  }
+  const thumb = document.createElement('div');   // 유튜브: 썸네일 → 누르면 플레이어로 교체
+  thumb.className = 'vthumb';
+  const img = document.createElement('img');
+  img.src = `https://img.youtube.com/vi/${link.id}/mqdefault.jpg`;
+  img.alt = '동영상';
+  const play = document.createElement('div');
+  play.className = 'vplay'; play.textContent = '▶️';
+  thumb.appendChild(img); thumb.appendChild(play);
+  thumb.onclick = () => {
+    const f = document.createElement('iframe');
+    f.src = `https://www.youtube.com/embed/${link.id}?autoplay=1`;
+    f.allow = 'accelerometer; autoplay; encrypted-media; picture-in-picture';
+    f.allowFullscreen = true;
+    box.replaceChild(f, thumb);
+  };
+  box.appendChild(thumb);
+  return box;
+}
 function addChatMsg(m) {
   const log = $('chatLog');
   const mine = m.n === getNick();
   const div = document.createElement('div');
   div.className = 'msg ' + (mine ? 'mine' : 'other');
   div.innerHTML = (mine ? '' : `<span class="who">${escapeHtml(m.n)}</span>`) + escapeHtml(m.m);
+  const link = findLink(m.m);
+  if (link) {
+    div.appendChild(buildVideoBox(link));
+    const a = document.createElement('a');
+    a.className = 'vlink'; a.href = link.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    a.textContent = '🔗 새 창에서 열기';
+    div.appendChild(a);
+  }
   log.appendChild(div);
   while (log.children.length > 80) log.removeChild(log.firstChild);
   log.scrollTop = log.scrollHeight;
+}
+// 🔴 안 읽은 채팅 수 배지
+let chatBadgeTimer = 0;
+const chatSeenT = () => +(localStorage.getItem('ltd_chat_seen') || 0);
+function setChatSeen(t) { try { localStorage.setItem('ltd_chat_seen', String(t)); } catch (e) {} }
+function renderChatBadge(n) {
+  const b = $('chatBadge');
+  if (!b) return;
+  b.textContent = n > 99 ? '99+' : String(n);
+  b.classList.toggle('hidden', n <= 0);
+}
+async function refreshChatBadge() {
+  if (!RANK_DB || !getNick()) return;
+  if (!$('chat').classList.contains('hidden')) return; // 채팅방을 보고 있으면 셀 필요 없음
+  try {
+    const d = await (await fetch(`${CHAT_PATH()}/msgs.json`)).json() || {};
+    if (!chatSeenT()) { // 첫 실행: 지금까지의 대화는 읽은 것으로 처리
+      let newest = 0;
+      for (const k in d) if (d[k] && d[k].t > newest) newest = d[k].t;
+      setChatSeen(newest || Date.now());
+      return renderChatBadge(0);
+    }
+    const seen = chatSeenT(), me = getNick();
+    let n = 0;
+    for (const k in d) { const m = d[k]; if (m && m.t > seen && m.n !== me) n++; }
+    renderChatBadge(n);
+  } catch (e) {}
+}
+function startChatBadge() {
+  if (chatBadgeTimer) return;
+  refreshChatBadge();
+  chatBadgeTimer = setInterval(refreshChatBadge, 15000);
 }
 function openChat() {
   $('chat').classList.remove('hidden');
   $('chatLog').innerHTML = '';
   chatSeen = {};
+  setChatSeen(Date.now()); renderChatBadge(0); // 🔴 읽음 처리
   startPresence();
   pingPresence();
   if (!RANK_DB) { $('onlineList').innerHTML = '<span class="onchip">서버가 연결되지 않았어요</span>'; return; }
@@ -3524,18 +3621,19 @@ function openChat() {
 }
 function closeChat() {
   $('chat').classList.add('hidden');
+  setChatSeen(Date.now()); renderChatBadge(0);
   try { chatEs && chatEs.close(); } catch (e) {}
   try { presenceEs && presenceEs.close(); } catch (e) {}
   chatEs = presenceEs = null;
 }
 async function sendChat() {
   const inp = $('chatInput');
-  const text = inp.value.trim().slice(0, 60);
+  const text = inp.value.trim().slice(0, 200);
   if (!text || !RANK_DB) return;
   if (Date.now() - lastChatSend < 2000) { inp.placeholder = '조금만 천천히! (2초)'; return; }
   lastChatSend = Date.now();
   inp.value = '';
-  inp.placeholder = '메시지 입력... (60자)';
+  inp.placeholder = '메시지 · 동영상 링크 붙여넣기';
   try {
     await fetch(`${CHAT_PATH()}/msgs.json`, { method: 'POST', body: JSON.stringify({ n: getNick(), m: text, t: Date.now() }) });
     pingPresence();
@@ -3804,6 +3902,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   getGob: () => ({ ...GOB, until: GOB_UNTIL }),
   setGob: (g2, until) => { GOB = { ...GOB, ...g2 }; if (until !== undefined) GOB_UNTIL = until; saveGob(); updateEventUI(); },
   showNotice, maybeShowNotice, NOTICE_ID,
+  findLink, addChatMsg, refreshChatBadge, renderChatBadge, chatSeenT, setChatSeen,
   poolOfGrade, openDeck, renderDeck, deckRandom, DECK_SIZE,
   getDeck: () => DECK.slice(), setDeck: d => { DECK = d.slice(); saveDeck(); },
   deckEditState: () => ({ edit: deckEdit.slice(), sel: deckSel }),
