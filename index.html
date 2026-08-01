@@ -128,6 +128,25 @@
   }
   .ncard .nicon { font-size:24px; }
   .ncard .ncount { margin-left:auto; color:#ffd54f; font-weight:800; }
+  /* 📢 공지 */
+  #notice {
+    position:fixed; inset:0; background:rgba(8,12,22,.88); z-index:24;
+    display:flex; align-items:center; justify-content:center; padding:18px;
+  }
+  #notice.hidden { display:none; }
+  #noticeBox {
+    background:#1a2136; border:2px solid #3f6ea8; border-radius:16px;
+    padding:18px 16px; max-width:400px; width:100%; max-height:82vh; overflow-y:auto;
+    display:flex; flex-direction:column; gap:10px; text-align:left;
+  }
+  #noticeBox h2 { color:#8ecbff; font-size:20px; text-align:center; }
+  #noticeBody { font-size:13px; line-height:1.7; color:#dbe6ff; }
+  #noticeBody h3 { color:#ffd54f; font-size:15px; margin:10px 0 4px; }
+  #noticeBody b { color:#fff; }
+  #noticeBody .hl { color:#81e88c; font-weight:800; }
+  #noticeBody ul { margin:2px 0 0 16px; }
+  #noticeBody li { margin:3px 0; }
+  #noticeBox button { background:#3f6ea8; padding:11px; font-size:15px; border-radius:10px; }
   /* 🃏 전투덱 (클래시로얄 스타일) */
   #deck {
     position:fixed; inset:0; background:#12182a; z-index:23;
@@ -450,6 +469,7 @@
   <button id="ovBtn6" class="hidden">🎣 낚시터</button>
   <button id="ovBtnD" class="hidden">🃏 전투덱</button>
   <button id="ovBtn7" class="hidden">🗳️ 인기투표</button>
+  <button id="ovBtnN" class="hidden">📢 공지</button>
   <div id="nickLine" class="hidden">👤 <span id="nickName"></span> <button id="nickEdit">✏️ 바꾸기</button></div>
 </div>
 
@@ -526,6 +546,14 @@
   <div id="noodleList"></div>
   <p class="sub">30웨이브를 채울 때마다 🔑열쇠를 얻어요<br>상자를 열면 🍝면 조각이 나오고, 10개를 모으면 🍜누들 완성!</p>
   <button class="close" id="gobClose">나가기</button>
+</div>
+
+<div id="notice" class="hidden">
+  <div id="noticeBox">
+    <h2>📢 공지</h2>
+    <div id="noticeBody"></div>
+    <button id="noticeOk">확인했어요!</button>
+  </div>
 </div>
 
 <div id="deck" class="hidden">
@@ -2273,6 +2301,7 @@ function showOverlay(mode) {
   $('ovBtn6').classList.add('hidden');
   $('ovBtn7').classList.add('hidden');
   $('ovBtnD').classList.add('hidden');
+  $('ovBtnN').classList.add('hidden');
   $('ovBtnA').classList.add('hidden');
   $('ovBtnB').classList.add('hidden');
   $('ovBtnK').classList.add('hidden');
@@ -2291,6 +2320,7 @@ function showOverlay(mode) {
     $('ovBtn5').classList.remove('hidden');
     $('ovBtn6').classList.remove('hidden');
     $('ovBtnD').classList.remove('hidden'); // 🃏 전투덱 (낚시터 옆)
+    $('ovBtnN').classList.remove('hidden'); // 📢 공지 다시 보기
     $('ovBtn7').classList.remove('hidden');
     if (DUO.on) duoCleanup(); // 홈으로 오면 듀오 종료
     $('nickLine').classList.remove('hidden');
@@ -2301,6 +2331,7 @@ function showOverlay(mode) {
     loadGobEvent(); // 🏰 고블린의 저택 진행 여부 확인
     loadArcEvent(); // 🏀 베인오락실 진행 여부 확인
     updateEventUI();
+    maybeShowNotice(); // 📢 새 공지가 있으면 자동으로 띄운다
   } else if (mode === 'rank') { // 🏆 랭킹
     ov.querySelector('h1').textContent = '🏆 랭킹';
     $('ovChars').style.display = 'none';
@@ -2442,7 +2473,11 @@ $('nickSave').addEventListener('click', () => {
   startPresence(); // 닉네임 생기면 접속 신호 시작
   if (ovMode === 'home' || ovMode === 'rank') showOverlay(ovMode);
 });
-$('nickLater').addEventListener('click', () => $('nickModal').classList.add('hidden'));
+$('nickLater').addEventListener('click', () => {
+  $('nickModal').classList.add('hidden');
+  $('notice').dataset.afterNick = '1'; // 닉네임을 미뤄도 공지는 보여준다
+  maybeShowNotice();
+});
 $('nickInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('nickSave').click(); });
 
 // ---------- 🌑 DARK KAKAO 서버 (개발자 전용 — 여기선 뭐든지 된다) ----------
@@ -2857,6 +2892,55 @@ $('gobCookBtn').addEventListener('click', gobCook);
 $('gobClose').addEventListener('click', () => $('gob').classList.add('hidden'));
 $('gobBtn').addEventListener('click', () => { $('gob').classList.remove('hidden'); $('gobResult').textContent = ''; renderGob(); });
 loadGob();
+
+// ---------- 📢 공지 ----------
+// 새 공지를 낼 땐 NOTICE_ID를 바꾸면 모든 유저에게 한 번 더 뜬다.
+const NOTICE_ID = 'deck-2026-08-01';
+const NOTICE_HTML = `
+  <h3>🃏 전투덱이 생겼어요!</h3>
+  첫 화면 <b>[🎣 낚시터] 옆 [🃏 전투덱]</b> 버튼을 눌러보세요.<br>
+  소환 상자에 넣을 <b>캐릭터 8마리</b>를 직접 고르는 기능이에요.
+  <ul>
+    <li>지금은 21마리 전부가 상자에 들어 있어서 원하는 캐릭터가 잘 안 나와요</li>
+    <li>덱을 짜면 <b>내가 고른 8마리만</b> 나옵니다</li>
+    <li><span class="hl">같은 등급에 적게 넣을수록 그 캐릭터가 잘 나와요!</span></li>
+  </ul>
+  <h3>📈 얼마나 잘 나오냐면</h3>
+  전설 칸에 <b>드래곤 하나만</b> 넣었을 때:
+  <ul>
+    <li>🐉 레드드래곤 0.4% → <span class="hl">1.5% (4배!)</span></li>
+    <li>😈 베인 0.9% → <span class="hl">3.7%</span></li>
+    <li>🤡 데스삐에로 2% → <span class="hl">10.5%</span></li>
+  </ul>
+  카드마다 <b>확률이 실시간으로 표시</b>되니까 직접 보면서 짜면 돼요.<br>
+  고민되면 <b>[🎲 랜덤 편성]</b>을 누르고 바로 시작해도 됩니다!
+  <h3>⚠️ 알아두세요</h3>
+  <ul>
+    <li>등급마다 <b>최소 1마리씩</b> 넣어야 저장돼요 (필수 5 + 자유 3)</li>
+    <li><b>저장하기 전까지는 지금이랑 똑같아요.</b> 천천히 해보셔도 됩니다</li>
+    <li>덱은 언제든 다시 바꿀 수 있어요</li>
+  </ul>
+  <h3>🏀 베인오락실도 진행 중!</h3>
+  농구 슛으로 원을 벌어 인형뽑기 → <b>키링</b>을 모으세요.
+  키링은 그 판 내내 아군을 강하게 만들어 줍니다. <b>8월 8일까지!</b>
+`;
+function showNotice() {
+  $('noticeBody').innerHTML = NOTICE_HTML;
+  $('notice').classList.remove('hidden');
+}
+function maybeShowNotice() {
+  let seen = '';
+  try { seen = localStorage.getItem('ltd_notice') || ''; } catch (e) {}
+  if (seen === NOTICE_ID) return;
+  // 닉네임을 정하기 전(첫 방문)에는 미루고, 닉네임 창을 닫은 뒤에 띄운다
+  if (!getNick() && !$('notice').dataset.afterNick) return;
+  showNotice();
+}
+$('ovBtnN').addEventListener('click', showNotice);
+$('noticeOk').addEventListener('click', () => {
+  try { localStorage.setItem('ltd_notice', NOTICE_ID); } catch (e) {}
+  $('notice').classList.add('hidden');
+});
 
 // ---------- 🃏 전투덱 (기획: 구예준) ----------
 // 8마리를 골라 소환 상자를 좁힌다. 등급 확률은 그대로, "그 등급이 떴을 때 누가 나오냐"만 바뀐다.
@@ -3621,6 +3705,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   UNITS, openVote, loadVotes, castVote, renderVote, getVotes: () => VOTES,
   getGob: () => ({ ...GOB, until: GOB_UNTIL }),
   setGob: (g2, until) => { GOB = { ...GOB, ...g2 }; if (until !== undefined) GOB_UNTIL = until; saveGob(); updateEventUI(); },
+  showNotice, maybeShowNotice, NOTICE_ID,
   poolOfGrade, openDeck, renderDeck, deckRandom, DECK_SIZE,
   getDeck: () => DECK.slice(), setDeck: d => { DECK = d.slice(); saveDeck(); },
   deckEditState: () => ({ edit: deckEdit.slice(), sel: deckSel }),
