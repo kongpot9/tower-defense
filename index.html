@@ -515,6 +515,7 @@
     <button class="devbtn" id="devLava">🌋라바</button>
     <button class="devbtn" id="devGob">🏰저택</button>
     <button class="devbtn" id="devArc">🏀오락실</button>
+    <button class="devbtn" id="devDragon">🐲불멸</button>
   </div>
   <div id="noodleBar" class="hidden"></div>
   <div id="btnrow">
@@ -884,6 +885,9 @@ const PROJ_SPEED = { dagger:760, tube:400, arrow:700, scythe:420, ball:560, fire
 const INSTANT_ATK = new Set(['slash', 'bite', 'punch', 'axe', 'breath', 'ronin', 'bane', 'tez']); // 즉발(투사체 없는) 공격
 const INSTANT_DECAY = { tez:1.7, bite:1.6, breath:1.4, axe:1.8, punch:2.2, ronin:1.8, bane:1.5 };   // 이펙트 지속(작을수록 오래)
 
+// 🐲 불멸 드래곤 (숨겨진 합성, 기획: 구예준) — 전설끼리 합성이 안 되는 걸 역이용한 이스터에그
+const IMMORTAL_TRIES = 5, IMMORTAL_DMG = 1900000;
+
 // ⭐ 전투 레벨 & 전투카드 (기획: 구예준) — 전투력에는 전혀 영향이 없는 수집 보상
 const XP_PER_LEVEL = lv => 40 + (lv - 1) * 20;   // 다음 레벨까지 필요한 경험치
 const CARDS = [ // 레벨을 채울 때마다 새 전투카드 획득 (그림은 예준이 작업 예정)
@@ -1086,6 +1090,7 @@ function resetGame() {
   S.noodle = {};
   S.keyring = null; // 🔑 판당 1개
   S.merges = 0;     // 🎟️ 미션용 합성 횟수
+  S.dragonTry = 0; S.immortal = false; // 🐲 불멸 드래곤
   S.nextKey = GOB_KEY_EVERY;
   S.startedAt = Date.now(); // 🛡️ 기록 검증용 시작 시각
   renderNoodleBar();
@@ -1314,7 +1319,31 @@ function summon() {
 function tryMerge(target) {
   const a = S.selected, b = target;
   const g = a.unit.grade;
-  if (g >= GRADES.length - 1) { addText(b.cx, b.cy - 26, '최고 등급이에요!', '#ffd76e', 13); S.selected = null; updateInfoPanel(); return; }
+  if (g >= GRADES.length - 1) {
+    // 🐲 드래곤 + 드래곤을 5번 시도하면... (이벤트 기간에만)
+    if (dragonOn() && a.unit.type === 'reddragon' && b.unit.type === 'reddragon') {
+      S.dragonTry = (S.dragonTry || 0) + 1;
+      if (S.dragonTry >= IMMORTAL_TRIES) {
+        const proto = UNITS.find(u => u.type === 'reddragon');
+        a.unit = null;
+        b.unit = { ...proto, type: 'immortaldragon', name: '불멸 드래곤', emoji: '🐲',
+                   dmg: IMMORTAL_DMG, cd: 1.0, range: 360, splash: 90,
+                   cdT: 0, popT: 0.9, moveT: 0, immortal: true };
+        S.immortal = true;                 // 이 판은 랭킹에 올라가지 않는다
+        S.dragonTry = 0;
+        S.effects.push({ kind: 'boom', x: b.cx, y: b.cy, r: 120, t: 1, fire: true });
+        addText(WORLD_W / 2, 250, '🐲 불멸 드래곤 각성!!', '#ffd54f', 24);
+        addText(WORLD_W / 2, 280, `공격력 ${IMMORTAL_DMG.toLocaleString()}`, '#ff8a65', 17);
+        addText(WORLD_W / 2, 304, '※ 이 판의 기록은 랭킹에 오르지 않아요', '#9fb0d8', 12);
+        sfx('jackpot');
+        S.selected = null; updateInfoPanel(); updateButtons();
+        return;
+      }
+      addText(b.cx, b.cy - 26, `최고 등급이에요! (${S.dragonTry}/${IMMORTAL_TRIES})`, '#ffd76e', 13);
+      S.selected = null; updateInfoPanel(); return;
+    }
+    addText(b.cx, b.cy - 26, '최고 등급이에요!', '#ffd76e', 13); S.selected = null; updateInfoPanel(); return;
+  }
   const jackpot = Math.random() < JACKPOT_CHANCE && g + 2 <= GRADES.length - 1;
   const ng = Math.min(GRADES.length - 1, g + (jackpot ? 2 : 1));
   const proto = rand(poolOfGrade(ng));
@@ -1694,7 +1723,7 @@ function gameOver() {
     arcCheckMissions({ wave: S.wave, merges: S.merges || 0, high });
   }
   if (DUO.on) { duoPushStatus(); duoGameOver(); } // 👥 듀오: 파트너에게 유산 전달 + 팀 기록 제출(더 오래 버틴 쪽이 갱신)
-  if (!DEV && !ORGOL && !DUO.on) { // 🌑 DARK KAKAO·🎼 오르골 기록은 저장·제출되지 않는다 (듀오는 듀오 랭킹으로)
+  if (!DEV && !ORGOL && !DUO.on && !S.immortal) { // 🌑 DARK KAKAO·🎼 오르골·🐲 불멸 드래곤 기록은 저장·제출되지 않는다
     if (S.mode === 'story') {
       localStorage.setItem('ltd_best_' + S.stage, Math.max(S.wave, bestOf(S.stage)));
       submitStoryScore();
@@ -2623,6 +2652,7 @@ function showOverlay(mode) {
     loadLava(); // 🌋 이벤트 진행 여부 확인
     loadGobEvent(); // 🏰 고블린의 저택 진행 여부 확인
     loadArcEvent(); // 🏀 베인오락실 진행 여부 확인
+    loadDragonEvent(); // 🐲 숨겨진 합성 진행 여부
     updateEventUI();
     maybeShowNotice(); // 📢 새 공지가 있으면 자동으로 띄운다
     startChatBadge(); // 🔴 안 읽은 채팅 수
@@ -2816,6 +2846,7 @@ $('devPower').addEventListener('click', () => {
 $('devLava').addEventListener('click', () => { if (DEV) startLava(); }); // 🌋 라바 이벤트 개시 (3시간)
 $('devGob').addEventListener('click', () => { if (DEV) startGob(); });   // 🏰 고블린의 저택 개시 (7일 7시간 7분)
 $('devArc').addEventListener('click', () => { if (DEV) startArc(); });   // 🏀 베인오락실 개시 (7일 7시간 7분 7초)
+$('devDragon').addEventListener('click', () => { if (DEV) startDragon(); }); // 🐲 불멸 드래곤 개시 (7일)
 $('devPickBtn').addEventListener('click', () => {
   if (!DEV) return;
   const grid = $('devPickGrid');
@@ -3356,6 +3387,21 @@ let arcGame = 'basket';                        // basket | skee | bowl | mission
 let skeePower = 0, bowlAim = 0, bowlPower = 0, bowlPhase = 'aim';
 let arcPick = null, arcPhase = 'catch', arcBallPos = 0, arcPower = 0, arcPts = 0, arcRaf = 0;
 const arcOn = () => Date.now() < ARC_UNTIL;
+// 🐲 불멸 드래곤 이스터에그 기간
+let DRAGON_UNTIL = 0;
+const dragonOn = () => Date.now() < DRAGON_UNTIL;
+async function loadDragonEvent() {
+  if (!RANK_DB) return;
+  try {
+    const d = await (await fetch(`${RANK_DB}/party/_event/dragon.json`)).json();
+    DRAGON_UNTIL = (d && d.until) || 0;
+  } catch (e) {}
+}
+async function startDragon() { // 🌑 DARK KAKAO 전용 — 7일간 개시
+  DRAGON_UNTIL = Date.now() + 7 * 86400000;
+  try { await fetch(`${RANK_DB}/party/_event/dragon.json`, { method: 'PUT', body: JSON.stringify({ until: DRAGON_UNTIL }) }); } catch (e) {}
+  addText(WORLD_W / 2, 300, '🐲 불멸 드래곤 개시 (7일)', '#ffd54f', 18);
+}
 const arcOwned = () => KEYRINGS.reduce((n, k) => n + (ARC.kr[k.id] || 0), 0);
 function arcLeftText() {
   const ms = ARC_UNTIL - Date.now();
@@ -4361,6 +4407,8 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   getBlocked: () => BLOCKED.slice(), clearBlocked: () => { BLOCKED = []; localStorage.removeItem('ltd_block'); },
   sendChatVideo, buildChatVideo, pruneChatVideos, VID_MAX_BYTES, VID_KEEP,
   poolOfGrade, openDeck, renderDeck, deckRandom, DECK_SIZE,
+  startDragon, dragonOn, IMMORTAL_TRIES, IMMORTAL_DMG,
+  setDragon: ms => { DRAGON_UNTIL = ms; },
   getDeck: () => DECK.slice(), setDeck: d => { DECK = d.slice(); saveDeck(); },
   deckEditState: () => ({ edit: deckEdit.slice(), sel: deckSel }),
   ARC, KEYRINGS, startArc, arcOn, renderArc, arcCatch, arcShoot, gachaDraw, useKeyring, renderNoodleBar,
