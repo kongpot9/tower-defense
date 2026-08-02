@@ -30,7 +30,7 @@
     gap:8px; flex-wrap:nowrap;
   }
   #topbar .warn { color:#ff5a5a; }
-  #game { flex:1; width:100%; display:block; touch-action:none; }
+  #game { flex:1; min-height:0; width:100%; display:block; touch-action:none; }
   #bottombar { background:#12182a; padding:8px 12px calc(8px + env(safe-area-inset-bottom)); }
   #unitinfo {
     min-height:34px; display:flex; align-items:center; gap:10px;
@@ -209,11 +209,13 @@
   #court button { margin:4px 4px 0; }
   #arcResult, #gachaResult { min-height:22px; text-align:center; font-weight:800; margin:6px 0; }
   #arcPickGrid img { width:38px; height:38px; }
-  #noodleBar { display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap; }
+  #noodleBar { display:flex; gap:5px; margin-bottom:6px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
+  #noodleBar::-webkit-scrollbar { display:none; }
   #noodleBar button {
-    flex:1; padding:8px 0; font-size:12px; border-radius:10px;
-    background:#5d4037; box-shadow:0 3px 0 #3e2723;
+    flex:1 0 auto; min-width:52px; padding:7px 6px; font-size:11px; border-radius:9px;
+    background:#5d4037; box-shadow:0 3px 0 #3e2723; white-space:nowrap;
   }
+  #noodleBar button[data-k] { background:#4a3a6e; box-shadow:0 3px 0 #2c2145; }
   #noodleBar button:disabled { filter:grayscale(.75); box-shadow:none; }
   #noodleBar.hidden { display:none; }
   #fish {
