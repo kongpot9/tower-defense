@@ -816,7 +816,7 @@ let DECK = [];          // 저장된 전투덱(type 배열). 비어 있으면 �
 // 일반·희귀 등급은 아들이 그린 캐릭터! (character 폴더)
 const UNITS = [
   // 일반
-  { type:'swordsman',  grade:0, emoji:'⚔️', name:'검사',  dmg:12, cd:0.90, range:95,  atk:'slash',  img:'character/normal1.png' },
+  { type:'swordsman',  grade:0, emoji:'⚔️', name:'검사',  hyper:'영혼 사냥시간',  dmg:12, cd:0.90, range:95,  atk:'slash',  img:'character/normal1.png' },
   { type:'archer',     grade:0, emoji:'🏹', name:'궁수',  dmg:5,  cd:0.85, range:204, atk:'arrow',  hyper:'피의 석궁', img:'character/normal2.png' },
   { type:'farmer',     grade:0, emoji:'🌾', name:'농부',  dmg:7,  cd:0.80, range:130, atk:'scythe', hyper:'얼어버리는 일륜도', img:'character/normal3.png' },
   // 희귀
@@ -882,6 +882,8 @@ const FOODS = [
 const BOMB_CHANCE = 0.15, BOMB_DMG = 288, BOMB_RADIUS = 60, BOMB_FUSE = 1.0; // 능력자광부: 폭탄 설치
 const BALDO_CHANCE = 0.25, BALDO_RADIUS = 90;                                // 낭인: 발도술 광역
 const SMITE_CHANCE = 0.02, SMITE_BOSS_PCT = 0.03;                            // 천사 도베르만: 즉사 (보스는 최대체력 3% 추가)
+// ⚔️ 검사 하이퍼차지 「영혼 사냥시간」 — 암흑의 기사들이 적진에 강림 (기획: 구예준)
+const SOUL_KNIGHTS = 3, SOUL_DMG = 600, SOUL_CD = 1.5, SOUL_TIME = 30, SOUL_RANGE = 150, SOUL_FALL = 0.55;
 const TEZ_CHAIN_CHANCE = 0.4, TEZ_CHAIN_HITS = 2;                            // 👊 테즈: 40% 확률로 연쇄펀치(추가 2연타)
 const BLADER_MIN = 2, BLADER_MAX = 3, BLADER_FRAC = 0.4;                     // 🗡️ 블레이더: 단검 2~3개, 각 공격력의 40%
 const BLADER_PIERCE = 3, BLADER_PIERCE_R = 34;                               // 🗡️ 단검 관통: 한 자루가 최대 3명 (반경 34)
@@ -1088,7 +1090,7 @@ const S = {
 function resetGame() {
   S.over = false; S.wave = 0; S.gold = 80; S.summonCost = SUMMON_BASE;
   S.roundT = 0; S.toSpawn = 0;
-  S.enemies = []; S.projectiles = []; S.texts = []; S.effects = []; S.bombs = [];
+  S.enemies = []; S.projectiles = []; S.texts = []; S.effects = []; S.bombs = []; S.knights = [];
   S.buffT = { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0, jura: 0, bleed: 0, car: 0, pool: 0 };
   S.atkLv = 0;
   S.hyperCharges = 0;
@@ -1389,7 +1391,17 @@ function castHyper(slot) { // ⚡ 하이퍼차지 발동! (캐릭터마다 다�
   if (!sl || !sl.unit || !sl.unit.hyper || (S.hyperCharges <= 0 && !ORGOL)) return;
   if (!ORGOL) S.hyperCharges--; // 🎼 오르골 서버는 무한 발동!
   addText(WORLD_W / 2, 230, `⚡ ${sl.unit.hyper}!! ⚡`, '#4fc3f7', 20);
-  if (sl.unit.type === 'farmer') { // 얼어버리는 일륜도
+  if (sl.unit.type === 'swordsman') { // ⚔️ 영혼 사냥시간 — 암흑의 기사 강림
+    S.knights = S.knights || [];
+    for (let i = 0; i < SOUL_KNIGHTS; i++) {
+      const d = (PERIM / SOUL_KNIGHTS) * i + PERIM * 0.12;   // 트랙을 고르게 나눠 강림
+      const p = posAt(d);
+      S.knights.push({ x: p.x, y: p.y, t: SOUL_TIME, cd: SOUL_FALL, fall: SOUL_FALL, aura: 0 });
+    }
+    S.effects.push({ kind: 'soulcircle', x: WORLD_W / 2, y: WORLD_H / 2, t: 1, decay: 1 / SOUL_TIME });
+    addText(WORLD_W / 2, 262, `암흑의 기사 ${SOUL_KNIGHTS}기 강림! ${SOUL_TIME}초`, '#b388ff', 15);
+    addText(sl.cx, sl.cy - 30, '⚔️🌑', '#fff', 24);
+  } else if (sl.unit.type === 'farmer') { // 얼어버리는 일륜도
     S.buffT.hyper = FARMER_DMG_TIME;
     for (const e of S.enemies) e.frozenT = FARMER_FREEZE_TIME; // 적 전원 빙결
     addText(WORLD_W / 2, 262, `적 전원 빙결 ${FARMER_FREEZE_TIME}초 + 아군 공격력 3배 ${FARMER_DMG_TIME}초!`, '#e1f5fe', 14);
@@ -1605,6 +1617,39 @@ function update(dt) {
           }
         }
       }
+    }
+  }
+  // ⚔️ 암흑의 기사 (영혼 사냥시간)
+  if (S.knights && S.knights.length) {
+    for (let i = S.knights.length - 1; i >= 0; i--) {
+      const k = S.knights[i];
+      k.t -= dt;
+      if (k.t <= 0) { S.knights.splice(i, 1); continue; }
+      if (k.fall > 0) {                       // 위에서 아래로 착지하는 중
+        k.fall -= dt;
+        if (k.fall <= 0) {                    // 착지! 암흑 오라 폭발
+          k.aura = 0.6;
+          S.effects.push({ kind: 'soulland', x: k.x, y: k.y, r: 60, t: 1, decay: 1.6 });
+          sfx('merge');
+        }
+        continue;
+      }
+      if (k.aura > 0) k.aura -= dt;
+      k.cd -= dt;
+      if (k.cd > 0) continue;
+      // 사거리 안에서 가장 앞선 적을 벤다
+      let best = null, bt = -1;
+      for (const e of S.enemies) {
+        const p = posAt(e.d);
+        if (Math.hypot(p.x - k.x, p.y - k.y) <= SOUL_RANGE && e.trav > bt) { best = e; bt = e.trav; }
+      }
+      if (!best) continue;
+      k.cd = SOUL_CD;
+      const dmg = Math.round(SOUL_DMG * Math.pow(1.1, S.atkLv) * ALLY_ATK_MUL
+        * (S.buffT.bleed > 0 ? BLEED_MUL : 1) * (S.buffT.pool > 0 ? POOL_ATK : 1));
+      best.hp -= dmg;
+      const bp = posAt(best.d);
+      S.effects.push({ kind: 'soulslash', x: bp.x, y: bp.y, sx: k.x, sy: k.y, t: 1, decay: 2.2 });
     }
   }
   // 투사체
@@ -2204,6 +2249,30 @@ function draw() {
   }
 
   // 공격 이펙트 (베기/물기/폭발) — 대부분의 시간은 선명하게, 끝에만 빠르게 사라짐
+  // ⚔️ 암흑의 기사 — 위에서 내려와 착지, 발밑에 암흑 오라
+  for (const k of (S.knights || [])) {
+    const drop = k.fall > 0 ? (k.fall / SOUL_FALL) * 90 : 0;   // 착지 전에는 위에 떠 있다
+    const y = k.y - drop;
+    if (k.fall <= 0) {                                         // 발밑 오라
+      const pulse = 15 + Math.sin(S.time * 5) * 3 + (k.aura > 0 ? k.aura * 30 : 0);
+      ctx.fillStyle = 'rgba(70,25,125,0.42)';
+      ctx.beginPath(); ctx.ellipse(k.x, k.y + 12, pulse + 6, (pulse + 6) * 0.42, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(179,136,255,0.85)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(k.x, k.y + 12, pulse, pulse * 0.42, 0, 0, Math.PI * 2); ctx.stroke();
+    } else {                                                   // 낙하 궤적
+      ctx.strokeStyle = 'rgba(179,136,255,0.5)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(k.x, y - 40); ctx.lineTo(k.x, y); ctx.stroke();
+    }
+    ctx.save(); ctx.translate(k.x, y);
+    ctx.fillStyle = '#1a0b2e'; ctx.strokeStyle = '#b388ff'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, -16); ctx.lineTo(9, -4); ctx.lineTo(7, 12);
+    ctx.lineTo(-7, 12); ctx.lineTo(-9, -4); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#e1bee7';                                  // 투구 틈의 눈빛
+    ctx.fillRect(-5, -10, 4, 3); ctx.fillRect(1, -10, 4, 3);
+    ctx.strokeStyle = '#7e3ff2'; ctx.lineWidth = 3;             // 검
+    ctx.beginPath(); ctx.moveTo(9, -2); ctx.lineTo(22, -14); ctx.stroke();
+    ctx.restore();
+  }
   for (const e of S.effects) {
     const a = Math.max(0, Math.min(1, e.t * 2.2));
     ctx.globalAlpha = a;
@@ -2305,6 +2374,46 @@ function draw() {
       ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = '#ff5722'; ctx.lineWidth = 2.5;
       ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.stroke();
+    } else if (e.kind === 'soulcircle') { // ⚔️ 영혼 사냥시간 — 보라·검정 눈꽃 진
+      const R = Math.min(WORLD_W, WORLD_H) * 0.46;
+      const spin = S.time * 0.35;
+      ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(spin);
+      ctx.globalAlpha = 0.30 + 0.12 * Math.sin(S.time * 2);
+      ctx.fillStyle = '#0d0616';
+      ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 0.85;
+      ctx.strokeStyle = '#7e3ff2'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, R * 0.72, 0, Math.PI * 2); ctx.stroke();
+      for (let i = 0; i < 6; i++) {        // 눈꽃 여섯 갈래
+        const a = i * Math.PI / 3;
+        ctx.strokeStyle = i % 2 ? '#b388ff' : '#3b0d6b'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * R, Math.sin(a) * R); ctx.stroke();
+        for (const f of [0.45, 0.7]) {     // 갈래마다 잔가지
+          const bx = Math.cos(a) * R * f, by = Math.sin(a) * R * f;
+          for (const s2 of [-0.5, 0.5]) {
+            ctx.beginPath(); ctx.moveTo(bx, by);
+            ctx.lineTo(bx + Math.cos(a + s2) * R * 0.16, by + Math.sin(a + s2) * R * 0.16);
+            ctx.stroke();
+          }
+        }
+      }
+      ctx.globalAlpha = 1; ctx.restore();
+    } else if (e.kind === 'soulland') {  // 착지 순간 터지는 암흑 오라
+      const g = 1 - e.t, rr = (e.r || 60) * (0.3 + g * 1.1);
+      ctx.strokeStyle = `rgba(179,136,255,${e.t})`; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = `rgba(60,20,110,${0.5 * e.t})`;
+      ctx.beginPath(); ctx.arc(e.x, e.y, rr * 0.8, 0, Math.PI * 2); ctx.fill();
+    } else if (e.kind === 'soulslash') { // 암흑 검격
+      ctx.strokeStyle = `rgba(179,136,255,${e.t})`; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(e.sx, e.sy); ctx.lineTo(e.x, e.y); ctx.stroke();
+      ctx.strokeStyle = `rgba(20,5,40,${e.t})`; ctx.lineWidth = 6;
+      const a = Math.atan2(e.y - e.sy, e.x - e.sx) + Math.PI / 2;
+      ctx.beginPath();
+      ctx.moveTo(e.x - Math.cos(a) * 16, e.y - Math.sin(a) * 16);
+      ctx.lineTo(e.x + Math.cos(a) * 16, e.y + Math.sin(a) * 16);
+      ctx.stroke();
     } else if (e.kind === 'tez') {     // 👊 테즈: 파란 기운을 두른 주먹
       const gro = 1 - e.t;
       const rr = (e.r || 45) * (0.4 + 0.6 * gro);
