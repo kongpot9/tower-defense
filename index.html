@@ -759,7 +759,7 @@ const UNITS = [
 // 🐧 펭귄악사의 연주 오라 (기획: 구예준) — 범위 내 아군 강화 + 적 약화
 const AURA_DMG = 1.25, AURA_SPD = 1.2, AURA_ENEMY_SLOW = 0.65;
 // 🤠 인디의 응원 (특정 확률로 주변 아군 공속 버프)
-const CHEER_CHANCE = 0.15, CHEER_RANGE = 120, CHEER_TIME = 3.5, CHEER_SPD = 1.35;
+const CHEER_RANGE = 120, CHEER_SPD = 1.15; // 🤠 인디: 사거리 안 아군 공속 +15% 상시 (확률형 → 상시로 전환)
 // 로얄 셰프의 요리 (기획: 구예준) — 30초마다 5가지 중 랜덤
 const CHEF_CD = 30, FOOD_BUFF_TIME = 10;
 // 하이퍼차지 (기획: 구예준) — 20웨이브마다 1개, 하이퍼차지 보유 캐릭터로 발동
@@ -793,7 +793,8 @@ const BALDO_CHANCE = 0.25, BALDO_RADIUS = 90;                                // 
 const SMITE_CHANCE = 0.02, SMITE_BOSS_PCT = 0.03;                            // 천사 도베르만: 즉사 (보스는 최대체력 3% 추가)
 const TEZ_CHAIN_CHANCE = 0.4, TEZ_CHAIN_HITS = 2;                            // 👊 테즈: 40% 확률로 연쇄펀치(추가 2연타)
 const BLADER_MIN = 2, BLADER_MAX = 3, BLADER_FRAC = 0.4;                     // 🗡️ 블레이더: 단검 2~3개, 각 공격력의 40%
-const POOL_TIME = 8, POOL_SLOW = 8, POOL_ATK = 1.1;                          // 🛟 윌리: 풀장 8초 — 적 감속 + 아군 공격력 +10%
+const BLADER_PIERCE = 3, BLADER_PIERCE_R = 34;                               // 🗡️ 단검 관통: 한 자루가 최대 3명 (반경 34)
+const POOL_TIME = 20, POOL_SLOW = 20, POOL_ATK = 1.1;                        // 🛟 윌리: 풀장 20초(웨이브 내내) — 적 감속 + 아군 공격력 +10%
 const MULTI_TARGETS = 5;                                                     // 떡장수: 동시 공격 대상 수
 const FIREBALL_CHANCE = 0.25, FIREBALL_MUL = 4; // 원까태인 불꽃공 확률 (피해 4배 + 소범위)
 const PROJ_SPEED = { dagger:760, tube:400, arrow:700, scythe:420, ball:560, fire:480, shell:320, shuriken:650, fan:560, missile:430, drill:620, songpyeon:520, holy:560, paper:540, orb:500 };
@@ -1305,6 +1306,9 @@ function update(dt) {
   // 🐧 펭귄악사의 연주 오라 — 범위 안 아군은 강해지고, 적은 느려진다
   const auras = slots.filter(sl => sl.unit && sl.unit.support === 'aura');
   const inAura = (x, y) => auras.some(a => Math.hypot(a.cx - x, a.cy - y) <= a.unit.range);
+  // 🤠 인디의 응원: 사거리 안 아군은 항상 공속 상승 (자기 자신 제외)
+  const cheers = slots.filter(sl => sl.unit && sl.unit.special === 'cheer');
+  const inCheer = s2 => cheers.some(c => c !== s2 && Math.hypot(c.cx - s2.cx, c.cy - s2.cy) <= CHEER_RANGE);
   // 적 이동
   for (const e of S.enemies) {
     if (e.frozenT > 0) { e.frozenT -= dt; continue; } // 얼어버리는 일륜도: 꽁꽁 정지
@@ -1343,7 +1347,7 @@ function update(dt) {
       const aura = auras.length > 0 && inAura(s.cx, s.cy); // 🐧 연주 범위 안?
       // 얼음 왕국 감속 ÷ (컵케이크 · 펭귄 연주 · 인디 응원) 가속
       u.cdT = u.cd * (STAGES[S.stage].atkCdMul || 1)
-        / ((S.buffT.spd > 0 ? 1.5 : 1) * (aura ? AURA_SPD : 1) * (u.cheerT > 0 ? CHEER_SPD : 1)
+        / ((S.buffT.spd > 0 ? 1.5 : 1) * (aura ? AURA_SPD : 1) * (cheers.length && inCheer(s) ? CHEER_SPD : 1)
            * (1 + trLv('flute') * 0.01)                                    // 🎵 피터의 피리
            * (trLv('bell') ? 1.2 + (trLv('bell') - 1) * 0.01 : 1));        // 🔔 인디의 구구단종
       if (S.noodle[2]) u.cdT = Math.max(NOODLE_CD_MIN, u.cdT - NOODLE_CD_CUT); // 🍲 누들 두울
@@ -1368,16 +1372,7 @@ function update(dt) {
           * (S.noodle[3] ? NOODLE_DEF : 1)  // 🍥 누들 세엣: 적 방어력 -10%
           * (S.keyring === 'sword' ? KR_ATK : 1)  // ⚔️ 검사 키링: 공격력 +20%
           * (S.buffT.pool > 0 ? POOL_ATK : 1));   // 🛟 윌리의 풀장: 아군 공격력 +10%
-      if (u.special === 'cheer' && Math.random() < CHEER_CHANCE) { // 🤠 인디: 주변 아군에게 응원!
-        let n = 0;
-        for (const s2 of slots) {
-          if (!s2.unit || s2 === s) continue;
-          if (Math.hypot(s2.cx - s.cx, s2.cy - s.cy) <= CHEER_RANGE) { s2.unit.cheerT = CHEER_TIME; n++; }
-        }
-        if (n) {
-          S.effects.push({ kind: 'cheer', x: s.cx, y: s.cy, r: CHEER_RANGE, t: 1, decay: 1.6 });
-          addText(s.cx, s.cy - 30, `📣 응원! 공속 UP ×${n}`, '#aed581', 12);
-        }
+      if (false) { // (인디의 응원은 상시 오라로 바뀌어 확률 발동을 쓰지 않는다)
       }
       const best = targets[0];
       const bp = posAt(best.d);
@@ -1447,6 +1442,7 @@ function update(dt) {
             S.projectiles.push({
               x: s.cx + (k - (shots - 1) / 2) * 7, y: s.cy + (k - (shots - 1) / 2) * 5, tgt, tx: tp.x, ty: tp.y,
               dmg, splash, slow: u.slow || 0, kind,
+              pierce: u.special === 'daggers' ? BLADER_PIERCE : 0,
               spd: (PROJ_SPEED[kind] || 500) * (1 + k * 0.06), // 살짝씩 시차를 둬 연속으로 꽂히게
               color: GRADES[u.grade].color,
               smite: u.special === 'smite',
@@ -1485,6 +1481,14 @@ function update(dt) {
             if (p.slow) e.slowT = Math.max(e.slowT, p.slow);
           }
         }
+      } else if (p.pierce) { // 🗡️ 블레이더: 단검이 뒤에 있는 적까지 꿰뚫는다
+        let hit = 0;
+        for (const e of S.enemies) {
+          if (hit >= p.pierce) break;
+          const ep = posAt(e.d);
+          if (Math.hypot(ep.x - p.tx, ep.y - p.ty) <= BLADER_PIERCE_R) { e.hp -= p.dmg; hit++; }
+        }
+        if (hit === 0 && p.tgt.hp > 0) p.tgt.hp -= p.dmg;
       } else if (p.tgt.hp > 0) {
         if (p.smite && !p.tgt.boss && Math.random() < SMITE_CHANCE) {
           // 천사 도베르만: 천벌 — 한 방에 사망!
@@ -2804,13 +2808,13 @@ function renderHolly(tab) {
       const extra = [u.splash ? `범위 ${u.splash}` : '', u.slow ? '감속' : '',
         u.special === 'fireball' ? '25% 불꽃공' : '', u.special === 'bomb' ? '15% 폭탄' : '',
         u.special === 'multi4' ? `${MULTI_TARGETS}연발·보스무시` : '', u.special === 'baldo' ? `${Math.round(BALDO_CHANCE * 100)}% 발도술` : '',
-        u.special === 'smite' ? `${Math.round(SMITE_CHANCE * 100)}% 즉사` : '', u.special === 'cheer' ? '15% 주변 공속 UP' : '',
+        u.special === 'smite' ? `${Math.round(SMITE_CHANCE * 100)}% 즉사` : '', u.special === 'cheer' ? `주변 아군 공속 +${Math.round((CHEER_SPD - 1) * 100)}% 상시` : '',
         u.support === 'chef' ? '30초 랜덤 요리' : '',
         u.support === 'aura' ? '오라: 아군 공격+25%·공속+20% / 적 이동-35%' : '',
         u.homing ? '유도탄(목표 사망 시 재조준)' : '',
         u.special === 'shock' ? `${Math.round(SHOCK_CHANCE * 100)}% 전기 연쇄(최대 ${SHOCK_MAX})` : '',
         u.special === 'chain' ? `${Math.round(TEZ_CHAIN_CHANCE * 100)}% 연쇄펀치(${1 + TEZ_CHAIN_HITS}연타)` : '',
-        u.special === 'daggers' ? `단검 ${BLADER_MIN}~${BLADER_MAX}자루(각 ${Math.round(BLADER_FRAC * 100)}%)` : '',
+        u.special === 'daggers' ? `단검 ${BLADER_MIN}~${BLADER_MAX}자루(각 ${Math.round(BLADER_FRAC * 100)}%) · ${BLADER_PIERCE}명 관통` : '',
         u.special === 'pool' ? `3·5웨이브 풀장(적 감속 + 아군 공격 +${Math.round((POOL_ATK - 1) * 100)}%)` : '',
         u.type === 'catmachine' ? `${Math.round(CAT_HOMING_CHANCE * 100)}% 유도 미사일` : '',
         u.hyper ? `⚡${u.hyper}` : ''].filter(Boolean).join(' · ');
