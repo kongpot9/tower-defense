@@ -821,7 +821,7 @@ const UNITS = [
   { type:'farmer',     grade:0, emoji:'🌾', name:'농부',  dmg:7,  cd:0.80, range:130, atk:'scythe', hyper:'얼어버리는 일륜도', img:'character/normal3.png' },
   // 희귀
   { type:'jurasaurus', grade:1, emoji:'🦕', name:'쥬라사우르스', dmg:32, cd:0.45, range:100, atk:'bite', hyper:'하이퍼 사우르스', img:'character/rare1.png' },
-  { type:'wonkkataein',grade:1, emoji:'⚾', name:'원까태인', dmg:22, cd:0.30, range:175, atk:'ball', special:'fireball', img:'character/rare2.png' },
+  { type:'wonkkataein',grade:1, emoji:'⚾', name:'원까태인', hyper:'벤치클리어링', dmg:22, cd:0.30, range:175, atk:'ball', special:'fireball', img:'character/rare2.png' },
   { type:'tankboy',    grade:1, emoji:'🚜', name:'탱크보이', dmg:45, cd:1.60, range:165, splash:50, atk:'shell', hyper:'기가파르도 장군님', img:'character/rare3.png' },
   // 영웅 — 아들 그림!
   { type:'deathpierrot', grade:2, emoji:'🤡', name:'데스삐에로', dmg:72,  cd:0.80, range:140, atk:'punch', special:'shock', img:'character/hero1.png' },
@@ -882,6 +882,8 @@ const FOODS = [
 const BOMB_CHANCE = 0.15, BOMB_DMG = 288, BOMB_RADIUS = 60, BOMB_FUSE = 1.0; // 능력자광부: 폭탄 설치
 const BALDO_CHANCE = 0.25, BALDO_RADIUS = 90;                                // 낭인: 발도술 광역
 const SMITE_CHANCE = 0.02, SMITE_BOSS_PCT = 0.03;                            // 천사 도베르만: 즉사 (보스는 최대체력 3% 추가)
+// ⚾ 원까태인 하이퍼차지 「벤치클리어링」 — 팀 동료들이 덕아웃에서 뛰쳐나온다 (기획: 구예준)
+const BENCH_MUL = 5, BENCH_TIME = 45, BENCH_MATES = 5;
 // ⚔️ 검사 하이퍼차지 「영혼 사냥시간」 — 암흑의 기사들이 적진에 강림 (기획: 구예준)
 const SOUL_KNIGHTS = 3, SOUL_DMG = 600, SOUL_CD = 1.5, SOUL_TIME = 30, SOUL_RANGE = 150, SOUL_FALL = 0.55;
 const TEZ_CHAIN_CHANCE = 0.4, TEZ_CHAIN_HITS = 2;                            // 👊 테즈: 40% 확률로 연쇄펀치(추가 2연타)
@@ -1078,7 +1080,7 @@ const S = {
   wave: 0, gold: 80, summonCost: SUMMON_BASE,
   roundT: 0, toSpawn: 0, spawnTimer: 0, spawnInterval: 1,
   enemies: [], projectiles: [], texts: [], effects: [], bombs: [],
-  buffT: { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0, jura: 0, bleed: 0, car: 0, pool: 0 }, // 셰프 요리 + 하이퍼차지 + 보물 + 윌리 풀장
+  buffT: { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0, jura: 0, bleed: 0, car: 0, pool: 0, bench: 0 }, // 셰프 요리 + 하이퍼차지 + 보물 + 윌리 풀장
   hyperCharges: 0, // ⚡ 하이퍼차지 보유 개수 (20웨이브마다 +1)
   nextHyper: HYPER_EVERY, // 다음 하이퍼차지 충전 웨이브 (일기장으로 단축 가능)
   noodle: {}, nextKey: GOB_KEY_EVERY, // 🏰 이번 판에 쓴 누들 / 다음 열쇠 웨이브
@@ -1090,8 +1092,8 @@ const S = {
 function resetGame() {
   S.over = false; S.wave = 0; S.gold = 80; S.summonCost = SUMMON_BASE;
   S.roundT = 0; S.toSpawn = 0;
-  S.enemies = []; S.projectiles = []; S.texts = []; S.effects = []; S.bombs = []; S.knights = [];
-  S.buffT = { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0, jura: 0, bleed: 0, car: 0, pool: 0 };
+  S.enemies = []; S.projectiles = []; S.texts = []; S.effects = []; S.bombs = []; S.knights = []; S.mates = [];
+  S.buffT = { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0, jura: 0, bleed: 0, car: 0, pool: 0, bench: 0 };
   S.atkLv = 0;
   S.hyperCharges = 0;
   S.nextHyper = HYPER_EVERY;
@@ -1391,7 +1393,21 @@ function castHyper(slot) { // ⚡ 하이퍼차지 발동! (캐릭터마다 다�
   if (!sl || !sl.unit || !sl.unit.hyper || (S.hyperCharges <= 0 && !ORGOL)) return;
   if (!ORGOL) S.hyperCharges--; // 🎼 오르골 서버는 무한 발동!
   addText(WORLD_W / 2, 230, `⚡ ${sl.unit.hyper}!! ⚡`, '#4fc3f7', 20);
-  if (sl.unit.type === 'swordsman') { // ⚔️ 영혼 사냥시간 — 암흑의 기사 강림
+  if (sl.unit.type === 'wonkkataein') { // ⚾ 벤치클리어링 — 덕아웃이 비었다
+    S.buffT.bench = BENCH_TIME;
+    S.mates = [];
+    for (let i = 0; i < BENCH_MATES; i++) {
+      const a = -Math.PI / 2 + (i - (BENCH_MATES - 1) / 2) * 0.5;
+      S.mates.push({ x: sl.cx, y: sl.cy, tx: WORLD_W / 2 + Math.cos(a) * 150, ty: WORLD_H / 2 + Math.sin(a) * 120,
+                     t: BENCH_TIME, run: 1, i });
+    }
+    for (let i = 0; i < 9; i++) // 야구공·방망이·해골이 함께 날아간다
+      S.effects.push({ kind: 'benchfly', x: sl.cx, y: sl.cy,
+        vx: (Math.random() - 0.5) * 520, vy: -160 - Math.random() * 260,
+        icon: ['⚾','🏏','💀'][i % 3], rot: Math.random() * 6, t: 1, decay: 0.5 });
+    addText(WORLD_W / 2, 262, `⚾ 벤치클리어링! 아군 공격력 ${BENCH_MUL}배 (${BENCH_TIME}초)`, '#ffd54f', 16);
+    addText(sl.cx, sl.cy - 30, '⚾🏏💀', '#fff', 24);
+  } else if (sl.unit.type === 'swordsman') { // ⚔️ 영혼 사냥시간 — 암흑의 기사 강림
     S.knights = S.knights || [];
     for (let i = 0; i < SOUL_KNIGHTS; i++) {
       const d = (PERIM / SOUL_KNIGHTS) * i + PERIM * 0.12;   // 트랙을 고르게 나눠 강림
@@ -1537,6 +1553,7 @@ function update(dt) {
           * (S.noodle[3] ? NOODLE_DEF : 1)  // 🍥 누들 세엣: 적 방어력 -10%
           * (S.keyring === 'sword' ? KR_ATK : 1)  // ⚔️ 검사 키링: 공격력 +20%
           * (S.buffT.pool > 0 ? POOL_ATK : 1)     // 🛟 윌리의 풀장: 아군 공격력 +10%
+          * (S.buffT.bench > 0 ? BENCH_MUL : 1)    // ⚾ 벤치클리어링: 아군 공격력 5배
           * ALLY_ATK_MUL);                        // ⚖️ 대법원 합의: 아군 전체 +40%
       if (false) { // (인디의 응원은 상시 오라로 바뀌어 확률 발동을 쓰지 않는다)
       }
@@ -1616,6 +1633,20 @@ function update(dt) {
             });
           }
         }
+      }
+    }
+  }
+  // ⚾ 벤치클리어링 — 덕아웃에서 뛰쳐나온 팀 동료들
+  if (S.mates && S.mates.length) {
+    for (let i = S.mates.length - 1; i >= 0; i--) {
+      const m = S.mates[i];
+      m.t -= dt;
+      if (m.t <= 0) { S.mates.splice(i, 1); continue; }
+      if (m.run > 0) {                    // 자리로 달려가는 중
+        m.run -= dt * 1.6;
+        const k = 1 - Math.max(0, m.run);
+        m.x = m.x + (m.tx - m.x) * Math.min(1, k * 0.25);
+        m.y = m.y + (m.ty - m.y) * Math.min(1, k * 0.25);
       }
     }
   }
@@ -1743,7 +1774,7 @@ function update(dt) {
     if (S.effects[i].t <= 0) S.effects.splice(i, 1);
   }
   // 로얄 셰프 요리 버프 타이머
-  for (const k of ['dmg', 'spd', 'gold', 'hyper', 'jura', 'bleed', 'car', 'pool']) if (S.buffT[k] > 0) S.buffT[k] -= dt;
+  for (const k of ['dmg', 'spd', 'gold', 'hyper', 'jura', 'bleed', 'car', 'pool', 'bench']) if (S.buffT[k] > 0) S.buffT[k] -= dt;
   if (S.buffT.ghost > 0) {
     S.buffT.ghost -= dt;
     if (S.buffT.ghost <= 0) { // 수프 시간 끝 — 분신들 퇴장
@@ -2249,6 +2280,24 @@ function draw() {
   }
 
   // 공격 이펙트 (베기/물기/폭발) — 대부분의 시간은 선명하게, 끝에만 빠르게 사라짐
+  // ⚾ 팀 동료 — 방망이를 들고 응원한다
+  for (const m of (S.mates || [])) {
+    const bob = Math.sin(S.time * 6 + m.i) * 3;
+    ctx.save(); ctx.translate(m.x, m.y + bob);
+    ctx.fillStyle = 'rgba(255,213,79,0.25)';   // 응원 오라
+    ctx.beginPath(); ctx.arc(0, 4, 20 + Math.sin(S.time * 4 + m.i) * 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#1e3a8a'; ctx.strokeStyle = '#ffd54f'; ctx.lineWidth = 1.6;   // 유니폼
+    ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(7, -3); ctx.lineTo(6, 11);
+    ctx.lineTo(-6, 11); ctx.lineTo(-7, -3); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#ffe0b2';                                                     // 얼굴
+    ctx.beginPath(); ctx.arc(0, -16, 5.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#1e3a8a';                                                     // 모자
+    ctx.beginPath(); ctx.arc(0, -18, 6, Math.PI, Math.PI * 2); ctx.fill();
+    ctx.fillRect(0, -19, 9, 2);
+    ctx.strokeStyle = '#8d6e63'; ctx.lineWidth = 3;                                // 치켜든 방망이
+    ctx.beginPath(); ctx.moveTo(6, -2); ctx.lineTo(16, -16 + bob * 0.5); ctx.stroke();
+    ctx.restore();
+  }
   // ⚔️ 암흑의 기사 — 위에서 내려와 착지, 발밑에 암흑 오라
   for (const k of (S.knights || [])) {
     const drop = k.fall > 0 ? (k.fall / SOUL_FALL) * 90 : 0;   // 착지 전에는 위에 떠 있다
@@ -2374,6 +2423,14 @@ function draw() {
       ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = '#ff5722'; ctx.lineWidth = 2.5;
       ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.stroke();
+    } else if (e.kind === 'benchfly') { // ⚾ 벤치클리어링 — 공·방망이·해골이 포물선을 그리며 날아간다
+      const el = 1 - e.t;
+      const x = e.x + e.vx * el, y = e.y + e.vy * el + 620 * el * el;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(e.rot + el * 9);
+      ctx.font = '800 26px sans-serif'; ctx.textAlign = 'center';
+      ctx.globalAlpha = Math.min(1, e.t * 1.6);
+      ctx.fillText(e.icon, 0, 0);
+      ctx.globalAlpha = 1; ctx.textAlign = 'left'; ctx.restore();
     } else if (e.kind === 'soulcircle') { // ⚔️ 영혼 사냥시간 — 보라·검정 눈꽃 진
       const R = Math.min(WORLD_W, WORLD_H) * 0.46;
       const spin = S.time * 0.35;
@@ -2539,7 +2596,7 @@ function draw() {
     ctx.fillStyle = ORGOL ? '#8ab8ff' : '#4fc3f7';
     ctx.fillText(lbl, WORLD_W - 52, 18);
   }
-  for (const [k, em] of [['dmg', '🥞'], ['spd', '🧁'], ['gold', '🍜'], ['ghost', '🍲'], ['hyper', '⚡'], ['jura', '🦕'], ['bleed', '🩸'], ['car', '🚗'], ['pool', '🛟']]) {
+  for (const [k, em] of [['dmg', '🥞'], ['spd', '🧁'], ['gold', '🍜'], ['ghost', '🍲'], ['hyper', '⚡'], ['jura', '🦕'], ['bleed', '🩸'], ['car', '🚗'], ['pool', '🛟'], ['bench', '⚾']]) {
     if (S.buffT[k] > 0) {
       const label = `${em}${Math.ceil(S.buffT[k])}`;
       ctx.font = '800 13px sans-serif';
