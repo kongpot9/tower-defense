@@ -130,6 +130,29 @@
   }
   .ncard .nicon { font-size:24px; }
   .ncard .ncount { margin-left:auto; color:#ffd54f; font-weight:800; }
+  /* 🎉 축하 화면 (역대 최초 3자리 달성자 전용) */
+  #celeb {
+    position:fixed; inset:0; background:rgba(8,6,18,.92); z-index:26;
+    display:flex; align-items:center; justify-content:center; padding:18px;
+  }
+  #celeb.hidden { display:none; }
+  #celebBox {
+    background:linear-gradient(160deg,#2a2140,#1a1530); border:3px solid #ffd54f; border-radius:18px;
+    padding:18px 16px; max-width:400px; width:100%; text-align:center;
+    display:flex; flex-direction:column; align-items:center; gap:10px;
+    box-shadow:0 0 40px rgba(255,213,79,.35);
+  }
+  #celebTitle {
+    font-size:30px; font-weight:900; letter-spacing:2px;
+    background:linear-gradient(90deg,#ffd54f,#ff8a65,#ffd54f);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    animation:celebshine 2.4s linear infinite; background-size:200% auto;
+  }
+  @keyframes celebshine { to { background-position:200% center; } }
+  #celebImg { width:210px; max-width:70%; }
+  #celebMsg { font-size:13px; line-height:1.7; color:#ffe9b0; font-weight:700; }
+  #celebMsg b { color:#fff; }
+  #celebBox button { background:#ffd54f; color:#2c0a16; padding:11px 30px; font-size:15px; border-radius:11px; }
   /* 📢 공지 */
   #notice {
     position:fixed; inset:0; background:rgba(8,12,22,.88); z-index:24;
@@ -722,6 +745,15 @@
   <div id="gachaResult"></div>
   <div id="krList"></div>
   <button class="close" id="gachaClose">나가기</button>
+</div>
+
+<div id="celeb" class="hidden">
+  <div id="celebBox">
+    <div id="celebTitle">CELEBRATE HI</div>
+    <img id="celebImg" src="character/celebrate.png" alt="축하">
+    <div id="celebMsg"></div>
+    <button id="celebOk">고마워요! 🎉</button>
+  </div>
 </div>
 
 <div id="cards" class="hidden">
@@ -1849,6 +1881,22 @@ function levelBadge(lv) { // 닉네임 옆에 붙는 작은 카드
   const c = cardAt(lv || 1);
   return `<span class="lvcard" style="border-color:${c.color};color:${c.color}">${c.icon} Lv.${lv || 1}</span>`;
 }
+// 🎉 역대 최초 3자리(웨이브 112) 달성 기념 — 하이 님과 부계정에게만 보이는 축하
+const CELEB_USERS = ['하이', '이승익바보'];
+let celebShown = false;
+function showCeleb(force) {
+  const nick = getNick();
+  if (!CELEB_USERS.includes(nick)) return;
+  if (!force && celebShown) return;
+  celebShown = true;
+  $('celebMsg').innerHTML =
+    `<b>${escapeHtml(nick)}</b> 님,<br>` +
+    `역대 최초 <b>웨이브 112</b> — <b>3자리 수</b>를 넘은 첫 번째 사람!<br>` +
+    `2위와 <b>17웨이브</b> 차이. 아무도 못 가본 곳까지 갔습니다.<br>` +
+    `<span style="color:#c5e1a5">구예준 STUDIO가 드리는 축하 그림이에요 🎨</span>`;
+  $('celeb').classList.remove('hidden');
+  sfx('jackpot');
+}
 function renderCards() {
   const need = XP_PER_LEVEL(LV), c = cardAt(LV);
   $('lvNow').innerHTML = `<b style="color:${c.color};font-size:16px">${c.icon} Lv.${LV} · ${c.name}</b>`;
@@ -2832,6 +2880,7 @@ function showOverlay(mode) {
     updateEventUI();
     maybeShowNotice(); // 📢 새 공지가 있으면 자동으로 띄운다
     startChatBadge(); // 🔴 안 읽은 채팅 수
+    showCeleb();      // 🎉 3자리 달성자 축하
   } else if (mode === 'rank') { // 🏆 랭킹
     ov.querySelector('h1').textContent = '🏆 랭킹';
     $('ovChars').style.display = 'none';
@@ -3887,6 +3936,7 @@ $('ovBtnA').addEventListener('click', () => {
 $('gachaBtn').addEventListener('click', gachaDraw);
 $('gachaClose').addEventListener('click', () => $('gacha').classList.add('hidden'));
 $('ovBtnB').addEventListener('click', () => { $('gacha').classList.remove('hidden'); $('gachaResult').textContent = ''; renderGacha(); });
+$('celebOk').addEventListener('click', () => $('celeb').classList.add('hidden'));
 $('cardsClose').addEventListener('click', () => $('cards').classList.add('hidden'));
 $('ovBtnL').addEventListener('click', () => { $('cards').classList.remove('hidden'); renderCards(); });
 $('krClose').addEventListener('click', () => $('keyring').classList.add('hidden'));
@@ -4629,7 +4679,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   UNITS, openVote, loadVotes, castVote, renderVote, getVotes: () => VOTES,
   getGob: () => ({ ...GOB, until: GOB_UNTIL }),
   setGob: (g2, until) => { GOB = { ...GOB, ...g2 }; if (until !== undefined) GOB_UNTIL = until; saveGob(); updateEventUI(); },
-  showNotice, maybeShowNotice, NOTICE_ID,
+  showNotice, maybeShowNotice, NOTICE_ID, showCeleb, CELEB_USERS,
   gainXp, renderCards, CARDS, cardAt, XP_PER_LEVEL, levelBadge,
   getLevel: () => ({ xp: XP, lv: LV }), setLevel: (xp, lv) => { XP = xp; LV = lv; saveLevel(); },
   findLink, addChatMsg, refreshChatBadge, renderChatBadge, chatSeenT, setChatSeen,
