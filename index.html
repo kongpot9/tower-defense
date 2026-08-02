@@ -183,18 +183,18 @@
   #deckBtns { display:flex; gap:8px; }
   #deckBtns button { padding:8px 16px; font-size:13px; border-radius:9px; }
   /* 🏀 베인오락실 */
-  #arcade, #gacha, #keyring {
+  #arcade, #gacha, #keyring, #cards {
     position:fixed; inset:0; background:#161b2c; z-index:23;
     padding:16px 14px calc(14px + env(safe-area-inset-bottom));
     display:flex; flex-direction:column; align-items:center; gap:8px; overflow-y:auto;
   }
-  #arcade.hidden, #gacha.hidden, #keyring.hidden { display:none; }
-  #arcade h2, #gacha h2, #keyring h2 { color:#ffd54f; font-size:22px; }
-  #arcade .sub, #gacha .sub, #keyring .sub { color:#9fb0d8; font-size:12px; text-align:center; line-height:1.6; }
+  #arcade.hidden, #gacha.hidden, #keyring.hidden, #cards.hidden { display:none; }
+  #arcade h2, #gacha h2, #keyring h2, #cards h2 { color:#ffd54f; font-size:22px; }
+  #arcade .sub, #gacha .sub, #keyring .sub, #cards .sub { color:#9fb0d8; font-size:12px; text-align:center; line-height:1.6; }
   #arcTime { color:#ff8a65; font-weight:800; }
-  #arcade .close, #gacha .close, #keyring .close { background:#3a4566; padding:9px 26px; font-size:14px; border-radius:10px; }
+  #arcade .close, #gacha .close, #keyring .close, #cards .close { background:#3a4566; padding:9px 26px; font-size:14px; border-radius:10px; }
   #arcade > .grid, #gacha > div, #keyring > div { width:100%; max-width:420px; }
-  #court, #arcResult, #gachaResult, #krList, #krPageList { width:100%; max-width:420px; }
+  #court, #arcResult, #gachaResult, #krList, #krPageList, #cardList { width:100%; max-width:420px; }
   .atabs { display:flex; gap:5px; width:100%; max-width:420px; }
   .atabs .atab {
     flex:1; padding:8px 2px; font-size:12px; border-radius:9px;
@@ -347,6 +347,19 @@
     #overlay #ovBtnA, #overlay #ovBtn5, #overlay #ovBtnB, #overlay #ovBtn6,
     #overlay #ovBtnD, #overlay #ovBtn7, #overlay #ovBtnN { padding:8px 22px; font-size:14px; }
   }
+  .lvcard {
+    display:inline-flex; align-items:center; gap:3px; padding:1px 7px; margin-left:4px;
+    border:1.5px solid #666; border-radius:8px; font-size:11px; font-weight:800; white-space:nowrap;
+  }
+  #lvBox { width:100%; max-width:420px; }
+  #lvBar { height:12px; background:#141a2b; border-radius:7px; overflow:hidden; margin:5px 0; }
+  #lvBar div { height:100%; background:linear-gradient(90deg,#ffd54f,#ff8a65); }
+  .ccard {
+    display:flex; align-items:center; gap:9px; background:#20263a; border-radius:10px;
+    padding:9px 11px; margin-bottom:6px; font-size:13px; font-weight:800;
+  }
+  .ccard.locked { opacity:.4; }
+  .ccard .cicon { font-size:22px; }
   #nickLine { color:#9fb0d8; font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px; }
   #nickLine button { background:#3a4566; padding:5px 10px; font-size:12px; border-radius:8px; }
   #nickModal {
@@ -521,6 +534,7 @@
   <div class="record" id="ovRecord"></div>
   <div id="homeEvent" class="hidden"></div>
   <button id="ovBtn">시작하기</button>
+  <button id="ovBtnL" class="hidden">⭐ 전투카드</button>
   <button id="ovBtnK" class="hidden">🔑 키링</button>
   <button id="ovBtn2" class="hidden">스테이지 선택</button>
   <button id="ovBtn3" class="hidden">🏆 랭킹</button>
@@ -702,6 +716,18 @@
   <button class="close" id="gachaClose">나가기</button>
 </div>
 
+<div id="cards" class="hidden">
+  <h2>⭐ 전투카드</h2>
+  <p class="sub">게임을 할수록 경험치가 쌓여요 (도달 웨이브만큼)<br><b>전투력에는 전혀 영향이 없는 수집 보상입니다</b></p>
+  <div id="lvBox">
+    <div id="lvNow"></div>
+    <div id="lvBar"><div></div></div>
+    <div id="lvNext" class="sub"></div>
+  </div>
+  <div id="cardList"></div>
+  <button class="close" id="cardsClose">나가기</button>
+</div>
+
 <div id="keyring" class="hidden">
   <h2>🔑 내 키링</h2>
   <p class="sub">게임 중에 <b>1개만</b> 사용할 수 있어요<br>🍜누들과 키링은 <b>둘 중 하나만</b> 쓸 수 있습니다</p>
@@ -857,6 +883,22 @@ const FIREBALL_CHANCE = 0.25, FIREBALL_MUL = 4; // 원까태인 불꽃공 확률
 const PROJ_SPEED = { dagger:760, tube:400, arrow:700, scythe:420, ball:560, fire:480, shell:320, shuriken:650, fan:560, missile:430, drill:620, songpyeon:520, holy:560, paper:540, orb:500 };
 const INSTANT_ATK = new Set(['slash', 'bite', 'punch', 'axe', 'breath', 'ronin', 'bane', 'tez']); // 즉발(투사체 없는) 공격
 const INSTANT_DECAY = { tez:1.7, bite:1.6, breath:1.4, axe:1.8, punch:2.2, ronin:1.8, bane:1.5 };   // 이펙트 지속(작을수록 오래)
+
+// ⭐ 전투 레벨 & 전투카드 (기획: 구예준) — 전투력에는 전혀 영향이 없는 수집 보상
+const XP_PER_LEVEL = lv => 40 + (lv - 1) * 20;   // 다음 레벨까지 필요한 경험치
+const CARDS = [ // 레벨을 채울 때마다 새 전투카드 획득 (그림은 예준이 작업 예정)
+  { lv: 1,  name: '초보 방어자',      icon: '🌱', color: '#9ccc65' },
+  { lv: 3,  name: '트랙의 파수꾼',    icon: '🛡️', color: '#4fc3f7' },
+  { lv: 5,  name: '합성의 손',        icon: '✨', color: '#ba68c8' },
+  { lv: 8,  name: '웨이브 사냥꾼',    icon: '🏹', color: '#ffb74d' },
+  { lv: 12, name: '보스 브레이커',    icon: '💥', color: '#ef5350' },
+  { lv: 16, name: '전설 수집가',      icon: '👑', color: '#ffd54f' },
+  { lv: 20, name: '오락실의 전설',    icon: '🎳', color: '#4dd0e1' },
+  { lv: 25, name: '용궁의 손님',      icon: '🐲', color: '#7986cb' },
+  { lv: 30, name: '밸런스 대법관',    icon: '⚖️', color: '#f06292' },
+  { lv: 40, name: '구예준 STUDIO',    icon: '🏰', color: '#ff8a65' },
+];
+const cardAt = lv => CARDS.filter(c => c.lv <= lv).slice(-1)[0] || CARDS[0];
 
 // 🏀 베인오락실 (기간 한정 이벤트, 기획: 구예준) — 농구 슛으로 원을 벌어 인형뽑기 → 키링 수집
 const ARCADE_DURATION = (7 * 86400 + 7 * 3600 + 7 * 60 + 7) * 1000; // 7일 7시간 7분 7초
@@ -1637,6 +1679,16 @@ function gameOver() {
   if (!DEV && !ORGOL) gainPearl(Math.max(1, Math.floor(S.wave / 2))); // 🫧 진주 획득 (낚시 밑천)
   // 🌋 라바 이벤트는 🌑 DARK KAKAO에서도 보상 지급 (개발자 특권)
   if (lavaOn() && !ORGOL && S.wave > 0) { FREEFISH += S.wave; saveTreasure(); }
+  if (!DEV && !ORGOL && S.wave > 0) { // ⭐ 전투 경험치 (도달 웨이브만큼)
+    const up = gainXp(S.wave);
+    if (up) {
+      if (up.to > up.from) {
+        addText(WORLD_W / 2, 200, `⭐ 레벨 업! Lv.${up.from} → Lv.${up.to}`, '#ffd54f', 20);
+        for (const c of up.cards) addText(WORLD_W / 2, 226, `${c.icon} 전투카드 「${c.name}」 획득!`, c.color, 16);
+      } else addText(WORLD_W / 2, 200, `⭐ 경험치 +${up.gained}`, '#c5e1a5', 14);
+    }
+    pingPresence();
+  }
   if (!DEV && !ORGOL) { // 🎟️ 오락실 미션 판정
     const high = slots.filter(sl => sl.unit && sl.unit.grade >= 3).length;
     arcCheckMissions({ wave: S.wave, merges: S.merges || 0, high });
@@ -1653,6 +1705,52 @@ function gameOver() {
   }
   showOverlay('gameover');
 }
+
+// ---------- ⭐ 전투 레벨 (기획: 구예준) ----------
+// 게임을 할수록 쌓이고 절대 사라지지 않는다. 전투력에는 영향 없음 — 오직 전투카드 수집용.
+let XP = 0, LV = 1;
+function loadLevel() {
+  try {
+    const d = JSON.parse(localStorage.getItem('ltd_lv') || '{}');
+    XP = +d.xp || 0; LV = Math.max(1, +d.lv || 1);
+  } catch (e) { XP = 0; LV = 1; }
+}
+function saveLevel() { try { localStorage.setItem('ltd_lv', JSON.stringify({ xp: XP, lv: LV })); } catch (e) {} }
+function gainXp(n) { // 게임이 끝날 때 도달 웨이브만큼 경험치
+  if (n <= 0) return null;
+  XP += n;
+  const before = LV;
+  let ups = [];
+  while (XP >= XP_PER_LEVEL(LV)) {
+    XP -= XP_PER_LEVEL(LV);
+    LV++;
+    const c = CARDS.find(c2 => c2.lv === LV);
+    if (c) ups.push(c);
+  }
+  saveLevel();
+  return { gained: n, from: before, to: LV, cards: ups };
+}
+function levelBadge(lv) { // 닉네임 옆에 붙는 작은 카드
+  const c = cardAt(lv || 1);
+  return `<span class="lvcard" style="border-color:${c.color};color:${c.color}">${c.icon} Lv.${lv || 1}</span>`;
+}
+function renderCards() {
+  const need = XP_PER_LEVEL(LV), c = cardAt(LV);
+  $('lvNow').innerHTML = `<b style="color:${c.color};font-size:16px">${c.icon} Lv.${LV} · ${c.name}</b>`;
+  $('lvBar').firstElementChild.style.width = Math.min(100, XP / need * 100) + '%';
+  const next = CARDS.find(x => x.lv > LV);
+  $('lvNext').innerHTML = `경험치 ${XP} / ${need}` +
+    (next ? ` &nbsp;·&nbsp; 다음 카드 <b style="color:${next.color}">${next.icon} ${next.name}</b> (Lv.${next.lv})` : ' &nbsp;·&nbsp; 모든 카드를 모았어요! 👑');
+  $('cardList').innerHTML = CARDS.map(x => {
+    const got = LV >= x.lv;
+    return `<div class="ccard ${got ? '' : 'locked'}" style="${got ? 'border-left:4px solid ' + x.color : ''}">
+      <span class="cicon">${got ? x.icon : '🔒'}</span>
+      <div style="flex:1"><b style="color:${got ? x.color : '#8a96b8'}">${x.name}</b>
+        <div style="color:#9fb0d8;font-size:11px">Lv.${x.lv} 달성 시 획득</div></div>
+      ${got ? '<span style="color:#81e88c">보유</span>' : ''}</div>`;
+  }).join('');
+}
+loadLevel();
 
 // ---------- 닉네임 & 온라인 랭킹 ----------
 let RANK_DB = 'https://tower-defense-777-default-rtdb.asia-southeast1.firebasedatabase.app'; // 랭킹 서버 (Firebase)
@@ -1722,24 +1820,25 @@ async function renderRank() {
     const me = getNick();
     const isMe = r2 => rankTab === 'duo' ? (r2.nicks || []).includes(me) : r2.nick === me;
     // 전원 등재 — 기록이 없는 유저는 🌱유망주로 이름을 올린다
-    let rookies = [];
+    let rookies = [], presMap = {};
     if (rankTab !== 'duo') {
       try {
-        const pres = await (await fetch(`${PRESENCE_PATH()}.json`)).json() || {};
+        presMap = await (await fetch(`${PRESENCE_PATH()}.json`)).json() || {};
         const has = new Set(rows.map(x => x.nick));
-        rookies = Object.keys(pres).filter(n => !has.has(n)).sort();
+        rookies = Object.keys(presMap).filter(n => !has.has(n)).sort();
       } catch (e) {}
     }
+    const lvOf = n => (presMap[n] && presMap[n].lv) || (n === me ? LV : 0);
     const list = rows.map((r2, idx) =>
       `<div class="rankrow${isMe(r2) ? ' me' : ''}">
         <span class="pos">${idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : (idx + 1) + '위'}</span>
-        <span class="nm">${escapeHtml(r2.nick)}</span>
+        <span class="nm">${escapeHtml(r2.nick)}${lvOf(r2.nick) ? levelBadge(lvOf(r2.nick)) : ''}</span>
         <span>${rankTab === 'story' ? '⭐ ' + (r2.stars || 0) + ' / ' + STAGES.length : '웨이브 ' + (r2.wave || 0)}</span>
       </div>`).join('');
     const rookieList = rookies.map(n =>
       `<div class="rankrow rookie${n === me ? ' me' : ''}">
         <span class="pos">🌱</span>
-        <span class="nm">${escapeHtml(n)}</span>
+        <span class="nm">${escapeHtml(n)}${lvOf(n) ? levelBadge(lvOf(n)) : ''}</span>
         <span>유망주</span>
       </div>`).join('');
     sel.innerHTML = tabs
@@ -2497,6 +2596,7 @@ function showOverlay(mode) {
   $('ovBtnA').classList.add('hidden');
   $('ovBtnB').classList.add('hidden');
   $('ovBtnK').classList.add('hidden');
+  $('ovBtnL').classList.add('hidden');
   $('nickLine').classList.add('hidden');
   if (mode === 'home') { // 첫 화면: 모드 선택
     ov.querySelector('h1').textContent = '🏰 타워 디펜스 777';
@@ -2513,10 +2613,11 @@ function showOverlay(mode) {
     $('ovBtn6').classList.remove('hidden');
     $('ovBtnD').classList.remove('hidden'); // 🃏 전투덱 (낚시터 옆)
     $('ovBtnN').classList.remove('hidden'); // 📢 공지 다시 보기
+    $('ovBtnL').classList.remove('hidden'); // ⭐ 전투카드
     $('ovBtn7').classList.remove('hidden');
     if (DUO.on) duoCleanup(); // 홈으로 오면 듀오 종료
     $('nickLine').classList.remove('hidden');
-    $('nickName').textContent = getNick() || '닉네임 없음';
+    $('nickName').innerHTML = escapeHtml(getNick() || '닉네임 없음') + levelBadge(LV);
     const best = +(localStorage.getItem('ltd_best') || 0);
     $('ovRecord').textContent = best > 0 ? `🏆 일반 모드 최고 기록: 웨이브 ${best}` : '';
     loadLava(); // 🌋 이벤트 진행 여부 확인
@@ -3519,6 +3620,8 @@ $('ovBtnA').addEventListener('click', () => {
 $('gachaBtn').addEventListener('click', gachaDraw);
 $('gachaClose').addEventListener('click', () => $('gacha').classList.add('hidden'));
 $('ovBtnB').addEventListener('click', () => { $('gacha').classList.remove('hidden'); $('gachaResult').textContent = ''; renderGacha(); });
+$('cardsClose').addEventListener('click', () => $('cards').classList.add('hidden'));
+$('ovBtnL').addEventListener('click', () => { $('cards').classList.remove('hidden'); renderCards(); });
 $('krClose').addEventListener('click', () => $('keyring').classList.add('hidden'));
 $('ovBtnK').addEventListener('click', () => { $('keyring').classList.remove('hidden'); renderKeyringPage(); });
 loadArc();
@@ -3707,7 +3810,7 @@ function pingPresence() {
   const nick = getNick();
   if (!nick || !RANK_DB) return;
   fetch(`${PRESENCE_PATH()}/${encodeURIComponent(nick)}.json`, {
-    method: 'PUT', body: JSON.stringify({ t: Date.now(), st: myStatus() }),
+    method: 'PUT', body: JSON.stringify({ t: Date.now(), st: myStatus(), lv: LV }),
   }).catch(() => {});
 }
 function startPresence() { // 접속 신호는 게임 내내 켜둔다
@@ -3726,7 +3829,7 @@ function renderPresence(data) {
   const ago = t => { const m = Math.floor((now - t) / 60000); return m < 60 ? `${m}분 전` : `${Math.floor(m / 60)}시간 전`; };
   box.innerHTML =
     `<div style="width:100%;font-size:11px;color:#8ecbff;font-weight:800">🟢 접속 중 ${on.length}명</div>` +
-    (on.map(u => `<span class="onchip">🟢 ${escapeHtml(u.nick)}<small style="color:#8a96b8">${escapeHtml(u.st)}</small></span>`).join('') || '<span class="onchip">아무도 없어요...</span>') +
+    (on.map(u => `<span class="onchip">🟢 ${escapeHtml(u.nick)}${u.lv ? levelBadge(u.lv) : ''}<small style="color:#8a96b8">${escapeHtml(u.st)}</small></span>`).join('') || '<span class="onchip">아무도 없어요...</span>') +
     (off.length ? `<div style="width:100%;font-size:11px;color:#5a708f;font-weight:800;margin-top:2px">⚪ 오프라인</div>` +
       off.map(u => `<span class="onchip off">⚪ ${escapeHtml(u.nick)}<small>${ago(u.t)}</small></span>`).join('') : '');
 }
@@ -3859,7 +3962,7 @@ function addChatMsg(m) {
   const div = document.createElement('div');
   div.className = 'msg ' + (mine ? 'mine' : 'other');
   div.dataset.n = m.n || '';
-  div.innerHTML = (mine ? '' : `<span class="who">${escapeHtml(m.n)}</span>`) + escapeHtml(m.m);
+  div.innerHTML = (mine ? '' : `<span class="who">${escapeHtml(m.n)}${m.lv ? levelBadge(m.lv) : ''}</span>`) + escapeHtml(m.m);
   if (!mine && m.n) { // 🚫 이 사람 메시지 안 보기
     const b = document.createElement('button');
     b.className = 'hidebtn'; b.textContent = '🚫'; b.title = `${m.n} 님 메시지 숨기기`;
@@ -3982,7 +4085,7 @@ async function sendChat() {
   inp.value = '';
   inp.placeholder = '메시지 · 동영상 링크 붙여넣기';
   try {
-    await fetch(`${CHAT_PATH()}/msgs.json`, { method: 'POST', body: JSON.stringify({ n: getNick(), m: text, t: Date.now() }) });
+    await fetch(`${CHAT_PATH()}/msgs.json`, { method: 'POST', body: JSON.stringify({ n: getNick(), m: text, t: Date.now(), lv: LV }) });
     pingPresence();
     // 오래된 메시지 정리 (100개 넘으면 앞쪽 삭제)
     const all = await (await fetch(`${CHAT_PATH()}/msgs.json?shallow=false`)).json();
@@ -4251,6 +4354,8 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   getGob: () => ({ ...GOB, until: GOB_UNTIL }),
   setGob: (g2, until) => { GOB = { ...GOB, ...g2 }; if (until !== undefined) GOB_UNTIL = until; saveGob(); updateEventUI(); },
   showNotice, maybeShowNotice, NOTICE_ID,
+  gainXp, renderCards, CARDS, cardAt, XP_PER_LEVEL, levelBadge,
+  getLevel: () => ({ xp: XP, lv: LV }), setLevel: (xp, lv) => { XP = xp; LV = lv; saveLevel(); },
   findLink, addChatMsg, refreshChatBadge, renderChatBadge, chatSeenT, setChatSeen,
   hasBadWord, blockUser, isBlocked, startChatPoll, openChat, closeChat,
   getBlocked: () => BLOCKED.slice(), clearBlocked: () => { BLOCKED = []; localStorage.removeItem('ltd_block'); },
