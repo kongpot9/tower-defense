@@ -1175,7 +1175,9 @@ function addText(x, y, txt, color = '#fff', size = 13) {
 }
 
 // ---------- 웨이브 ----------
-function hpFor(w) { return Math.round(14 * Math.pow(1.195, w - 1) + (w - 1) * 4); }
+const ENEMY_HP_MUL = 0.70;  // 적 체력 전체 30% 하락 (2026-08-02 밸런스 대법원 합의)
+const ALLY_ATK_MUL = 1.40;  // 아군 공격력 전체 40% 상승 (2026-08-02 밸런스 대법원 합의)
+function hpFor(w) { return Math.round((14 * Math.pow(1.195, w - 1) + (w - 1) * 4) * ENEMY_HP_MUL); }
 function startWave() {
   const stg = STAGES[S.stage];
   if (S.mode === 'story' && S.wave === stg.clearWave && !S.cleared) { stageClear(); return; } // 클리어 웨이브까지 버팀!
@@ -1522,7 +1524,8 @@ function update(dt) {
           * (S.noodle[1] ? NOODLE_ATK : 1)   // 🍜 누들 하나: 공격력 +20%
           * (S.noodle[3] ? NOODLE_DEF : 1)  // 🍥 누들 세엣: 적 방어력 -10%
           * (S.keyring === 'sword' ? KR_ATK : 1)  // ⚔️ 검사 키링: 공격력 +20%
-          * (S.buffT.pool > 0 ? POOL_ATK : 1));   // 🛟 윌리의 풀장: 아군 공격력 +10%
+          * (S.buffT.pool > 0 ? POOL_ATK : 1)     // 🛟 윌리의 풀장: 아군 공격력 +10%
+          * ALLY_ATK_MUL);                        // ⚖️ 대법원 합의: 아군 전체 +40%
       if (false) { // (인디의 응원은 상시 오라로 바뀌어 확률 발동을 쓰지 않는다)
       }
       const best = targets[0];
@@ -3237,8 +3240,18 @@ loadGob();
 
 // ---------- 📢 공지 ----------
 // 새 공지를 낼 땐 NOTICE_ID를 바꾸면 모든 유저에게 한 번 더 뜬다.
-const NOTICE_ID = 'deckfix-2026-08-02';
+const NOTICE_ID = 'balance-2026-08-02';
 const NOTICE_HTML = `
+  <h3>⚖️ 밸런스 대법원 완화 패치</h3>
+  요즘 기록이 잘 안 나온다는 제보를 받아 크게 완화했어요.
+  <ul>
+    <li><b>아군 전체 공격력 +40%</b></li>
+    <li><b>적 전체 체력 -30%</b></li>
+    <li>합쳐서 <span class="hl">적을 2배 빨리 처치</span>합니다</li>
+  </ul>
+  <h3>😇 그래도 보스가 안 죽는다면</h3>
+  <b>천사 도베르만</b>을 덱에 꼭 넣으세요. 보스에게 <b>최대체력 3%</b>씩 넣는
+  유일한 캐릭터라, 후반 보스는 <span class="hl">얘가 없으면 못 잡습니다.</span>
   <h3>⚠️ 요즘 캐릭터가 잘 안 나오죠?</h3>
   캐릭터가 <b>24종</b>으로 늘면서 원하는 캐릭터가 나올 확률이 떨어졌어요.
   <ul>
