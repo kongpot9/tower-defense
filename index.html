@@ -253,6 +253,11 @@
     background:linear-gradient(90deg,#bf360c,#ff7043); color:#fff;
     font-size:13px; font-weight:800; text-align:center; line-height:1.5;
   }
+  #deckBanner {
+    background:#1e3050; border:2px solid #3f6ea8; border-radius:12px;
+    padding:9px 12px; font-size:12px; line-height:1.6; color:#dbe6ff; max-width:420px;
+  }
+  #deckBanner.hidden { display:none; }
   #homeEvent {
     color:#ff8a65; font-size:12px; font-weight:800; margin-top:2px;
   }
@@ -534,6 +539,7 @@
   <div id="stageSel"></div>
   <div class="record" id="ovRecord"></div>
   <div id="homeEvent" class="hidden"></div>
+  <div id="deckBanner" class="hidden"></div>
   <button id="ovBtn">시작하기</button>
   <button id="ovBtnL" class="hidden">⭐ 전투카드</button>
   <button id="ovBtnK" class="hidden">🔑 키링</button>
@@ -639,6 +645,7 @@
   <div id="deckSlots"></div>
   <div id="deckInfo"></div>
   <div id="deckBtns">
+    <button id="deckSuggestBtn">⭐ 내 덱 추천</button>
     <button id="deckRandBtn">🎲 랜덤 편성</button>
     <button id="deckClearBtn" class="gray">↺ 비우기</button>
     <button id="deckSaveBtn">💾 저장</button>
@@ -3230,8 +3237,21 @@ loadGob();
 
 // ---------- 📢 공지 ----------
 // 새 공지를 낼 땐 NOTICE_ID를 바꾸면 모든 유저에게 한 번 더 뜬다.
-const NOTICE_ID = 'chef-2026-08-02';
+const NOTICE_ID = 'deckfix-2026-08-02';
 const NOTICE_HTML = `
+  <h3>⚠️ 요즘 캐릭터가 잘 안 나오죠?</h3>
+  캐릭터가 <b>24종</b>으로 늘면서 원하는 캐릭터가 나올 확률이 떨어졌어요.
+  <ul>
+    <li>전설 1종당 <b>0.375% → 0.25%</b> (평균 267회 → 400회)</li>
+    <li>드래곤 3마리 모으기: 807회 → <b>1,188회</b></li>
+  </ul>
+  <h3>🃏 해결법: 전투덱</h3>
+  <b>[🃏 전투덱]</b>에서 <b>[⭐ 내 덱 추천]</b> 한 번만 눌러보세요.
+  <ul>
+    <li>내가 많이 쓴 캐릭터로 <span class="hl">자동으로 8마리</span>를 골라줍니다</li>
+    <li>전설 칸에 1마리만 두면 <span class="hl">0.25% → 1.5% (6배!)</span></li>
+    <li>저장 전까지는 아무것도 안 바뀌니 편하게 눌러보세요</li>
+  </ul>
   <h3>👨‍🍳 로얄 셰프 출시! (11일 만에)</h3>
   능력만 만들어놓고 그림이 없어서 못 나오던 <b>전설 서포터</b>가 드디어 나왔어요.
   <ul>
@@ -3360,6 +3380,20 @@ function renderDeck() {
     renderDeck();
   });
 }
+function deckSuggest() { // 내가 많이 쓴 캐릭터로 덱을 짜준다 (등급마다 최다 픽 1명 + 나머지 자유)
+  let use = {};
+  try { use = JSON.parse(localStorage.getItem('ltd_use') || '{}'); } catch (e) {}
+  const pick = [];
+  for (let g = 0; g < GRADES.length; g++) {
+    const list = unitsOfGrade(g).slice().sort((a, b) => (use[b.type] || 0) - (use[a.type] || 0));
+    if (list[0]) pick.push(list[0].type);
+  }
+  const rest = UNITS.filter(u => !u.disabled && !pick.includes(u.type))
+    .sort((a, b) => (use[b.type] || 0) - (use[a.type] || 0));
+  while (pick.length < DECK_SIZE && rest.length) pick.push(rest.shift().type);
+  deckEdit = pick; deckSel = -1; renderDeck();
+  $('deckInfo').innerHTML = '<span style="color:#81e88c">내가 많이 쓴 캐릭터로 짰어요 — 마음에 안 들면 눌러서 바꾸세요</span>';
+}
 function deckRandom() { // 등급마다 1마리 먼저 채우고, 남는 자리는 아무 등급에서
   const pick = [];
   for (let g = 0; g < GRADES.length; g++) pick.push(rand(unitsOfGrade(g)).type);
@@ -3375,6 +3409,7 @@ function openDeck() {
   $('deck').classList.remove('hidden');
   renderDeck();
 }
+$('deckSuggestBtn').addEventListener('click', deckSuggest);
 $('deckRandBtn').addEventListener('click', deckRandom);
 $('deckClearBtn').addEventListener('click', () => { deckEdit = []; deckSel = -1; renderDeck(); });
 $('deckSaveBtn').addEventListener('click', () => {
@@ -3743,6 +3778,15 @@ function updateEventUI() {
   if (he) {
     he.textContent = on ? `🌋 라바 이벤트 진행 중! 게임이 끝나면 웨이브 수만큼 무료 낚시! (${lavaLeftText()})` : '';
     he.classList.toggle('hidden', !on);
+  }
+  const db = $('deckBanner'); // 🃏 덱을 안 짠 사람에게만 안내
+  if (db) {
+    const need = !DECK.length;
+    db.innerHTML = need
+      ? `🃏 <b>캐릭터가 24종으로 늘어서 원하는 캐릭터가 잘 안 나와요!</b><br>
+         <b>[🃏 전투덱]</b>에서 8마리를 고르면 <b style="color:#ffd54f">최대 6배</b> 자주 나옵니다`
+      : '';
+    db.classList.toggle('hidden', !need);
   }
   const eb = $('eventBanner');
   if (eb) {
@@ -4413,7 +4457,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   hasBadWord, blockUser, isBlocked, startChatPoll, openChat, closeChat,
   getBlocked: () => BLOCKED.slice(), clearBlocked: () => { BLOCKED = []; localStorage.removeItem('ltd_block'); },
   sendChatVideo, buildChatVideo, pruneChatVideos, VID_MAX_BYTES, VID_KEEP,
-  poolOfGrade, openDeck, renderDeck, deckRandom, DECK_SIZE,
+  poolOfGrade, openDeck, renderDeck, deckRandom, deckSuggest, DECK_SIZE,
   startDragon, dragonOn, IMMORTAL_TRIES, IMMORTAL_DMG,
   setDragon: ms => { DRAGON_UNTIL = ms; },
   getDeck: () => DECK.slice(), setDeck: d => { DECK = d.slice(); saveDeck(); },
