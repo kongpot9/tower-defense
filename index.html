@@ -829,7 +829,7 @@ const UNITS = [
   { type:'reddragon',  grade:4, emoji:'🐉', name:'레드드래곤', dmg:323, cd:1.70, range:320, splash:70, atk:'breath',  img:'character/legend1.png' },
   { type:'dosa',       grade:4, emoji:'🧙', name:'도사',       dmg:129, cd:0.80, range:180, atk:'fan', homing:true, img:'character/legend2.png' },
   { type:'catmachine', grade:4, emoji:'🐱', name:'캣머신',     dmg:170, cd:0.50, range:110, splash:30, atk:'missile', img:'character/legend3.png' },
-  { type:'royalchef',  grade:4, emoji:'👨‍🍳', name:'로얄 셰프', dmg:0,   cd:30,   range:0,   support:'chef', disabled:true }, // 서포터! (그림 완성되면 disabled 제거하고 공개)
+  { type:'royalchef',  grade:4, emoji:'👨‍🍳', name:'로얄 셰프', dmg:0,   cd:30,   range:0,   support:'chef', img:'character/legend6.png' }, // 🍳 2026-08-02 굴에서 나온 날
   { type:'tez',        grade:4, emoji:'👊', name:'테즈',       dmg:211, cd:1.20, range:100, splash:45, atk:'tez', special:'chain', img:'character/legend5.png' },
   { type:'penguin',    grade:4, emoji:'🐧', name:'펭귄악사',   dmg:0,   cd:1,    range:130, support:'aura', img:'character/legend4.png' }, // 오라 서포터
   // 신화 추가
@@ -2932,7 +2932,7 @@ const HOLLY_TIER = { // 현 메타 티어 (일반 모드 기준)
   catmachine:'A', lumberjack:'A', jurasaurus:'A', farmer:'A',
   deathpierrot:'B', darkrider:'B', miner:'B', tankboy:'B', ronin:'B',
   wonkkataein:'C', ricecake:'C', swordsman:'C',
-  archer:'S', royalchef:'?',
+  archer:'S', royalchef:'A',
   penguin:'S', bane:'A', indie:'B', jeff:'B',
   tez:'A', blader:'A', willy:'B',
 };
@@ -2954,7 +2954,7 @@ const HOLLY_EVAL = {
   reddragon: '전개덱의 심장 — 일륜도 빙결+브레스가 현 메타 최강 콤보',
   dosa: '배신 없는 공무원 — 뭘 해야 할지 모르겠으면 도사',
   catmachine: '최고 화력, 최고 임대료',
-  royalchef: '출시 대기 중인 비밀 병기 — 홀리베리에서만 미리 공개!',
+  royalchef: '11일을 굴에서 기다린 전설 — 30초마다 뭐가 나올지 모르는 랜덤 서포터',
   penguin: '한 곡으로 판을 바꾸는 지휘자 — 강한 딜러 옆에 둘수록 이득이 곱해진다',
   bane: '한 방의 무게 330 — 뭉친 적을 통째로 지우는 신화의 파괴자',
   indie: '혼자선 약하지만 팀을 빠르게 만든다 — 공격력이 전부가 아니라는 증명',
@@ -2980,7 +2980,7 @@ const HOLLY_USE = { // 사용처
   reddragon: '아무 칸(전맵 사거리) — 물량 청소, 일륜도 빙결 콤보의 완성',
   dosa: '자리·상황 안 가리는 만능 채용 — 보스전 주딜',
   catmachine: '트랙 옆 사수 필수 — 확보 시 최강 폭딜, 실패 시 고철',
-  royalchef: '??? (출시되면 공개)',
+  royalchef: '아군이 몰린 자리 아무 칸 — 딜은 0이지만 30초마다 판을 뒤집는다',
   penguin: '전설·신화 딜러가 몰린 구역 한가운데 — 커버하는 아군이 많을수록 강해짐',
   bane: '트랙 옆 칸 필수 — 물량 웨이브·보스 모두 대응하는 신화 주력',
   indie: '딜러 여럿 사이 가운데 칸 — 응원이 닿는 아군이 많은 자리에 배치',
@@ -3230,8 +3230,15 @@ loadGob();
 
 // ---------- 📢 공지 ----------
 // 새 공지를 낼 땐 NOTICE_ID를 바꾸면 모든 유저에게 한 번 더 뜬다.
-const NOTICE_ID = 'arcade3-2026-08-02';
+const NOTICE_ID = 'chef-2026-08-02';
 const NOTICE_HTML = `
+  <h3>👨‍🍳 로얄 셰프 출시! (11일 만에)</h3>
+  능력만 만들어놓고 그림이 없어서 못 나오던 <b>전설 서포터</b>가 드디어 나왔어요.
+  <ul>
+    <li><b>30초마다 요리 5종 중 하나를 랜덤</b>으로 던집니다</li>
+    <li>🥞공격력+30% · 🧁공속+50% · <span class="hl">🍲빈 칸에 아군 분신 소환</span> · 🍜골드2배 · 🍬전체 폭발</li>
+    <li>공격력은 0 — 대신 30초마다 판을 뒤집어요</li>
+  </ul>
   <h3>🏀 베인오락실에 게임 2개 추가!</h3>
   <ul>
     <li><b>🎯 스키볼</b> — 세게 굴릴수록 고득점! 단 <span class="hl">끝을 넘기면 0점</span> (최대 300원)</li>
