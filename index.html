@@ -1049,6 +1049,9 @@ const DRILL_RADIUS = 27;                       // 밟히는 판정 반경
 const DRILL_HIT_CD = 0.5;                      // 같은 적을 다시 밟기까지의 간격
 // 🪴 텐한: 화분 요괴 (기획: 구예준)
 const POT_EVERY = 3;                           // 3웨이브에 1번만 화분에서 나온다
+// 🪴 텐한 등장 연출 (설정: 아빠 — 만들기 도구)
+const POT_EMOS = ['💧', '🍃', '🌙'];
+const POT_N = 21, POT_SIZE = 24, POT_SPREAD = 70, POT_SPIN = 14, POT_LIFE = 40;
 
 let RAID_UNTIL = 0;                                                    // 이벤트 종료 시각
 let RAID = { cleared: false, skin: false, ticket: 0, best: 0 };        // 내 레이드 기록 (localStorage)
@@ -1597,6 +1600,13 @@ function startWave() {
     for (const sl of slots) if (sl.unit && sl.unit.special === 'pool')
       S.effects.push({ kind: 'pool', x: sl.cx, y: sl.cy, r: 70, t: 1, decay: 1 / POOL_TIME });
     addText(WORLD_W / 2, 292, `🛟 윌리의 풀장 개장! 적 감속 + 아군 공격력 +${Math.round((POOL_ATK - 1) * 100)}% (${POOL_TIME}초)`, '#4fc3f7', 15);
+    sfx('food');
+  }
+  // 🪴 텐한: 화분에서 나오는 웨이브에 등장 연출
+  if (S.wave % POT_EVERY === 0 && slots.some(sl => sl.unit && sl.unit.special === 'pot')) {
+    for (const sl of slots) if (sl.unit && sl.unit.special === 'pot')
+      S.effects.push({ kind: 'pot', x: sl.cx, y: sl.cy, t: 1, decay: 30 / POT_LIFE });
+    addText(WORLD_W / 2, 292, '🪴 텐한이 화분에서 나왔다!', '#a5d6a7', 16);
     sfx('food');
   }
   const cr = trLv('car'); // 🚗 시공간 초월 자동차: 50% 확률로 공격력 2배
@@ -3070,6 +3080,21 @@ function draw() {
         ctx.restore();
       }
       ctx.globalAlpha = 1; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    } else if (e.kind === 'pot') {     // 🪴 텐한 등장 — 💧🍃🌙이 궤도로 돈다 (연출: 아빠)
+      const grow = 1 - e.t;
+      ctx.font = `${POT_SIZE}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const sz = POT_SIZE * (0.45 + grow * 1.1);                 // 점점 커짐
+      for (let i = 0; i < POT_N; i++) {
+        const ang = (i / POT_N) * Math.PI * 2 + S.time * 2.2;    // 궤도 — 반지름은 그대로 두고 돈다
+        const x = e.x + Math.cos(ang) * POT_SPREAD;
+        const y = e.y + Math.sin(ang) * POT_SPREAD;
+        ctx.save(); ctx.translate(x, y);
+        ctx.rotate(S.time * POT_SPIN + (i / POT_N) * Math.PI * 2);
+        ctx.font = `${sz}px sans-serif`;
+        ctx.fillText(POT_EMOS[i % POT_EMOS.length], 0, 0);       // 점점 사라짐 끔 — 끝까지 선명
+        ctx.restore();
+      }
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     } else if (e.kind === 'smite') {   // 천사 도베르만: 즉사 — 날개 7장이 솟았다 내려앉는다 (연출: 아빠)
       const grow = 1 - e.t;
       const alpha = Math.abs(Math.sin(S.time * 14)) * e.t;   // 번쩍임
