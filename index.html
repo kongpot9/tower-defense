@@ -32,10 +32,13 @@
   #topbar .warn { color:#ff5a5a; }
   #game { flex:1; min-height:0; width:100%; display:block; touch-action:none; }
   #bottombar { background:#12182a; padding:8px 12px calc(8px + env(safe-area-inset-bottom)); }
+  /* 높이를 '고정'하는 게 핵심 — 설명 길이에 따라 늘었다 줄었다 하면
+     캔버스 크기가 매번 바뀌고, 그때마다 화면이 지워져 깜빡인다 */
   #unitinfo {
-    min-height:34px; display:flex; align-items:center; gap:10px;
+    height:50px; display:flex; align-items:center; gap:10px;
     font-size:14px; margin-bottom:8px; color:#cdd6f4;
   }
+  #uiHint { flex:1; min-width:0; max-height:50px; overflow-y:auto; line-height:1.25; }
   #unitinfo .emoji { font-size:24px; }
   button {
     border:none; border-radius:12px; font-family:inherit; font-weight:800;
@@ -2389,7 +2392,12 @@ let view = { s: 1, ox: 0, oy: 0, dpr: 1 };
 function resize() {
   const dpr = window.devicePixelRatio || 1;
   const cw = canvas.clientWidth, ch = canvas.clientHeight;
-  canvas.width = cw * dpr; canvas.height = ch * dpr;
+  if (!cw || !ch) return;
+  const nw = Math.round(cw * dpr), nh = Math.round(ch * dpr);
+  if (canvas.width !== nw || canvas.height !== nh) {
+    canvas.width = nw; canvas.height = nh;   // 이 대입이 캔버스를 지운다 — 정말 바뀐 때만
+    if (typeof draw === 'function' && view.s) draw();   // 빈 화면이 한 프레임도 보이지 않게 즉시 다시 그림
+  }
   const s = Math.min(cw / WORLD_W, ch / WORLD_H);
   view = { s, ox: (cw - WORLD_W * s) / 2, oy: (ch - WORLD_H * s) / 2, dpr };
 }
