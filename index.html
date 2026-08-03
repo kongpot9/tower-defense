@@ -1047,6 +1047,9 @@ const DRILL_DMG = 280, DRILL_TIME = 20;        // 드릴 피해 280, 20초 뒤 �
 const DRILL_SPEED = 105;                       // 길목을 누비는 속도
 const DRILL_RADIUS = 27;                       // 밟히는 판정 반경
 const DRILL_HIT_CD = 0.5;                      // 같은 적을 다시 밟기까지의 간격
+// 🔩 드릴러 변신 연출 (설정: 아빠 — 만들기 도구)
+const DFX_EMOS = ['💧', '🍃', '🌙'];
+const DFX_N = 21, DFX_SIZE = 24, DFX_SPREAD = 70, DFX_SPIN = 14, DFX_LIFE = 40;
 // 🪴 텐한: 화분 요괴 (기획: 구예준)
 const POT_EVERY = 3;                           // 3웨이브에 1번만 화분에서 나온다
 // 🪴 텐한 등장 연출 (설정: 아빠 — 만들기 도구)
@@ -3080,6 +3083,20 @@ function draw() {
         ctx.restore();
       }
       ctx.globalAlpha = 1; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    } else if (e.kind === 'drillfx') { // 🔩 드릴러 변신 — 💧🍃🌙이 돌진한다 (연출: 아빠)
+      const grow = 1 - e.t;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const sz = DFX_SIZE * (0.45 + grow * 1.1);                 // 점점 커짐
+      for (let i = 0; i < DFX_N; i++) {
+        const x = e.x - DFX_SPREAD * 1.2 + grow * DFX_SPREAD * 2.6;   // 돌진 — 한 방향으로 쏘아져 나감
+        const y = e.y + (i / DFX_N - 0.5) * DFX_SPREAD * 0.9;
+        ctx.save(); ctx.translate(x, y);
+        ctx.rotate(S.time * DFX_SPIN + (i / DFX_N) * Math.PI * 2);
+        ctx.font = `${sz}px sans-serif`;
+        ctx.fillText(DFX_EMOS[i % DFX_EMOS.length], 0, 0);       // 점점 사라짐 끔 — 끝까지 선명
+        ctx.restore();
+      }
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     } else if (e.kind === 'pot') {     // 🪴 텐한 등장 — 💧🍃🌙이 궤도로 돈다 (연출: 아빠)
       const grow = 1 - e.t;
       ctx.font = `${POT_SIZE}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -3203,6 +3220,7 @@ function castDrill() { // 노에시 → 드릴러 노에시
   sl.unit.away = true;
   S.drills = S.drills || [];
   S.drills.push({ d: 0, t: DRILL_TIME, slot: sl });
+  S.effects.push({ kind: 'drillfx', x: sl.cx, y: sl.cy, t: 1, decay: 30 / DFX_LIFE });
   addText(sl.cx, sl.cy - 26, '🔩 드릴러 노에시!', '#ff7043', 16);
   addText(WORLD_W / 2, 250, `🔩 드릴러 노에시 출동! ${DRILL_TIME}초간 길목을 누빈다`, '#ff8a65', 15);
   sfx('jackpot');
