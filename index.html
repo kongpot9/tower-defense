@@ -206,14 +206,32 @@
   #deckBtns { display:flex; gap:8px; }
   #deckBtns button { padding:8px 16px; font-size:13px; border-radius:9px; }
   /* 🏀 베인오락실 */
-  #arcade, #gacha, #keyring, #cards {
+  #arcade, #gacha, #keyring, #cards, #raid {
     position:fixed; inset:0; background:#161b2c; z-index:23;
     padding:16px 14px calc(14px + env(safe-area-inset-bottom));
     display:flex; flex-direction:column; align-items:center; gap:8px; overflow-y:auto;
   }
-  #arcade.hidden, #gacha.hidden, #keyring.hidden, #cards.hidden { display:none; }
-  #arcade h2, #gacha h2, #keyring h2, #cards h2 { color:#ffd54f; font-size:22px; }
-  #arcade .sub, #gacha .sub, #keyring .sub, #cards .sub { color:#9fb0d8; font-size:12px; text-align:center; line-height:1.6; }
+  #arcade.hidden, #gacha.hidden, #keyring.hidden, #cards.hidden, #raid.hidden { display:none; }
+  #arcade h2, #gacha h2, #keyring h2, #cards h2, #raid h2 { color:#ffd54f; font-size:22px; }
+  #arcade .sub, #gacha .sub, #keyring .sub, #cards .sub, #raid .sub { color:#9fb0d8; font-size:12px; text-align:center; line-height:1.6; }
+  /* 🍡 최강의 떡장수 레이드 */
+  #raid > div { width:100%; max-width:420px; }
+  #raidBtns { display:flex; flex-direction:column; gap:8px; }
+  #raidBtns button { padding:13px; font-size:15px; font-weight:800; border-radius:11px; background:#c94f7c; box-shadow:0 4px 0 #8d3554; }
+  #raidBtns button.sub2 { background:#3a4566; box-shadow:0 4px 0 #232a44; font-size:13px; padding:10px; }
+  #raidCode { font-size:30px; font-weight:900; color:#ffd54f; letter-spacing:6px; text-align:center; }
+  #raidTeam { display:flex; flex-direction:column; gap:5px; }
+  .rmate { display:flex; justify-content:space-between; background:#1e2438; border-radius:8px; padding:8px 11px; font-size:13px; color:#c5e1a5; }
+  #raidReward { background:#241a2e; border:1px solid #6a4a7c; border-radius:10px; padding:11px; font-size:12px; color:#e1bee7; line-height:1.7; }
+  #raidInput { width:100%; padding:11px; font-size:19px; text-align:center; letter-spacing:5px; border-radius:9px; border:2px solid #3a4566; background:#0f1320; color:#fff; }
+  /* 게임 중 레이드 HUD */
+  #raidHud { flex:0 0 auto; padding:4px 8px 2px; }
+  #raidHud.hidden { display:none; }
+  #rhBarWrap { height:19px; background:#2a1520; border:2px solid #7c2d4a; border-radius:10px; overflow:hidden; position:relative; }
+  #rhBar { height:100%; background:linear-gradient(90deg,#ff5252,#ff8a65); transition:width .15s; }
+  #rhTxt { position:absolute; inset:0; text-align:center; font-size:11px; font-weight:800; color:#fff; line-height:19px; text-shadow:0 1px 2px #000; }
+  #rhInfo { display:flex; justify-content:space-between; font-size:11px; font-weight:800; margin-top:3px; text-shadow:0 1px 2px #000; }
+  #rhTime { color:#ffd54f; } #rhTeam { color:#90caf9; } #rhBuff { color:#ff8a65; }
   #arcTime { color:#ff8a65; font-weight:800; }
   #arcade .close, #gacha .close, #keyring .close, #cards .close { background:#3a4566; padding:9px 26px; font-size:14px; border-radius:10px; }
   #arcade > .grid, #gacha > div, #keyring > div { width:100%; max-width:420px; }
@@ -360,13 +378,14 @@
   /* 홈 보조 버튼: 작게 — 개수가 많아 세로가 넘치지 않도록 */
   #overlay #ovBtn2, #overlay #ovBtn3, #overlay #ovBtnK, #overlay #ovBtn4,
   #overlay #ovBtnA, #overlay #ovBtn5, #overlay #ovBtnB, #overlay #ovBtn6,
-  #overlay #ovBtnD, #overlay #ovBtn7, #overlay #ovBtnN, #overlay #ovBtnY {
+  #overlay #ovBtnD, #overlay #ovBtn7, #overlay #ovBtnN, #overlay #ovBtnY, #overlay #ovBtnR {
     margin-top:0; padding:10px 28px; font-size:15px; min-width:200px;
     background:#3a4566; box-shadow:0 4px 0 #232a42;
   }
   #overlay #ovBtnD { background:#3f6ea8; box-shadow:0 4px 0 #26456a; } /* 🃏 전투덱 */
   #overlay #ovBtnY { background:#c0392b; box-shadow:0 4px 0 #7c241a; }  /* 📺 유튜브 */
   #overlay #ovBtnA { background:#a8632f; box-shadow:0 4px 0 #6b3d1c; } /* 🏀 베인오락실 */
+  #overlay #ovBtnR { background:#c94f7c; box-shadow:0 4px 0 #8d3554; } /* 🍡 최강의 떡장수 */
   @media (max-height: 780px) {
     #overlay h1 { font-size:26px; }
     #overlay .big-emoji img { width:44px; height:44px; }
@@ -374,7 +393,7 @@
     #overlay button { padding:12px 40px; font-size:17px; }
     #overlay #ovBtn2, #overlay #ovBtn3, #overlay #ovBtnK, #overlay #ovBtn4,
     #overlay #ovBtnA, #overlay #ovBtn5, #overlay #ovBtnB, #overlay #ovBtn6,
-    #overlay #ovBtnD, #overlay #ovBtn7, #overlay #ovBtnN, #overlay #ovBtnY { padding:8px 22px; font-size:14px; }
+    #overlay #ovBtnD, #overlay #ovBtn7, #overlay #ovBtnN, #overlay #ovBtnY, #overlay #ovBtnR { padding:8px 22px; font-size:14px; }
   }
   .lvcard {
     display:inline-flex; align-items:center; gap:3px; padding:1px 7px; margin-left:4px;
@@ -528,6 +547,11 @@
   <span id="tEnemy">👾 0/60</span>
 </div>
 
+<div id="raidHud" class="hidden">
+  <div id="rhBarWrap"><div id="rhBar" style="width:100%"></div><div id="rhTxt"></div></div>
+  <div id="rhInfo"><span id="rhTime"></span><span id="rhBuff"></span><span id="rhTeam"></span></div>
+</div>
+
 <canvas id="game"></canvas>
 
 <div id="bottombar">
@@ -545,6 +569,7 @@
     <button class="devbtn" id="devGob">🏰저택</button>
     <button class="devbtn" id="devArc">🏀오락실</button>
     <button class="devbtn" id="devDragon">🐲불멸</button>
+    <button class="devbtn" id="devRaid">🍡레이드</button>
     <button class="devbtn" id="devLab">🎨만들기</button>
   </div>
   <div id="noodleBar" class="hidden"></div>
@@ -573,6 +598,7 @@
   <button id="ovBtnY" class="hidden">📺 공식 채널</button>
   <button id="ovBtn4" class="hidden">👥 더블큐</button>
   <button id="ovBtnA" class="hidden">🏀 베인오락실</button>
+  <button id="ovBtnR" class="hidden">🍡 최강의 떡장수</button>
   <button id="ovBtn5" class="hidden">💬 채팅방<span id="chatBadge" class="hidden">0</span></button>
   <button id="ovBtnB" class="hidden">🎁 인형뽑기</button>
   <button id="ovBtn6" class="hidden">🎣 낚시터</button>
@@ -780,6 +806,35 @@
   <button class="close" id="krClose">나가기</button>
 </div>
 
+<div id="raid" class="hidden">
+  <h2>🍡 최강의 떡장수를 잡아라!</h2>
+  <p class="sub">체력 <b style="color:#ff8a65">1,050만</b>의 떡장수가 홀로 맵을 돌고 있다<br>
+    <b>1~5명</b>이 팀을 짜서 <b style="color:#ffd54f">10분</b> 안에 쓰러뜨려라!<br>
+    <span id="raidTime"></span></p>
+  <div id="raidReward">
+    🎁 <b>토벌 보상</b><br>
+    🛟 한정판 <b>윌리 스킨</b> — 잡은 사람만 쓸 수 있는 특별 모습<br>
+    🎫 <b>신규 캐릭터 예비 이용권 1장</b> — 다음 캐릭터를 먼저 써볼 수 있다
+  </div>
+  <p class="sub" style="color:#ffcc80">📣 <b>응원 효과</b>로 아군 공격력이 <b>3배</b>가 됩니다<br>
+    떡장수를 때릴 때마다 <b>떡값(골드)</b>이 떨어져요 — 때려서 벌고, 강화해서 더 때리세요</p>
+  <div id="raidCode" class="hidden"></div>
+  <div id="raidTeam"></div>
+  <div id="raidBtns">
+    <button id="raidSolo">⚔️ 혼자 도전하기</button>
+    <button id="raidMake">👥 팀 만들기 (코드 생성)</button>
+    <button id="raidJoinBtn" class="sub2">🔢 코드로 팀 합류</button>
+    <button id="raidGo" class="hidden">🍡 토벌 시작!</button>
+    <button id="raidLeave" class="sub2 hidden">팀 나가기</button>
+  </div>
+  <div id="raidJoinWrap" class="hidden">
+    <input id="raidInput" maxlength="4" inputmode="numeric" placeholder="0000">
+    <button id="raidJoinOk" style="width:100%;margin-top:7px;padding:11px;border-radius:9px;background:#4a7c59;box-shadow:0 4px 0 #2e5038;font-weight:800">합류하기</button>
+  </div>
+  <div id="raidMine" class="sub"></div>
+  <button class="close" id="raidClose">나가기</button>
+</div>
+
 <div id="fish" class="hidden">
   <h2>🎣 낚시터</h2>
   <p class="sub">진주로 낚시해서 보물을 건져라!<br>같은 보물을 또 낚으면 <b>레벨업</b> (최대 15)</p>
@@ -962,6 +1017,260 @@ const cardAt = lv => CARDS.filter(c => c.lv <= lv).slice(-1)[0] || CARDS[0];
 const ARCADE_DURATION = (7 * 86400 + 7 * 3600 + 7 * 60 + 7) * 1000; // 7일 7시간 7분 7초
 const ARCADE_START_COINS = 3;                                       // 처음 방문 시 주는 🎟️코인
 const GACHA_COST = 100;                                             // 인형뽑기 1회 = 100원
+
+// 🍡 최강의 떡장수 레이드 (기획: 구예준)
+const RAID_HP = 10500000;                    // 보스 체력 1,050만
+const RAID_DURATION = 7 * 864e5 + 7 * 36e5 + 7 * 6e4 + 7e3;  // 이벤트 기간 7일 7시간 7분 7초
+const RAID_TIME = 600;                       // 제한시간 10분
+const RAID_CHEER = 3;                        // 📣 응원: 아군 공격력 3배 (밸런스 보정)
+const RAID_GOLD_TOTAL = 45000;               // 떡값: 보스를 100% 깎는 동안 총 45,000골드 (팀 전체 진행도 기준)
+const RAID_START_GOLD = 500;                 // 시작 밑천
+const RAID_BAR_FROM = 0.70, RAID_BAR_TO = 0.50;  // 베리어 페이즈: 체력 70%~50% 구간
+const RAID_BAR_CD = 3;                       // 3초마다 베리어 발사
+const RAID_BAR_DOWN = 0.10, RAID_BAR_MAX = 5;    // 한 대당 아군 공격력 -10%, 최대 5중첩
+const RAID_MAX_TEAM = 5;                     // 최대 5인 팀
+const RAID_BOSS_SPD = 20;                    // 홀로 도는 이동 속도
+const RAID_HIT_CAP = RAID_HP * 0.005;        // 한 방 상한 = 최대체력의 0.5% — %체력 능력·불멸 드래곤이 판을 끝내지 못하게
+const RAID_SYNC = 1500;                      // 팀 데미지 동기화 주기(ms)
+
+let RAID_UNTIL = 0;                                                    // 이벤트 종료 시각
+let RAID = { cleared: false, skin: false, ticket: 0, best: 0 };        // 내 레이드 기록 (localStorage)
+let RD = { on: false, code: null, mates: {}, myDmg: 0, paid: 0, t: 0,  // 이번 판 상태
+           barrier: 0, barCd: 0, boss: null, syncT: 0, lobby: false };
+const raidOn = () => Date.now() < RAID_UNTIL;
+const raidBarrierMul = () => Math.pow(1 - RAID_BAR_DOWN, RD.barrier);   // 베리어 중첩당 아군 공격력 감소
+
+function loadRaid() {
+  try { RAID = { cleared: false, skin: false, ticket: 0, best: 0, ...JSON.parse(localStorage.getItem('ltd_raid') || '{}') }; } catch (e) {}
+}
+function saveRaid() { try { localStorage.setItem('ltd_raid', JSON.stringify(RAID)); } catch (e) {} }
+const raidSkinOn = () => !!RAID.skin;                                   // 🛟 한정판 윌리 스킨 보유 여부
+
+async function loadRaidEvent() {
+  if (!RANK_DB) return;
+  try {
+    const d = await (await fetch(`${RANK_DB}/party/_event/raid.json`)).json();
+    RAID_UNTIL = (d && d.until) || 0;
+    updateEventUI();
+  } catch (e) {}
+}
+async function startRaidEvent() { // 🌑 DARK KAKAO 전용 — 이벤트 개시
+  RAID_UNTIL = Date.now() + RAID_DURATION;
+  try { await fetch(`${RANK_DB}/party/_event/raid.json`, { method: 'PUT', body: JSON.stringify({ until: RAID_UNTIL }) }); } catch (e) {}
+  updateEventUI();
+  addText(WORLD_W / 2, 300, '🍡 최강의 떡장수 출현!!', '#ff8a65', 20);
+}
+function raidLeftText() {
+  const ms = RAID_UNTIL - Date.now();
+  if (ms <= 0) return '';
+  const d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60;
+  return `남은 기간 ${d}일 ${h}시간 ${m}분`;
+}
+
+// 보스 생성 — 들어오는 모든 피해가 이 setter를 거친다
+// (응원 3배 적용 + 한 방 상한으로 %최대체력 능력이 판을 끝내는 것을 방지)
+function mkRaidBoss() {
+  let hp = RAID_HP;
+  const e = {
+    id: 1, d: 0, trav: 0, maxhp: RAID_HP, speed: RAID_BOSS_SPD, boss: true,
+    emoji: '🍡', gold: 0, slowT: 0, r: 26, raid: true,
+  };
+  Object.defineProperty(e, 'hp', {
+    configurable: true,
+    get: () => hp,
+    set: v => {
+      const raw = hp - v;
+      if (raw <= 0) { hp = v; return; }                     // 회복·직접 대입은 그대로
+      const dealt = Math.min(raw * RAID_CHEER * raidBarrierMul(), RAID_HIT_CAP);
+      hp -= dealt;
+      RD.myDmg += dealt;                                    // 내가 넣은 누적 피해 (팀 합산용)
+    },
+  });
+  e.mateHit = d => { hp -= d; };                            // 팀원이 넣은 피해 반영
+  return e;
+}
+
+function startRaid() {
+  S.mode = 'raid';
+  S.stage = 0;
+  setStagePath(STAGES[0].path);
+  $('raid').classList.add('hidden');
+  $('overlay').classList.add('hidden');
+  resetGame();
+  S.running = true;
+  S.gold = RAID_START_GOLD;
+  S.roundT = 1e9;                                           // 레이드엔 웨이브가 없다
+  S.hyperCharges = 2;                                       // 웨이브가 없으니 하이퍼차지는 미리 2개 지급
+  RD.myDmg = 0; RD.paid = 0; RD.mateDmg = 0; RD.barrier = 0; RD.barCd = RAID_BAR_CD;
+  RD.t = RAID_TIME; RD.syncT = 0; RD.on = true;
+  RD.boss = mkRaidBoss();
+  S.enemies.push(RD.boss);
+  $('raidHud').classList.remove('hidden');
+  renderRaidHud();                                          // 첫 프레임 전에 값 채우기
+  addText(WORLD_W / 2, 230, '🍡 최강의 떡장수 등장!', '#ff8a65', 20);
+  addText(WORLD_W / 2, 258, '📣 응원 효과! 아군 공격력 3배', '#ffcc80', 16);
+  sfx('jackpot');
+}
+
+function raidUpdate(dt) {
+  const b = RD.boss;
+  if (!b || S.over) return;
+  RD.t -= dt;
+  // 떡값: 팀 전체 진행도에 비례해 지급 (총량 고정 → 강화 폭주 방지, 팀일수록 빨리 성장)
+  const earned = Math.floor((RD.myDmg + (RD.mateDmg || 0)) / RAID_HP * RAID_GOLD_TOTAL);
+  if (earned > RD.paid) { S.gold += earned - RD.paid; RD.paid = earned; }
+  const frac = b.hp / RAID_HP;
+  if (frac <= RAID_BAR_FROM && frac > RAID_BAR_TO) {         // 🛡️ 베리어 페이즈 (70%~50%)
+    RD.barCd -= dt;
+    if (RD.barCd <= 0) {
+      RD.barCd = RAID_BAR_CD;
+      if (RD.barrier < RAID_BAR_MAX) {
+        RD.barrier++;
+        const p = posAt(b.d);
+        S.effects.push({ kind: 'boom', x: p.x, y: p.y, r: 76, t: 1, fire: false });
+        addText(WORLD_W / 2, 250, `🛡️ 떡장수의 베리어! 아군 공격력 -${Math.round((1 - raidBarrierMul()) * 100)}%`, '#90caf9', 15);
+        sfx('error');
+      }
+    }
+  } else if (RD.barrier > 0 && frac <= RAID_BAR_TO) {        // 50% 아래로 내리면 해제
+    RD.barrier = 0;
+    addText(WORLD_W / 2, 250, '🛡️ 베리어가 깨졌다! 공격력 회복!', '#ffd54f', 18);
+    sfx('jackpot');
+  }
+  if (RD.code) {                                            // 팀 동기화
+    RD.syncT -= dt * 1000;
+    if (RD.syncT <= 0) { RD.syncT = RAID_SYNC; raidSync(); }
+  }
+  renderRaidHud();
+  if (b.hp <= 0) raidWin();
+  else if (RD.t <= 0) raidFail();
+}
+
+async function raidSync() { // 각자 자기 누적 피해만 쓰고, 남의 것은 읽어서 합산 (충돌 없음)
+  const nick = getNick();
+  if (!RANK_DB || !RD.code || !nick) return;
+  const base = `${RANK_DB}/party/_raid/${RD.code}`;
+  try {
+    fetch(`${base}/dmg/${encodeURIComponent(nick)}.json`, { method: 'PUT', body: String(Math.round(RD.myDmg)) }).catch(() => {});
+    const d = await (await fetch(`${base}/dmg.json`)).json() || {};
+    RD.mates = d;
+    let others = 0;
+    for (const k in d) if (k !== nick) others += +d[k] || 0;
+    const prev = RD.mateDmg || 0;
+    if (others > prev && RD.boss) { RD.boss.mateHit(others - prev); RD.mateDmg = others; }
+  } catch (e) {}
+}
+
+function raidWin() {
+  RD.on = false;
+  S.running = false;
+  const first = !RAID.cleared;
+  RAID.cleared = true; RAID.skin = true;
+  if (first) RAID.ticket = (RAID.ticket || 0) + 1;           // 예비 이용권은 최초 1회만
+  RAID.best = Math.max(RAID.best || 0, Math.round(RAID_TIME - RD.t));
+  saveRaid();
+  $('raidHud').classList.add('hidden');
+  if (RD.code && RANK_DB) fetch(`${RANK_DB}/party/_raid/${RD.code}/done.json`, { method: 'PUT', body: 'true' }).catch(() => {});
+  sfx('jackpot');
+  showOverlay('raidwin');
+}
+function raidFail() {
+  RD.on = false;
+  S.running = false;
+  $('raidHud').classList.add('hidden');
+  sfx('over');
+  showOverlay('raidfail');
+}
+function raidQuit() { // 도중 이탈
+  RD.on = false; RD.boss = null; RD.code = null; RD.mateDmg = 0;
+  S.running = false; S.over = false;
+  $('raidHud').classList.add('hidden');
+}
+function fmtNum(n) { return Math.max(0, Math.round(n)).toLocaleString(); }
+function renderRaidHud() {
+  const b = RD.boss;
+  if (!b) return;
+  const pct = Math.max(0, b.hp / RAID_HP);
+  const bar = $('rhBar'); if (bar) bar.style.width = (pct * 100) + '%';
+  const txt = $('rhTxt'); if (txt) txt.textContent = `🍡 ${fmtNum(b.hp)} / ${fmtNum(RAID_HP)} (${(pct * 100).toFixed(1)}%)`;
+  const tm = $('rhTime');
+  if (tm) { const s = Math.max(0, Math.ceil(RD.t)); tm.textContent = `⏱️ ${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; }
+  const team = $('rhTeam');
+  if (team) team.textContent = RD.code ? `👥 ${Object.keys(RD.mates || {}).length}명 · 내 피해 ${fmtNum(RD.myDmg)}` : `⚔️ 혼자 · 피해 ${fmtNum(RD.myDmg)}`;
+  const bf = $('rhBuff');
+  if (bf) bf.textContent = RD.barrier > 0 ? `🛡️ 베리어 ${RD.barrier}중첩 (공격력 -${Math.round((1 - raidBarrierMul()) * 100)}%)` : '📣 응원 ×3';
+}
+
+// ---------- 레이드 로비 ----------
+function openRaid() {
+  $('raid').classList.remove('hidden');
+  RD.lobby = true;
+  renderRaidLobby();
+  if (RD.code) raidPollTeam();
+}
+function closeRaid() {
+  RD.lobby = false;
+  if (raidTeamTimer) { clearInterval(raidTeamTimer); raidTeamTimer = null; }
+  $('raid').classList.add('hidden');
+}
+function renderRaidLobby() {
+  $('raidTime').textContent = raidLeftText();
+  const inTeam = !!RD.code;
+  $('raidCode').classList.toggle('hidden', !inTeam);
+  if (inTeam) $('raidCode').textContent = RD.code;
+  $('raidSolo').classList.toggle('hidden', inTeam);
+  $('raidMake').classList.toggle('hidden', inTeam);
+  $('raidJoinBtn').classList.toggle('hidden', inTeam);
+  $('raidGo').classList.toggle('hidden', !inTeam);
+  $('raidLeave').classList.toggle('hidden', !inTeam);
+  const names = Object.keys(RD.mates || {});
+  $('raidTeam').innerHTML = inTeam
+    ? (names.length
+        ? names.map(n => `<div class="rmate"><span>${n === getNick() ? '🙋 ' + n + ' (나)' : '👤 ' + n}</span><span>${fmtNum(RD.mates[n])} 피해</span></div>`).join('')
+        : `<div class="rmate"><span>🙋 ${getNick() || '나'} (나)</span><span>대기 중</span></div>`)
+      + `<p class="sub" style="margin-top:6px">이 코드를 친구에게 알려주세요 · 최대 ${RAID_MAX_TEAM}명<br>각자 자기 화면에서 때리고, <b>피해량은 합산</b>됩니다</p>`
+    : '';
+  const m = $('raidMine');
+  m.innerHTML = RAID.cleared
+    ? `✅ 토벌 성공 기록 있음 — 최고 <b>${Math.floor((RAID.best || 0) / 60)}분 ${(RAID.best || 0) % 60}초</b><br>🛟 한정판 윌리 스킨 보유 · 🎫 예비 이용권 ${RAID.ticket || 0}장`
+    : '아직 토벌하지 못했어요';
+}
+let raidTeamTimer = null;
+async function raidPollTeam() { // 로비에서 팀원 목록 갱신
+  if (raidTeamTimer) clearInterval(raidTeamTimer);
+  const tick = async () => {
+    if (!RD.code || !RANK_DB || !RD.lobby) return;
+    try {
+      const d = await (await fetch(`${RANK_DB}/party/_raid/${RD.code}/dmg.json`)).json() || {};
+      RD.mates = d;
+      renderRaidLobby();
+    } catch (e) {}
+  };
+  await tick();
+  raidTeamTimer = setInterval(tick, 3000);
+}
+async function raidJoinCode(code) {
+  const nick = getNick();
+  if (!nick) { alert('먼저 닉네임을 정해주세요!'); return false; }
+  if (!RANK_DB) { alert('서버에 연결할 수 없어요. 혼자 도전해주세요!'); return false; }
+  try {
+    const d = await (await fetch(`${RANK_DB}/party/_raid/${code}/dmg.json`)).json() || {};
+    if (Object.keys(d).length >= RAID_MAX_TEAM && !(nick in d)) { alert(`팀이 꽉 찼어요! (최대 ${RAID_MAX_TEAM}명)`); return false; }
+    await fetch(`${RANK_DB}/party/_raid/${code}/dmg/${encodeURIComponent(nick)}.json`, { method: 'PUT', body: '0' });
+    RD.code = code; RD.mates = { ...d, [nick]: 0 }; RD.mateDmg = 0;
+    renderRaidLobby(); raidPollTeam();
+    return true;
+  } catch (e) { alert('팀에 들어가지 못했어요. 코드를 확인해주세요.'); return false; }
+}
+async function raidLeaveTeam() {
+  const nick = getNick();
+  if (RD.code && RANK_DB && nick) {
+    try { await fetch(`${RANK_DB}/party/_raid/${RD.code}/dmg/${encodeURIComponent(nick)}.json`, { method: 'DELETE' }); } catch (e) {}
+  }
+  RD.code = null; RD.mates = {}; RD.mateDmg = 0;
+  if (raidTeamTimer) { clearInterval(raidTeamTimer); raidTeamTimer = null; }
+  renderRaidLobby();
+}
 const SHOT_WIN = { 1: 0.30, 2: 0.20, 3: 0.12 };                     // 🏀 농구: 점수별 파워 성공 폭(멀수록 좁다)
 // 🎯 스키볼: 세게 굴릴수록 고득점, 단 끝을 넘기면 0점
 const SKEE_ZONES = [{ max: 0.55, pt: 10 }, { max: 0.72, pt: 20 }, { max: 0.85, pt: 30 },
@@ -1520,9 +1829,12 @@ function sellSelected() {
 // ---------- 업데이트 ----------
 function update(dt) {
   S.time += dt;
-  // 웨이브 진행
-  S.roundT -= dt;
-  if (S.roundT <= 0) startWave();
+  // 웨이브 진행 (🍡 레이드는 웨이브 없이 보스 하나만 상대한다)
+  if (RD.on) { raidUpdate(dt); if (!RD.on) return; }
+  else {
+    S.roundT -= dt;
+    if (S.roundT <= 0) startWave();
+  }
   if (S.toSpawn > 0) {
     S.spawnTimer -= dt;
     if (S.spawnTimer <= 0) { S.spawnTimer = S.spawnInterval; S.toSpawn--; spawnEnemy(); }
@@ -1822,7 +2134,7 @@ function update(dt) {
     }
   }
   // 패배 판정 (DARK KAKAO 무적 모드는 예외)
-  if (S.enemies.length >= ENEMY_LIMIT && !DEV_GOD) gameOver();
+  if (S.enemies.length >= ENEMY_LIMIT && !DEV_GOD && !RD.on) gameOver();
 }
 
 function bestOf(i) { return +(localStorage.getItem('ltd_best_' + i) || 0); } // 스토리 스테이지별 최고 기록
@@ -2181,6 +2493,16 @@ function draw() {
     ctx.strokeStyle = u.ghost ? '#81d4fa' : GRADES[u.grade].color; ctx.lineWidth = 3;
     ctx.fillStyle = 'rgba(0,0,0,0.18)';
     ctx.fill(); ctx.stroke();
+    // 🛟 한정판 윌리 스킨 — 떡장수를 잡은 사람만 보이는 황금 테두리 (그림은 예준이 작업 예정)
+    const limited = u.special === 'pool' && raidSkinOn();
+    if (limited) {
+      ctx.beginPath();
+      ctx.arc(sl.cx, sl.cy, 27 * pop, 0, Math.PI * 2);
+      ctx.strokeStyle = '#ffd54f'; ctx.lineWidth = 2.5;
+      ctx.globalAlpha = 0.55 + Math.abs(Math.sin(S.time * 3)) * 0.45;
+      ctx.stroke();
+      ctx.globalAlpha = locked ? 0.55 : u.ghost ? 0.5 : 1;
+    }
     const img = IMAGES[u.type];
     if (img && img.complete && img.naturalWidth) {
       const sz = 46 * pop;
@@ -2190,6 +2512,7 @@ function draw() {
       ctx.fillText(u.emoji, sl.cx, sl.cy + 1);
     }
     ctx.globalAlpha = 1;
+    if (limited) { ctx.font = '13px sans-serif'; ctx.fillText('✨', sl.cx + 17, sl.cy + 17); }
     if (u.cheerT > 0) { // 🤠 응원 버프 받는 중
       ctx.font = '13px sans-serif';
       ctx.fillText('📣', sl.cx + 17, sl.cy - 17);
@@ -2876,6 +3199,7 @@ function showOverlay(mode) {
   $('ovBtnY').classList.add('hidden');
   $('ovBtnA').classList.add('hidden');
   $('ovBtnB').classList.add('hidden');
+  $('ovBtnR').classList.add('hidden');
   $('ovBtnK').classList.add('hidden');
   $('ovBtnL').classList.add('hidden');
   $('nickLine').classList.add('hidden');
@@ -2905,6 +3229,7 @@ function showOverlay(mode) {
     loadLava(); // 🌋 이벤트 진행 여부 확인
     loadGobEvent(); // 🏰 고블린의 저택 진행 여부 확인
     loadArcEvent(); // 🏀 베인오락실 진행 여부 확인
+    loadRaidEvent(); // 🍡 최강의 떡장수 레이드 진행 여부 확인
     loadDragonEvent(); // 🐲 숨겨진 합성 진행 여부
     updateEventUI();
     maybeShowNotice(); // 📢 새 공지가 있으면 자동으로 띄운다
@@ -3001,6 +3326,35 @@ function showOverlay(mode) {
     b2.textContent = '스테이지 선택';
     b2.classList.remove('hidden');
     $('ovRecord').textContent = '';
+  } else if (mode === 'raidwin') { // 🍡 떡장수 토벌 성공!
+    ov.querySelector('h1').textContent = '🎉 최강의 떡장수 토벌!';
+    $('ovChars').style.display = 'none';
+    sel.style.display = 'none';
+    const took = Math.round(RAID_TIME - RD.t);
+    $('ovMsg').innerHTML = `🍡 <b>1,050만</b>을 모두 깎았다!<br>` +
+      `걸린 시간 <b style="font-size:20px;color:#fff">${Math.floor(took / 60)}분 ${took % 60}초</b>` +
+      (RD.code ? `<br>👥 팀 토벌 (내 피해 ${fmtNum(RD.myDmg)})` : '<br>⚔️ 혼자서 해냈다!') +
+      `<br><br>🛟 <b style="color:#ffd54f">한정판 윌리 스킨</b> 획득!` +
+      `<br>🎫 <b style="color:#ce93d8">신규 캐릭터 예비 이용권</b> ${RAID.ticket || 0}장 보유`;
+    $('ovRecord').textContent = '🛟 윌리를 소환하면 한정판 모습으로 나옵니다';
+    b1.textContent = '🍡 다시 도전';
+    b1.classList.remove('hidden');
+    b2.textContent = '처음으로';
+    b2.classList.remove('hidden');
+  } else if (mode === 'raidfail') { // 🍡 시간 초과
+    ov.querySelector('h1').textContent = '⏱️ 시간 초과!';
+    $('ovChars').style.display = 'none';
+    sel.style.display = 'none';
+    const left = RD.boss ? RD.boss.hp : RAID_HP;
+    $('ovMsg').innerHTML = `🍡 떡장수가 도망쳤다...<br>` +
+      `남은 체력 <b style="font-size:20px;color:#ff8a65">${fmtNum(left)}</b> (${(left / RAID_HP * 100).toFixed(1)}%)<br>` +
+      `내가 넣은 피해 <b>${fmtNum(RD.myDmg)}</b>` +
+      (RD.code ? '' : '<br><br>💡 <b>팀을 짜면</b> 피해량이 합산돼요! 최대 5명');
+    $('ovRecord').textContent = '💡 떡값(골드)으로 강화를 계속 올리는 게 핵심이에요';
+    b1.textContent = '🍡 다시 도전';
+    b1.classList.remove('hidden');
+    b2.textContent = '처음으로';
+    b2.classList.remove('hidden');
   }
 }
 function startClassic() { // 일반 모드: 초원 맵에서 끝없는 웨이브
@@ -3033,15 +3387,19 @@ $('ovBtn').addEventListener('click', () => {
   } else if (ovMode === 'gameover') { // 같은 모드로 다시
     if (S.mode === 'story') startStage(S.stage);
     else startClassic();
+  } else if (ovMode === 'raidwin' || ovMode === 'raidfail') { // 🍡 레이드 재도전
+    startRaid();
   }
 });
 $('ovBtn2').addEventListener('click', () => {
   if (ovMode === 'home') { showOverlay('stages'); return; }
   if (ovMode === 'stages' || ovMode === 'rank') { showOverlay('home'); return; }
   // 게임오버/클리어 화면에서: 목록으로 돌아가기
+  const wasRaid = ovMode === 'raidwin' || ovMode === 'raidfail';
   S.running = false;
   S.clearWait = false;
   S.over = false;
+  if (wasRaid) { raidQuit(); S.mode = 'classic'; showOverlay('home'); return; }
   showOverlay(S.mode === 'story' ? 'stages' : 'home');
 });
 $('ovBtn3').addEventListener('click', () => showOverlay('rank'));
@@ -3997,8 +4355,29 @@ $('celebOk').addEventListener('click', () => $('celeb').classList.add('hidden'))
 $('cardsClose').addEventListener('click', () => $('cards').classList.add('hidden'));
 $('ovBtnL').addEventListener('click', () => { $('cards').classList.remove('hidden'); renderCards(); });
 $('krClose').addEventListener('click', () => $('keyring').classList.add('hidden'));
+// 🍡 최강의 떡장수 레이드
+$('ovBtnR').addEventListener('click', openRaid);
+$('raidClose').addEventListener('click', closeRaid);
+$('raidSolo').addEventListener('click', () => { RD.code = null; RD.mates = {}; closeRaid(); startRaid(); });
+$('raidMake').addEventListener('click', async () => {
+  const code = String(Math.floor(1000 + Math.random() * 9000));
+  if (await raidJoinCode(code)) addText(WORLD_W / 2, 300, `팀 코드 ${code}`, '#ffd54f', 18);
+});
+$('raidJoinBtn').addEventListener('click', () => {
+  $('raidJoinWrap').classList.toggle('hidden');
+  $('raidInput').focus();
+});
+$('raidJoinOk').addEventListener('click', async () => {
+  const c = ($('raidInput').value || '').trim();
+  if (!/^\d{4}$/.test(c)) { alert('4자리 숫자 코드를 입력해주세요'); return; }
+  if (await raidJoinCode(c)) $('raidJoinWrap').classList.add('hidden');
+});
+$('raidLeave').addEventListener('click', raidLeaveTeam);
+$('raidGo').addEventListener('click', () => { closeRaid(); startRaid(); });
+$('devRaid').addEventListener('click', () => { if (DEV) startRaidEvent(); }); // 🍡 레이드 개시
 $('ovBtnK').addEventListener('click', () => { $('keyring').classList.remove('hidden'); renderKeyringPage(); });
 loadArc();
+loadRaid();   // 🍡 내 레이드 기록(스킨·이용권)
 
 // ---------- 🎣 낚시터 & 보물 (기획: 구예준) ----------
 // 진주로 낚시 → 보물 획득, 중복이면 레벨업(최대 15). 효과는 레벨에 비례.
@@ -4059,6 +4438,7 @@ function updateEventUI() {
   show('ovBtnA', arcOn());
   show('ovBtnB', arcOn() && ARC.unlocked);
   show('ovBtnK', arcOn() || arcOwned() > 0);
+  show('ovBtnR', raidOn());   // 🍡 최강의 떡장수 — 이벤트 기간에만
   const on = lavaOn();
   const he = $('homeEvent');
   if (he) {
@@ -4186,6 +4566,7 @@ function hasBadWord(t) {
 }
 function myStatus() { // 지금 뭐 하는 중인지
   if (DUO.on && DUO.playing) return `👥 더블큐 웨이브 ${S.wave}`;
+  if (S.running && !S.over && RD.on) return `🍡 떡장수 레이드 ${(100 - (RD.boss ? RD.boss.hp / RAID_HP * 100 : 100)).toFixed(0)}%`;
   if (S.running && !S.over) return S.mode === 'story' ? `🗺️ ${STAGES[S.stage].name} 웨이브 ${S.wave}` : `🎮 웨이브 ${S.wave}`;
   return '🏠 로비';
 }
@@ -4750,6 +5131,9 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   deckEditState: () => ({ edit: deckEdit.slice(), sel: deckSel }),
   ARC, KEYRINGS, startArc, arcOn, renderArc, arcCatch, arcShoot, gachaDraw, useKeyring, renderNoodleBar,
   getArc: () => ({ ...ARC, until: ARC_UNTIL }),
+  RD, RAID, startRaid, raidUpdate, raidWin, raidFail, mkRaidBoss, openRaid, raidBarrierMul,
+  raidOn, startRaidEvent, RAID_HP, RAID_TIME,
+  setRaid: (until) => { RAID_UNTIL = until; updateEventUI(); },
   setArc: (a, until) => { ARC = { ...ARC, ...a }; if (until !== undefined) ARC_UNTIL = until; saveArc(); updateEventUI(); },
   arcState: () => ({ phase: arcPhase, pick: arcPick, ball: arcBallPos, power: arcPower, pts: arcPts,
     game: arcGame, skeePower, bowlAim, bowlPower, bowlPhase }),
