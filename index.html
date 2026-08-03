@@ -953,7 +953,7 @@ const UNITS = [
   { type:'indie',      grade:2, emoji:'🤠', name:'인디',       dmg:44,  cd:0.70, range:140, atk:'paper', special:'cheer', img:'character/hero4.png' },
   { type:'jeff',       grade:2, emoji:'🕴️', name:'제프',       dmg:51,  cd:0.80, range:130, atk:'orb',   special:'office', img:'character/hero5.png' },
   { type:'railey',     grade:2, emoji:'⚡', name:'레일리',     dmg:110, cd:1.50, range:200, splash:60, atk:'bolt', special:'stun', img:'character/hero7.png' },
-  { type:'willy',      grade:2, emoji:'🛟', name:'윌리',       dmg:24,  cd:0.80, range:140, atk:'tube',  special:'pool',   img:'character/hero6.png' },
+  { type:'willy',      grade:2, emoji:'🛟', name:'윌리',       dmg:24,  cd:0.80, range:140, atk:'tube',  special:'pool',   hyper:'워터밤 쇼!', img:'character/hero6.png' },
 ];
 // 🐧 펭귄악사의 연주 오라 (기획: 구예준) — 범위 내 아군 강화 + 적 약화
 const AURA_DMG = 1.25, AURA_SPD = 1.2, AURA_ENEMY_SLOW = 0.65;
@@ -1003,7 +1003,11 @@ const TEZ_CHAIN_CHANCE = 0.4, TEZ_CHAIN_HITS = 2;                            // 
 const BLADER_MIN = 2, BLADER_MAX = 3, BLADER_FRAC = 0.4;                     // 🗡️ 블레이더: 단검 2~3개, 각 공격력의 40%
 // ⚔️ 블레이더 리워크 (기획: 구예준) — 근접하면 검사가 되어 발도술, 원거리는 던질수록 강해진다
 const BLADE_STACK = 0.10, BLADE_STACK_MAX = 20;   // 🗡️ 단검 한 대마다 +10%, 최대 +200%                               // 🗡️ 단검 관통: 한 자루가 최대 3명 (반경 34)
-const POOL_TIME = 20, POOL_SLOW = 20, POOL_ATK = 1.1;                        // 🛟 윌리: 풀장 20초(웨이브 내내) — 적 감속 + 아군 공격력 +10%
+const POOL_TIME = 20, POOL_SLOW = 20, POOL_ATK = 1.1;
+// 🛟 워터밤 쇼! — 윌리 하이퍼차지 (기획: 구예준)
+const WBOMB_TIME = 20;        // 20초간 지속
+const WBOMB_SLOW = 0.25;      // 이동속도 75% 하락 (0.25배)
+const WBOMB_HP = 0.60;        // 체력 40% 하락 (60%로)                        // 🛟 윌리: 풀장 20초(웨이브 내내) — 적 감속 + 아군 공격력 +10%
 const MULTI_TARGETS = 5;                                                     // 떡장수: 동시 공격 대상 수
 const FIREBALL_CHANCE = 0.25, FIREBALL_MUL = 4; // 원까태인 불꽃공 확률 (피해 4배 + 소범위)
 const PROJ_SPEED = { dagger:760, tube:400, arrow:700, scythe:420, ball:560, fire:480, shell:320, shuriken:650, fan:560, missile:430, drill:620, songpyeon:520, holy:560, paper:540, orb:500 };
@@ -1504,7 +1508,7 @@ function resetGame() {
   S.roundT = 0; S.toSpawn = 0;
   S.enemies = []; S.projectiles = []; S.texts = []; S.effects = []; S.bombs = []; S.knights = []; S.mates = []; S.drills = [];
   S.drillUses = 0;   // 🔩 이번 판에 변신한 횟수 (쓸수록 비용 +50)
-  S.buffT = { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0, jura: 0, bleed: 0, car: 0, pool: 0, bench: 0 };
+  S.buffT = { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0, jura: 0, bleed: 0, car: 0, pool: 0, bench: 0, wbomb: 0 };
   S.atkLv = 0;
   S.crunchT = 0;
   S.hyperCharges = 0;
@@ -1679,6 +1683,7 @@ function spawnEnemy() {
   let hp = Math.round(hpFor(w) * stg.hpMul * (isBoss ? stg.bossMul || 30 : 1));
   if (isBoss && S.keyring === 'jura') hp = Math.max(1, Math.round(hp * KR_BOSS_HP)); // 🦕 쥬라사우르스 키링
   if (S.crunchT > 0) hp = Math.max(1, Math.round(hp * (1 - CRUNCH_CUT))); // 🐗 깨물어부수기 중엔 새 적도 반토막
+  if (S.buffT.wbomb > 0) hp = Math.max(1, Math.round(hp * WBOMB_HP));    // 🛟 워터밤 쇼 중엔 새 적도 체력 40% 하락
   const gm = trLv('gem'); // 💎 간트네스의 반지: 40% 확률로 적 체력 삭감
   if (gm && Math.random() < 0.4) hp = Math.max(1, Math.round(hp * (1 - (10 + gm) / 100)));
   S.enemies.push({
@@ -1837,6 +1842,18 @@ function castHyper(slot) { // ⚡ 하이퍼차지 발동! (캐릭터마다 다�
     S.effects.push({ kind: 'soulcircle', x: WORLD_W / 2, y: WORLD_H / 2, t: 1, decay: 1 / SOUL_TIME });
     addText(WORLD_W / 2, 262, `암흑의 기사 ${SOUL_KNIGHTS}기 강림! ${SOUL_TIME}초`, '#b388ff', 15);
     addText(sl.cx, sl.cy - 30, '⚔️🌑', '#fff', 24);
+  } else if (sl.unit.type === 'willy') { // 🛟 워터밤 쇼! — 거대 풀장 개장
+    S.buffT.wbomb = WBOMB_TIME;
+    for (const e of S.enemies) {
+      e.hp = Math.min(e.hp, e.maxhp * WBOMB_HP);   // 체력 40% 하락 (중첩되지 않는다)
+    }   // 감속은 S.buffT.wbomb 하나로만 — 기존 slowT까지 걸면 75%가 아니라 86%가 된다
+    S.effects.push({ kind: 'wbomb', x: WORLD_W / 2, y: WORLD_H / 2, t: 1, decay: 1 / WBOMB_TIME });
+    for (let i = 0; i < 10; i++)   // 물풍선이 사방으로 터진다
+      S.effects.push({ kind: 'benchfly', x: sl.cx, y: sl.cy,
+        vx: (Math.random() - 0.5) * 560, vy: -180 - Math.random() * 240,
+        icon: ['💧','🫧','🛟'][i % 3], rot: Math.random() * 6, t: 1, decay: 0.55 });
+    addText(WORLD_W / 2, 262, `🛟 워터밤 쇼! 적 전체 이동속도 ${Math.round((1 - WBOMB_SLOW) * 100)}% · 체력 ${Math.round((1 - WBOMB_HP) * 100)}% 하락 (${WBOMB_TIME}초)`, '#4fc3f7', 14);
+    addText(sl.cx, sl.cy - 30, '🛟💧🫧', '#fff', 24);
   } else if (sl.unit.type === 'farmer') { // 얼어버리는 일륜도
     S.buffT.hyper = FARMER_DMG_TIME;
     for (const e of S.enemies) e.frozenT = FARMER_FREEZE_TIME; // 적 전원 빙결
@@ -1921,7 +1938,8 @@ function update(dt) {
   for (const e of S.enemies) {
     if (e.frozenT > 0) { e.frozenT -= dt; continue; } // 얼어버리는 일륜도: 꽁꽁 정지
     const ep = posAt(e.d);
-    const eff = (e.slowT > 0 ? 0.55 : 1) * (auras.length && inAura(ep.x, ep.y) ? AURA_ENEMY_SLOW : 1);
+    const eff = (e.slowT > 0 ? 0.55 : 1) * (auras.length && inAura(ep.x, ep.y) ? AURA_ENEMY_SLOW : 1)
+              * (S.buffT.wbomb > 0 ? WBOMB_SLOW : 1);   // 🛟 워터밤 쇼: 이동속도 75% 하락
     e.slowT -= dt;
     const mv = e.speed * eff * dt;
     e.d += mv; e.trav += mv;
@@ -2239,7 +2257,7 @@ function update(dt) {
   }
   // 로얄 셰프 요리 버프 타이머
   if (S.crunchT > 0) S.crunchT -= dt;   // 🐗 깨물어부수기 지속시간
-  for (const k of ['dmg', 'spd', 'gold', 'hyper', 'jura', 'bleed', 'car', 'pool', 'bench']) if (S.buffT[k] > 0) S.buffT[k] -= dt;
+  for (const k of ['dmg', 'spd', 'gold', 'hyper', 'jura', 'bleed', 'car', 'pool', 'bench', 'wbomb']) if (S.buffT[k] > 0) S.buffT[k] -= dt;
   if (S.buffT.ghost > 0) {
     S.buffT.ghost -= dt;
     if (S.buffT.ghost <= 0) { // 수프 시간 끝 — 분신들 퇴장
@@ -3064,6 +3082,22 @@ function draw() {
       ctx.globalAlpha = e.t;
       ctx.fillText('👊', e.x, e.y + 8);
       ctx.globalAlpha = 1; ctx.textAlign = 'left';
+    } else if (e.kind === 'wbomb') {   // 🛟 워터밤 쇼 — 맵 전체를 덮는 거대 풀장
+      const rr = 250 * (1 - e.t * 0.15) + Math.sin(S.time * 2) * 6;
+      ctx.fillStyle = `rgba(79,195,247,${0.14 * Math.min(1, e.t * 3)})`;
+      ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = `rgba(129,212,250,${0.75 * Math.min(1, e.t * 3)})`; ctx.lineWidth = 3;
+      for (let i = 0; i < 3; i++) {                       // 물결 세 겹
+        const w = rr * (0.5 + i * 0.25) + Math.sin(S.time * 3 + i * 1.6) * 8;
+        ctx.beginPath(); ctx.arc(e.x, e.y, w, 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.font = '20px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      for (let i = 0; i < 8; i++) {                       // 둥둥 떠다니는 튜브·물방울
+        const a = (i / 8) * Math.PI * 2 + S.time * 0.7;
+        ctx.globalAlpha = Math.min(1, e.t * 3);
+        ctx.fillText(['🛟','💧','🫧'][i % 3], e.x + Math.cos(a) * rr * 0.72, e.y + Math.sin(a) * rr * 0.72);
+      }
+      ctx.globalAlpha = 1; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     } else if (e.kind === 'pool') {    // 🛟 윌리: 발밑에 퍼지는 물장
       const rr = (e.r || 70) * (0.6 + 0.4 * Math.sin(S.time * 3));
       ctx.fillStyle = `rgba(79,195,247,${0.18 * Math.min(1, e.t * 2)})`;
