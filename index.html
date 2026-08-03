@@ -917,7 +917,9 @@ const FOODS = [
 ];
 // 신화 특수 능력
 const BOMB_CHANCE = 0.15, BOMB_DMG = 288, BOMB_RADIUS = 60, BOMB_FUSE = 1.0; // 능력자광부: 폭탄 설치
-const BALDO_CHANCE = 0.25, BALDO_RADIUS = 90;                                // 낭인: 발도술 광역
+const BALDO_CHANCE = 0.25, BALDO_RADIUS = 90;
+// 🗡️ 발도술 연출 (설정: 아빠 — 이펙트 만들기 도구)
+const BALDO_BLADES = 14, BALDO_EMO_SIZE = 24, BALDO_SPREAD = 70, BALDO_SPIN = 6, BALDO_RISE = 60;                                // 낭인: 발도술 광역
 const SMITE_CHANCE = 0.02, SMITE_BOSS_PCT = 0.03;                            // 천사 도베르만: 즉사 (보스는 최대체력 3% 추가)
 // ⚾ 원까태인 하이퍼차지 「벤치클리어링」 — 팀 동료들이 덕아웃에서 뛰쳐나온다 (기획: 구예준)
 const BENCH_MUL = 5, BENCH_TIME = 45, BENCH_MATES = 5;
@@ -1610,7 +1612,7 @@ function update(dt) {
           const p2 = posAt(e2.d);
           if (Math.hypot(p2.x - bp.x, p2.y - bp.y) <= BALDO_RADIUS) e2.hp -= D;
         }
-        S.effects.push({ kind: 'baldo', x: bp.x, y: bp.y, r: BALDO_RADIUS, t: 1, decay: 1.3 });
+        S.effects.push({ kind: 'baldo', x: bp.x, y: bp.y, r: BALDO_RADIUS, t: 1, decay: 30 / 16 });
         addText(bp.x, bp.y - 24, '⚔️ 발도술!', '#b3e5fc', 15);
       } else if (INSTANT_ATK.has(u.atk)) {
         // 즉발 공격: 곧바로 피해 + 전용 이펙트 (브레스 등 범위 공격 포함)
@@ -2615,15 +2617,24 @@ function draw() {
         ctx.lineTo(e.x + Math.cos(a2) * (rr - 14), e.y + Math.sin(a2) * (rr - 14));
       }
       ctx.stroke();
-    } else if (e.kind === 'baldo') {   // 낭인: 발도술 — 원형 검격
-      const rr = e.r * (1 - e.t * 0.4);
-      ctx.fillStyle = 'rgba(129,212,250,0.18)';
-      ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#81d4fa'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.stroke();
-      const sw = (1 - e.t) * Math.PI * 2;
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.arc(e.x, e.y, rr * 0.7, sw, sw + 1.2); ctx.stroke();
+    } else if (e.kind === 'baldo') {   // 낭인: 발도술 — 단검 14자루가 솟구친다 (연출: 아빠)
+      const grow = 1 - e.t;
+      ctx.strokeStyle = '#ff5252'; ctx.globalAlpha = e.t; ctx.lineWidth = 4;   // 붉은 고리
+      ctx.beginPath(); ctx.arc(e.x, e.y, BALDO_SPREAD * grow, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.font = `${BALDO_EMO_SIZE}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      for (let i = 0; i < BALDO_BLADES; i++) {
+        const ang = (i / BALDO_BLADES) * Math.PI * 2;
+        const dist = BALDO_SPREAD * grow;
+        const x = e.x + Math.cos(ang) * dist;
+        const y = e.y + Math.sin(ang) * dist - grow * BALDO_RISE;   // 위로 솟구침
+        ctx.save(); ctx.translate(x, y);
+        ctx.rotate(S.time * BALDO_SPIN + ang);
+        ctx.globalAlpha = e.t;
+        ctx.fillText('🗡️', 0, 0);
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     } else if (e.kind === 'smite') {   // 천사 도베르만: 천벌 빛기둥
       const wpx = 16 * e.t + 6;
       ctx.fillStyle = 'rgba(255,236,179,0.75)';
