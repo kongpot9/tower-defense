@@ -2455,8 +2455,24 @@ function draw() {
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (const e of S.enemies) {
     const p = posAt(e.d);
+    if (e.raid) { // 🍡 최강의 떡장수 — 노란 오라를 두른 떡장수 본인
+      const R = 36 * (1 + Math.sin(S.time * 3) * 0.1);
+      const gr = ctx.createRadialGradient(p.x, p.y, R * 0.2, p.x, p.y, R);
+      gr.addColorStop(0, 'rgba(255,235,130,0.60)');
+      gr.addColorStop(0.55, 'rgba(255,193,7,0.30)');
+      gr.addColorStop(1, 'rgba(255,193,7,0)');
+      ctx.fillStyle = gr;
+      ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = `rgba(255,213,79,${0.45 + Math.abs(Math.sin(S.time * 2)) * 0.55})`;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(p.x, p.y, R * 0.8, 0, Math.PI * 2); ctx.stroke();
+      const im = IMAGES['ricecake'];
+      if (im && im.complete && im.naturalWidth) ctx.drawImage(im, p.x - 27, p.y - 27, 54, 54);
+      else { ctx.font = '40px sans-serif'; ctx.fillText('🍡', p.x, p.y); }
+    } else {
     ctx.font = `${e.boss ? 38 : 22}px sans-serif`;
     ctx.fillText(e.emoji, p.x, p.y);
+    }
     if (e.frozenT > 0) { // 얼음 속에 갇힌 적
       ctx.globalAlpha = 0.8;
       ctx.font = `${e.boss ? 44 : 27}px sans-serif`;
