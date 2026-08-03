@@ -360,13 +360,12 @@
   /* 홈 보조 버튼: 작게 — 개수가 많아 세로가 넘치지 않도록 */
   #overlay #ovBtn2, #overlay #ovBtn3, #overlay #ovBtnK, #overlay #ovBtn4,
   #overlay #ovBtnA, #overlay #ovBtn5, #overlay #ovBtnB, #overlay #ovBtn6,
-  #overlay #ovBtnD, #overlay #ovBtn7, #overlay #ovBtnN, #overlay #ovBtnY, #overlay #ovBtnE {
+  #overlay #ovBtnD, #overlay #ovBtn7, #overlay #ovBtnN, #overlay #ovBtnY {
     margin-top:0; padding:10px 28px; font-size:15px; min-width:200px;
     background:#3a4566; box-shadow:0 4px 0 #232a42;
   }
   #overlay #ovBtnD { background:#3f6ea8; box-shadow:0 4px 0 #26456a; } /* 🃏 전투덱 */
   #overlay #ovBtnY { background:#c0392b; box-shadow:0 4px 0 #7c241a; }  /* 📺 유튜브 */
-  #overlay #ovBtnE { background:#6a3fa0; box-shadow:0 4px 0 #40266b; font-size:13px !important; }  /* 🎨 만들기 */
   #overlay #ovBtnA { background:#a8632f; box-shadow:0 4px 0 #6b3d1c; } /* 🏀 베인오락실 */
   @media (max-height: 780px) {
     #overlay h1 { font-size:26px; }
@@ -375,7 +374,7 @@
     #overlay button { padding:12px 40px; font-size:17px; }
     #overlay #ovBtn2, #overlay #ovBtn3, #overlay #ovBtnK, #overlay #ovBtn4,
     #overlay #ovBtnA, #overlay #ovBtn5, #overlay #ovBtnB, #overlay #ovBtn6,
-    #overlay #ovBtnD, #overlay #ovBtn7, #overlay #ovBtnN, #overlay #ovBtnY, #overlay #ovBtnE { padding:8px 22px; font-size:14px; }
+    #overlay #ovBtnD, #overlay #ovBtn7, #overlay #ovBtnN, #overlay #ovBtnY { padding:8px 22px; font-size:14px; }
   }
   .lvcard {
     display:inline-flex; align-items:center; gap:3px; padding:1px 7px; margin-left:4px;
@@ -546,6 +545,7 @@
     <button class="devbtn" id="devGob">🏰저택</button>
     <button class="devbtn" id="devArc">🏀오락실</button>
     <button class="devbtn" id="devDragon">🐲불멸</button>
+    <button class="devbtn" id="devLab">🎨만들기</button>
   </div>
   <div id="noodleBar" class="hidden"></div>
   <div id="btnrow">
@@ -571,7 +571,6 @@
   <button id="ovBtn2" class="hidden">스테이지 선택</button>
   <button id="ovBtn3" class="hidden">🏆 랭킹</button>
   <button id="ovBtnY" class="hidden">📺 공식 채널</button>
-  <button id="ovBtnE" class="hidden">🎨 이펙트/애니메이션/모형 만들기</button>
   <button id="ovBtn4" class="hidden">👥 더블큐</button>
   <button id="ovBtnA" class="hidden">🏀 베인오락실</button>
   <button id="ovBtn5" class="hidden">💬 채팅방<span id="chatBadge" class="hidden">0</span></button>
@@ -2857,7 +2856,6 @@ function showOverlay(mode) {
   $('ovBtnD').classList.add('hidden');
   $('ovBtnN').classList.add('hidden');
   $('ovBtnY').classList.add('hidden');
-  $('ovBtnE').classList.add('hidden');
   $('ovBtnA').classList.add('hidden');
   $('ovBtnB').classList.add('hidden');
   $('ovBtnK').classList.add('hidden');
@@ -2879,7 +2877,6 @@ function showOverlay(mode) {
     $('ovBtnD').classList.remove('hidden'); // 🃏 전투덱 (낚시터 옆)
     $('ovBtnN').classList.remove('hidden'); // 📢 공지 다시 보기
     $('ovBtnY').classList.remove('hidden'); // 📺 공식 유튜브 채널
-    $('ovBtnE').classList.remove('hidden'); // 🎨 이펙트 연습장
     $('ovBtnL').classList.remove('hidden'); // ⭐ 전투카드
     $('ovBtn7').classList.remove('hidden');
     if (DUO.on) duoCleanup(); // 홈으로 오면 듀오 종료
@@ -2896,7 +2893,7 @@ function showOverlay(mode) {
     startChatBadge(); // 🔴 안 읽은 채팅 수
     showCeleb();      // 🎉 3자리 달성자 축하
     if (isNewbie()) { // 입문 유저: 한 판 끝낼 때까지 고급 기능을 숨겨 화면을 비운다
-      for (const id of ['ovBtnK', 'ovBtnL', 'ovBtnD', 'ovBtnA', 'ovBtnB', 'ovBtn7', 'ovBtnN', 'ovBtnY', 'ovBtnE'])
+      for (const id of ['ovBtnK', 'ovBtnL', 'ovBtnD', 'ovBtnA', 'ovBtnB', 'ovBtn7', 'ovBtnN', 'ovBtnY'])
         $(id).classList.add('hidden');
     }
   } else if (mode === 'rank') { // 🏆 랭킹
@@ -3090,6 +3087,7 @@ $('devLava').addEventListener('click', () => { if (DEV) startLava(); }); // 🌋
 $('devGob').addEventListener('click', () => { if (DEV) startGob(); });   // 🏰 고블린의 저택 개시 (7일 7시간 7분)
 $('devArc').addEventListener('click', () => { if (DEV) startArc(); });   // 🏀 베인오락실 개시 (7일 7시간 7분 7초)
 $('devDragon').addEventListener('click', () => { if (DEV) startDragon(); }); // 🐲 불멸 드래곤 개시 (7일)
+$('devLab').addEventListener('click', () => { if (DEV) location.href = 'effect-lab.html'; }); // 🎨 이펙트 만들기 (아빠·예준 전용)
 $('devPickBtn').addEventListener('click', () => {
   if (!DEV) return;
   const grid = $('devPickGrid');
@@ -3572,7 +3570,6 @@ function maybeShowNotice() {
 $('ovBtnN').addEventListener('click', showNotice);
 const YT_CHANNEL = 'https://www.youtube.com/@Tower-desfense-official777'; // 📺 타워 디펜스 777 공식계정
 $('ovBtnY').addEventListener('click', () => window.open(YT_CHANNEL, '_blank', 'noopener'));
-$('ovBtnE').addEventListener('click', () => { location.href = 'effect-lab.html'; }); // 🎨 이펙트 연습장
 $('noticeOk').addEventListener('click', () => {
   try { localStorage.setItem('ltd_notice', NOTICE_ID); } catch (e) {}
   $('notice').classList.add('hidden');

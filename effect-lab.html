@@ -1,113 +1,159 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>🎨 이펙트/애니메이션/모형 만들기 — 타워 디펜스 777</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>🎨 이펙트 만들기 — 구예준 STUDIO</title>
 <style>
+  * { box-sizing:border-box; }
   body { margin:0; background:#1c2333; color:#fff; font-family:'Malgun Gothic',sans-serif;
-         display:flex; flex-direction:column; align-items:center; gap:10px; padding:14px; }
-  h1 { font-size:18px; margin:0; }
-  p { font-size:13px; color:#9fb0d8; margin:0; text-align:center; line-height:1.6; }
-  canvas { background:#0f1626; border-radius:12px; touch-action:none; }
-  .row { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+         display:flex; flex-direction:column; align-items:center; gap:9px;
+         padding:12px 12px calc(12px + env(safe-area-inset-bottom)); }
+  h1 { font-size:17px; margin:0; color:#b388ff; }
+  .sub { font-size:12px; color:#9fb0d8; margin:0; text-align:center; line-height:1.6; }
+  canvas { background:#0f1626; border-radius:12px; touch-action:none; max-width:100%; }
+  .panel { width:100%; max-width:420px; display:flex; flex-direction:column; gap:7px; }
+  .ctl { display:flex; align-items:center; gap:8px; background:#242c44; border-radius:9px; padding:7px 10px; }
+  .ctl label { font-size:12px; font-weight:800; width:74px; flex:none; color:#cfd8ff; }
+  .ctl input[type=range] { flex:1; }
+  .ctl .val { font-size:12px; font-weight:800; width:42px; text-align:right; color:#ffd54f; }
+  .ctl input[type=text] { flex:1; background:#12182a; color:#fff; border:2px solid #3a4566;
+                          border-radius:8px; padding:6px 9px; font-size:16px; font-family:inherit; }
+  .emos { display:flex; flex-wrap:wrap; gap:5px; }
+  .emos button { background:#2a3358; border:0; border-radius:8px; padding:5px 8px; font-size:19px; cursor:pointer; }
+  .row { display:flex; gap:7px; flex-wrap:wrap; justify-content:center; }
   button { background:#3f6ea8; color:#fff; border:0; border-radius:9px;
-           padding:9px 16px; font-size:14px; font-weight:800; cursor:pointer; }
-  code { background:#2a3358; padding:1px 5px; border-radius:5px; }
+           padding:9px 15px; font-size:13px; font-weight:800; cursor:pointer; }
+  .on { background:#ffd54f; color:#2c0a16; }
+  #out { width:100%; max-width:420px; background:#12182a; border:2px solid #6a3fa0; border-radius:10px;
+         padding:10px; font-size:12px; line-height:1.7; color:#e1d4ff; white-space:pre-wrap; }
 </style>
 
-<h1>🎨 이펙트 / 애니메이션 / 모형 만들기</h1>
-<p>화면을 <b>누르면</b> 그 자리에 이펙트가 나옵니다<br>
-아래 <code>drawMyEffect</code> 함수만 고치고 <b>저장 → F5</b></p>
+<h1>🎨 이펙트 만들기</h1>
+<p class="sub">이모지와 슬라이더만으로 만들어요 — 코딩 필요 없음<br>다 만들면 <b>[📋 설정 복사]</b> 눌러서 클로드에게 주세요</p>
 
-<canvas id="cv" width="360" height="420"></canvas>
+<canvas id="cv" width="360" height="360"></canvas>
+
+<div class="panel">
+  <div class="ctl">
+    <label>이모지</label>
+    <input type="text" id="emo" value="🔥" maxlength="8">
+  </div>
+  <div class="emos" id="quick"></div>
+
+  <div class="ctl"><label>개수</label><input type="range" id="count" min="1" max="20" value="8"><span class="val" id="vcount"></span></div>
+  <div class="ctl"><label>크기</label><input type="range" id="size" min="8" max="60" value="24"><span class="val" id="vsize"></span></div>
+  <div class="ctl"><label>퍼짐</label><input type="range" id="spread" min="0" max="140" value="70"><span class="val" id="vspread"></span></div>
+  <div class="ctl"><label>회전</label><input type="range" id="spin" min="0" max="20" value="6"><span class="val" id="vspin"></span></div>
+  <div class="ctl"><label>지속</label><input type="range" id="life" min="3" max="30" value="12"><span class="val" id="vlife"></span></div>
+  <div class="ctl"><label>중력</label><input type="range" id="grav" min="0" max="100" value="0"><span class="val" id="vgrav"></span></div>
+
+  <div class="row">
+    <button id="ring">⭕ 원 테두리</button>
+    <button id="flash">✨ 번쩍임</button>
+    <button id="rise">⬆️ 위로 솟기</button>
+  </div>
+  <div class="ctl">
+    <label>원 색</label>
+    <input type="text" id="ringcol" value="#ff5252" maxlength="12">
+  </div>
+</div>
+
 <div class="row">
   <button id="again">▶️ 다시 보기</button>
   <button id="slow">🐢 느리게</button>
+  <button id="copy">📋 설정 복사</button>
   <button id="back" style="background:#3a4566">← 게임으로</button>
 </div>
-<p>👾 는 적입니다. 이펙트가 잘 보이는지 확인용이에요.</p>
+
+<div id="out"></div>
 
 <script>
-// ═══════════════════════════════════════════════════════════
-//  ✏️ 여기만 고치면 됩니다!
-//
-//  e.t    : 1 → 0 으로 줄어드는 값 (1이 시작, 0이 끝)
-//  e.x,e.y: 이펙트가 터진 위치
-//  e.r    : 크기 (기본 60)
-//  ctx    : 그림 그리는 도구
-//  TIME   : 계속 흘러가는 시간 (회전·깜빡임에 사용)
-// ═══════════════════════════════════════════════════════════
-function drawMyEffect(ctx, e, TIME) {
-
-  // ── 예시: 빨간 원이 커지면서 사라진다 ──
-  const 크기 = e.r * (1 - e.t);          // e.t가 줄수록 커짐
-
-  ctx.strokeStyle = `rgba(255,82,82,${e.t})`;   // e.t를 넣으면 서서히 투명해짐
-  ctx.lineWidth = 5;
-  ctx.beginPath();
-  ctx.arc(e.x, e.y, 크기, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // ── 예시: 불티 8개가 사방으로 흩어진다 ──
-  for (let i = 0; i < 8; i++) {
-    const 각도 = i * (Math.PI * 2 / 8) + TIME * 2;
-    const 거리 = 크기 * 0.8;
-    const x = e.x + Math.cos(각도) * 거리;
-    const y = e.y + Math.sin(각도) * 거리;
-    ctx.fillStyle = `rgba(255,213,79,${e.t})`;
-    ctx.beginPath();
-    ctx.arc(x, y, 4, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-}
-// ═══════════════════════════════════════════════════════════
-//  ⬇️ 아래는 건드리지 않아도 됩니다 (연습장 돌리는 코드)
-// ═══════════════════════════════════════════════════════════
 const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const $ = id => document.getElementById(id);
+const ENEMIES = [{ x: 110, y: 120 }, { x: 180, y: 180 }, { x: 250, y: 120 }, { x: 180, y: 262 }];
+const QUICK = ['🔥','💥','⚡','❄️','🌟','💫','🩸','🌀','🍃','💨','🗡️','👊','💀','🎵','🫧','☠️','🌸','⭐'];
+
 let effects = [], TIME = 0, speed = 1;
-const ENEMIES = [{ x: 120, y: 150 }, { x: 180, y: 210 }, { x: 240, y: 150 }, { x: 180, y: 300 }];
+const opt = { emo:'🔥', count:8, size:24, spread:70, spin:6, life:12, grav:0, ring:true, flash:false, rise:false, ringcol:'#ff5252' };
 
-function fire(x, y) { effects.push({ x, y, r: 60, t: 1 }); }
+// 빠른 이모지 버튼
+$('quick').innerHTML = QUICK.map(e => `<button data-e="${e}">${e}</button>`).join('');
+$('quick').onclick = ev => { const e = ev.target.dataset.e; if (e) { $('emo').value = e; sync(); fire(180, 180); } };
 
+const sliders = ['count','size','spread','spin','life','grav'];
+function sync() {
+  opt.emo = $('emo').value || '🔥';
+  for (const k of sliders) { opt[k] = +$(k).value; $('v' + k).textContent = $(k).value; }
+  opt.ringcol = $('ringcol').value || '#ff5252';
+  for (const k of ['ring','flash','rise']) $(k).classList.toggle('on', opt[k]);
+  render();
+}
+for (const k of sliders) $(k).oninput = sync;
+$('emo').oninput = sync; $('ringcol').oninput = sync;
+for (const k of ['ring','flash','rise']) $(k).onclick = () => { opt[k] = !opt[k]; sync(); fire(180, 180); };
+
+function fire(x, y) { effects.push({ x, y, t: 1 }); }
 cv.addEventListener('pointerdown', ev => {
   const b = cv.getBoundingClientRect();
   fire((ev.clientX - b.left) * cv.width / b.width, (ev.clientY - b.top) * cv.height / b.height);
 });
-document.getElementById('again').onclick = () => fire(180, 210);
-document.getElementById('back').onclick = () => { location.href = 'index.html'; };
-document.getElementById('slow').onclick = e => {
+$('again').onclick = () => fire(180, 180);
+$('back').onclick = () => { location.href = 'index.html'; };
+$('slow').onclick = e => {
   speed = speed === 1 ? 0.25 : 1;
   e.target.textContent = speed === 1 ? '🐢 느리게' : '🐇 보통 속도';
 };
+$('copy').onclick = () => {
+  const txt = `이펙트 설정\n이모지: ${opt.emo}\n개수: ${opt.count}\n크기: ${opt.size}\n퍼짐: ${opt.spread}\n회전: ${opt.spin}\n지속: ${opt.life}\n중력: ${opt.grav}\n원 테두리: ${opt.ring ? '켬 (' + opt.ringcol + ')' : '끔'}\n번쩍임: ${opt.flash ? '켬' : '끔'}\n위로 솟기: ${opt.rise ? '켬' : '끔'}`;
+  navigator.clipboard && navigator.clipboard.writeText(txt).catch(() => {});
+  $('out').textContent = txt + '\n\n📋 복사했어요! 클로드에게 그대로 붙여넣고\n어느 캐릭터 공격으로 넣을지 말해주세요.';
+};
+
+function render() {
+  $('out').textContent = `${opt.emo} ${opt.count}개 · 크기 ${opt.size} · 퍼짐 ${opt.spread} · 회전 ${opt.spin}` +
+    (opt.ring ? ` · 원(${opt.ringcol})` : '') + (opt.flash ? ' · 번쩍임' : '') + (opt.rise ? ' · 위로' : '');
+}
+
+function drawEffect(e) {
+  const grow = 1 - e.t;                       // 0 → 1 로 진행
+  const alpha = opt.flash ? Math.abs(Math.sin(TIME * 14)) * e.t : e.t;
+  if (opt.ring) {
+    ctx.strokeStyle = opt.ringcol; ctx.globalAlpha = e.t; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(e.x, e.y, opt.spread * grow, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  ctx.font = `${opt.size}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let i = 0; i < opt.count; i++) {
+    const ang = (i / opt.count) * Math.PI * 2;
+    const dist = opt.spread * grow;
+    const x = e.x + Math.cos(ang) * dist;
+    const y = e.y + Math.sin(ang) * dist
+              - (opt.rise ? grow * 60 : 0)
+              + (opt.grav / 100) * 260 * grow * grow;
+    ctx.save(); ctx.translate(x, y);
+    ctx.rotate(TIME * opt.spin + ang);
+    ctx.globalAlpha = alpha;
+    ctx.fillText(opt.emo, 0, 0);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
 
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000) * speed;
   last = now; TIME += dt;
-
-  ctx.clearRect(0, 0, cv.width, cv.height);
   ctx.fillStyle = '#0f1626'; ctx.fillRect(0, 0, cv.width, cv.height);
-
-  ctx.font = '26px sans-serif'; ctx.textAlign = 'center';
-  for (const en of ENEMIES) ctx.fillText('👾', en.x, en.y + 9);
+  ctx.font = '24px sans-serif'; ctx.textAlign = 'center';
+  for (const en of ENEMIES) ctx.fillText('👾', en.x, en.y + 8);
   ctx.textAlign = 'left';
-
   for (let i = effects.length - 1; i >= 0; i--) {
     const e = effects[i];
-    e.t -= dt * 1.2;                 // 1.2 = 사라지는 속도
+    e.t -= dt * (30 / opt.life);
     if (e.t <= 0) { effects.splice(i, 1); continue; }
-    ctx.save();
-    try { drawMyEffect(ctx, e, TIME); } catch (err) {
-      ctx.restore();
-      ctx.fillStyle = '#ff8a80'; ctx.font = '13px sans-serif';
-      ctx.fillText('코드 오류: ' + err.message, 10, 24);
-      effects.length = 0;
-      requestAnimationFrame(frame); return;
-    }
-    ctx.restore();
+    ctx.save(); drawEffect(e); ctx.restore();
   }
   requestAnimationFrame(frame);
 }
-fire(180, 210);
+sync(); fire(180, 180);
 requestAnimationFrame(frame);
 </script>
