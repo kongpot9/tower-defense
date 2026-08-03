@@ -920,7 +920,8 @@ const BENCH_MUL = 5, BENCH_TIME = 45, BENCH_MATES = 5;
 const SOUL_KNIGHTS = 3, SOUL_DMG = 600, SOUL_CD = 1.5, SOUL_TIME = 30, SOUL_RANGE = 150, SOUL_FALL = 0.55;
 const TEZ_CHAIN_CHANCE = 0.4, TEZ_CHAIN_HITS = 2;                            // 👊 테즈: 40% 확률로 연쇄펀치(추가 2연타)
 const BLADER_MIN = 2, BLADER_MAX = 3, BLADER_FRAC = 0.4;                     // 🗡️ 블레이더: 단검 2~3개, 각 공격력의 40%
-const BLADER_PIERCE = 3, BLADER_PIERCE_R = 34;                               // 🗡️ 단검 관통: 한 자루가 최대 3명 (반경 34)
+// ⚔️ 블레이더 리워크 (기획: 구예준) — 근접하면 검사가 되어 발도술, 원거리는 던질수록 강해진다
+const BLADE_STACK = 0.10, BLADE_STACK_MAX = 20;   // 🗡️ 단검 한 대마다 +10%, 최대 +200%                               // 🗡️ 단검 관통: 한 자루가 최대 3명 (반경 34)
 const POOL_TIME = 20, POOL_SLOW = 20, POOL_ATK = 1.1;                        // 🛟 윌리: 풀장 20초(웨이브 내내) — 적 감속 + 아군 공격력 +10%
 const MULTI_TARGETS = 5;                                                     // 떡장수: 동시 공격 대상 수
 const FIREBALL_CHANCE = 0.25, FIREBALL_MUL = 4; // 원까태인 불꽃공 확률 (피해 4배 + 소범위)
@@ -1589,6 +1590,8 @@ function update(dt) {
           * ALLY_ATK_MUL);                        // ⚖️ 대법원 합의: 아군 전체 +40%
       if (false) { // (인디의 응원은 상시 오라로 바뀌어 확률 발동을 쓰지 않는다)
       }
+      // 🗡️ 블레이더: 원거리 전용 저격수 — 한 대 던질 때마다 기세가 쌓인다
+      if (u.special === 'daggers') u.bladeStack = Math.min(BLADE_STACK_MAX, (u.bladeStack || 0) + 1);
       const best = targets[0];
       const bp = posAt(best.d);
       if (u.special === 'bomb' && Math.random() < BOMB_CHANCE) {
@@ -1652,12 +1655,11 @@ function update(dt) {
           // 🗡️ 블레이더: 한 번에 단검 2~3자루, 각각 공격력의 40%
           const shots = u.special === 'daggers'
             ? BLADER_MIN + Math.floor(Math.random() * (BLADER_MAX - BLADER_MIN + 1)) : 1;
-          if (shots > 1) dmg = D * BLADER_FRAC;
+          if (shots > 1) dmg = D * BLADER_FRAC * (1 + (u.bladeStack || 0) * BLADE_STACK);
           for (let k = 0; k < shots; k++) {
             S.projectiles.push({
               x: s.cx + (k - (shots - 1) / 2) * 7, y: s.cy + (k - (shots - 1) / 2) * 5, tgt, tx: tp.x, ty: tp.y,
               dmg, splash, slow: u.slow || 0, kind,
-              pierce: u.special === 'daggers' ? BLADER_PIERCE : 0,
               spd: (PROJ_SPEED[kind] || 500) * (1 + k * 0.06), // 살짝씩 시차를 둬 연속으로 꽂히게
               color: GRADES[u.grade].color,
               smite: u.special === 'smite',
@@ -1743,14 +1745,6 @@ function update(dt) {
             if (p.slow) e.slowT = Math.max(e.slowT, p.slow);
           }
         }
-      } else if (p.pierce) { // 🗡️ 블레이더: 단검이 뒤에 있는 적까지 꿰뚫는다
-        let hit = 0;
-        for (const e of S.enemies) {
-          if (hit >= p.pierce) break;
-          const ep = posAt(e.d);
-          if (Math.hypot(ep.x - p.tx, ep.y - p.ty) <= BLADER_PIERCE_R) { e.hp -= p.dmg; hit++; }
-        }
-        if (hit === 0 && p.tgt.hp > 0) p.tgt.hp -= p.dmg;
       } else if (p.tgt.hp > 0) {
         if (p.smite && !p.tgt.boss && Math.random() < SMITE_CHANCE) {
           // 천사 도베르만: 천벌 — 한 방에 사망!
@@ -3248,7 +3242,7 @@ function renderHolly(tab) {
         u.homing ? '유도탄(목표 사망 시 재조준)' : '',
         u.special === 'shock' ? `${Math.round(SHOCK_CHANCE * 100)}% 전기 연쇄(최대 ${SHOCK_MAX})` : '',
         u.special === 'chain' ? `${Math.round(TEZ_CHAIN_CHANCE * 100)}% 연쇄펀치(${1 + TEZ_CHAIN_HITS}연타)` : '',
-        u.special === 'daggers' ? `단검 ${BLADER_MIN}~${BLADER_MAX}자루(각 ${Math.round(BLADER_FRAC * 100)}%) · ${BLADER_PIERCE}명 관통` : '',
+        u.special === 'daggers' ? `단검 ${BLADER_MIN}~${BLADER_MAX}자루(단일 대상) · 던질수록 +${Math.round(BLADE_STACK * 100)}%씩 누적(최대 +${Math.round(BLADE_STACK_MAX * BLADE_STACK * 100)}%)` : '',
         u.special === 'pool' ? `3·5웨이브 풀장(적 감속 + 아군 공격 +${Math.round((POOL_ATK - 1) * 100)}%)` : '',
         u.type === 'catmachine' ? `${Math.round(CAT_HOMING_CHANCE * 100)}% 유도 미사일` : '',
         u.hyper ? `⚡${u.hyper}` : ''].filter(Boolean).join(' · ');
