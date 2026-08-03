@@ -2875,6 +2875,10 @@ function showOverlay(mode) {
     maybeShowNotice(); // 📢 새 공지가 있으면 자동으로 띄운다
     startChatBadge(); // 🔴 안 읽은 채팅 수
     showCeleb();      // 🎉 3자리 달성자 축하
+    if (isNewbie()) { // 입문 유저: 한 판 끝낼 때까지 고급 기능을 숨겨 화면을 비운다
+      for (const id of ['ovBtnK', 'ovBtnL', 'ovBtnD', 'ovBtnA', 'ovBtnB', 'ovBtn7', 'ovBtnN'])
+        $(id).classList.add('hidden');
+    }
   } else if (mode === 'rank') { // 🏆 랭킹
     ov.querySelector('h1').textContent = '🏆 랭킹';
     $('ovChars').style.display = 'none';
@@ -3530,10 +3534,15 @@ function showNotice() {
   $('noticeBody').innerHTML = NOTICE_HTML;
   $('notice').classList.remove('hidden');
 }
+// 아직 한 판도 못 끝낸 사람 = 입문 유저 (패치 노트·고급 기능을 숨긴다)
+function isNewbie() {
+  try { return !localStorage.getItem('ltd_best') && LV <= 1 && XP === 0; } catch (e) { return false; }
+}
 function maybeShowNotice() {
   let seen = '';
   try { seen = localStorage.getItem('ltd_notice') || ''; } catch (e) {}
   if (seen === NOTICE_ID) return;
+  if (isNewbie()) return; // 입문 유저에게 패치 노트는 외계어다
   // 닉네임을 정하기 전(첫 방문)에는 미루고, 닉네임 창을 닫은 뒤에 띄운다
   if (!getNick() && !$('notice').dataset.afterNick) return;
   showNotice();
@@ -4004,7 +4013,7 @@ function updateEventUI() {
   }
   const db = $('deckBanner'); // 🃏 덱을 안 짠 사람에게만 안내
   if (db) {
-    const need = !DECK.length;
+    const need = !DECK.length && !isNewbie();
     db.innerHTML = need
       ? `🃏 <b>캐릭터가 24종으로 늘어서 원하는 캐릭터가 잘 안 나와요!</b><br>
          <b>[🃏 전투덱]</b>에서 8마리를 고르면 <b style="color:#ffd54f">최대 6배</b> 자주 나옵니다`
@@ -4673,7 +4682,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   UNITS, openVote, loadVotes, castVote, renderVote, getVotes: () => VOTES,
   getGob: () => ({ ...GOB, until: GOB_UNTIL }),
   setGob: (g2, until) => { GOB = { ...GOB, ...g2 }; if (until !== undefined) GOB_UNTIL = until; saveGob(); updateEventUI(); },
-  showNotice, maybeShowNotice, NOTICE_ID, showCeleb, CELEB_USERS,
+  showNotice, maybeShowNotice, NOTICE_ID, showCeleb, CELEB_USERS, isNewbie,
   gainXp, renderCards, CARDS, cardAt, XP_PER_LEVEL, levelBadge,
   getLevel: () => ({ xp: XP, lv: LV }), setLevel: (xp, lv) => { XP = xp; LV = lv; saveLevel(); },
   findLink, addChatMsg, refreshChatBadge, renderChatBadge, chatSeenT, setChatSeen,
