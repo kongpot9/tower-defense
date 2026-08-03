@@ -1106,6 +1106,7 @@ function startRaid() {
   RD.boss = mkRaidBoss();
   S.enemies.push(RD.boss);
   $('raidHud').classList.remove('hidden');
+  resize();                                                 // HUD가 캔버스를 줄이므로 좌표계 즉시 재계산
   renderRaidHud();                                          // 첫 프레임 전에 값 채우기
   addText(WORLD_W / 2, 230, '🍡 최강의 떡장수 등장!', '#ff8a65', 20);
   addText(WORLD_W / 2, 258, '📣 응원 효과! 아군 공격력 3배', '#ffcc80', 16);
@@ -1170,6 +1171,7 @@ function raidWin() {
   RAID.best = Math.max(RAID.best || 0, Math.round(RAID_TIME - RD.t));
   saveRaid();
   $('raidHud').classList.add('hidden');
+  resize();
   if (RD.code && RANK_DB) fetch(`${RANK_DB}/party/_raid/${RD.code}/done.json`, { method: 'PUT', body: 'true' }).catch(() => {});
   sfx('jackpot');
   showOverlay('raidwin');
@@ -1178,6 +1180,7 @@ function raidFail() {
   RD.on = false;
   S.running = false;
   $('raidHud').classList.add('hidden');
+  resize();
   sfx('over');
   showOverlay('raidfail');
 }
@@ -1185,6 +1188,7 @@ function raidQuit() { // 도중 이탈
   RD.on = false; RD.boss = null; RD.code = null; RD.mateDmg = 0;
   S.running = false; S.over = false;
   $('raidHud').classList.add('hidden');
+  resize();
 }
 function fmtNum(n) { return Math.max(0, Math.round(n)).toLocaleString(); }
 function renderRaidHud() {
@@ -2346,6 +2350,9 @@ function resize() {
   view = { s, ox: (cw - WORLD_W * s) / 2, oy: (ch - WORLD_H * s) / 2, dpr };
 }
 window.addEventListener('resize', resize);
+// 창 크기가 아니라 '레이아웃' 때문에 캔버스가 줄어드는 경우(레이드 HUD·누들바 등)도 반드시 다시 계산해야
+// 탭 좌표가 어긋나지 않는다 (2026-08-03: 레이드에서 엉뚱한 칸이 눌리던 버그)
+if (window.ResizeObserver) new ResizeObserver(() => resize()).observe(canvas);
 
 function roundRectPath(x, y, w, h, r) {
   ctx.beginPath();
@@ -5099,7 +5106,8 @@ function frame(t) {
   const dt = Math.min(0.05, (t - lastT) / 1000);
   lastT = t;
   // 백그라운드 탭에서 로드되면 캔버스 크기가 0으로 계산돼 터치가 먹통이 되는 문제 방어
-  if (!view.s || Math.abs(canvas.clientWidth * view.dpr - canvas.width) > 1) resize();
+  if (!view.s || Math.abs(canvas.clientWidth * view.dpr - canvas.width) > 1
+              || Math.abs(canvas.clientHeight * view.dpr - canvas.height) > 1) resize(); // 세로 변화도 반드시 검사
   if (S.running && !S.over && !S.paused && !S.clearWait) {
     update(dt * S.speed);
     updateTopbar();
