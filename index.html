@@ -667,12 +667,14 @@
 <div id="deck" class="hidden">
   <h2>🃏 전투덱</h2>
   <p class="sub">소환 상자에 넣을 <b>8마리</b>를 고르세요<br>적게 넣은 등급일수록 원하는 캐릭터가 잘 나옵니다</p>
+  <p class="sub" id="deckState"></p>
   <div id="deckSlots"></div>
   <div id="deckInfo"></div>
   <div id="deckBtns">
     <button id="deckSuggestBtn">⭐ 내 덱 추천</button>
     <button id="deckRandBtn">🎲 랜덤 편성</button>
     <button id="deckClearBtn" class="gray">↺ 비우기</button>
+    <button id="deckNoneBtn" class="gray">🎲 덱 없이 전체로</button>
     <button id="deckSaveBtn">💾 저장</button>
   </div>
   <div id="deckPool"></div>
@@ -3485,12 +3487,14 @@ const NOTICE_HTML = `
     <li>전설 1종당 <b>0.375% → 0.25%</b> (평균 267회 → 400회)</li>
     <li>드래곤 3마리 모으기: 807회 → <b>1,188회</b></li>
   </ul>
-  <h3>🃏 해결법: 전투덱</h3>
-  <b>[🃏 전투덱]</b>에서 <b>[⭐ 내 덱 추천]</b> 한 번만 눌러보세요.
+  <h3>🃏 원하면 쓰는 기능: 전투덱</h3>
+  <b>덱은 선택이에요. 안 써도 게임은 그대로 됩니다.</b><br>
+  원하는 캐릭터를 더 자주 만나고 싶을 때만 <b>[🃏 전투덱]</b> → <b>[⭐ 내 덱 추천]</b>을 눌러보세요.
   <ul>
     <li>내가 많이 쓴 캐릭터로 <span class="hl">자동으로 8마리</span>를 골라줍니다</li>
     <li>전설 칸에 1마리만 두면 <span class="hl">0.25% → 1.5% (6배!)</span></li>
     <li>저장 전까지는 아무것도 안 바뀌니 편하게 눌러보세요</li>
+    <li>덱이 싫으면 <b>[🎲 덱 없이 전체로]</b>를 누르면 안내가 사라져요</li>
   </ul>
   <h3>👨‍🍳 로얄 셰프 출시! (11일 만에)</h3>
   능력만 만들어놓고 그림이 없어서 못 나오던 <b>전설 서포터</b>가 드디어 나왔어요.
@@ -3579,6 +3583,14 @@ function loadDeck() {
   } catch (e) { DECK = []; }
 }
 function saveDeck() { try { localStorage.setItem('ltd_deck', JSON.stringify(DECK)); } catch (e) {} }
+const noDeckChosen = () => { try { return localStorage.getItem('ltd_nodeck') === '1'; } catch (e) { return false; } };
+function chooseNoDeck() { // 덱을 안 쓰기로 한 사람 — 더 이상 권유하지 않는다
+  DECK = []; saveDeck();
+  try { localStorage.setItem('ltd_nodeck', '1'); } catch (e) {}
+  deckEdit = []; deckSel = -1; renderDeck();
+  $('deckInfo').innerHTML = '<span style="color:#81e88c">전체 24종에서 소환합니다 — 이제 덱 안내를 띄우지 않아요</span>';
+  updateEventUI();
+}
 const deckCountIn = (list, g) => list.filter(t => (UNITS.find(u => u.type === t) || {}).grade === g).length;
 function deckMissing(list) { // 비어 있는 등급 목록
   return GRADES.map((gr, g) => deckCountIn(list, g) ? null : gr.name).filter(Boolean);
@@ -3594,6 +3606,10 @@ function deckCardHtml(type, cls) {
     <span class="dp">${pct.toFixed(1)}%</span></div>`;
 }
 function renderDeck() {
+  const st = $('deckState');
+  if (st) st.innerHTML = DECK.length
+    ? `현재 <b style="color:#81e88c">내 덱 ${DECK.length}마리</b>로 플레이 중`
+    : `현재 <b style="color:#ffd54f">전체 24종</b>에서 소환 중 — 덱은 <b>선택</b>이에요, 안 써도 됩니다`;
   const slots = [];
   for (let i = 0; i < DECK_SIZE; i++) slots.push(deckEdit[i] || null);
   $('deckSlots').innerHTML = slots.map((t, i) => deckCardHtml(t, i === deckSel ? 'sel' : '')).join('');
@@ -3659,9 +3675,11 @@ function openDeck() {
 $('deckSuggestBtn').addEventListener('click', deckSuggest);
 $('deckRandBtn').addEventListener('click', deckRandom);
 $('deckClearBtn').addEventListener('click', () => { deckEdit = []; deckSel = -1; renderDeck(); });
+$('deckNoneBtn').addEventListener('click', chooseNoDeck);
 $('deckSaveBtn').addEventListener('click', () => {
   if (deckEdit.length !== DECK_SIZE || deckMissing(deckEdit).length) return;
   DECK = deckEdit.slice(); saveDeck();
+  try { localStorage.removeItem('ltd_nodeck'); } catch (e) {}
   $('deckInfo').innerHTML = '<span style="color:#81e88c">💾 저장 완료! 다음 게임부터 이 8마리만 나옵니다</span>';
   sfx('jackpot');
 });
@@ -4029,7 +4047,7 @@ function updateEventUI() {
   }
   const db = $('deckBanner'); // 🃏 덱을 안 짠 사람에게만 안내
   if (db) {
-    const need = !DECK.length && !isNewbie();
+    const need = !DECK.length && !isNewbie() && !noDeckChosen();
     db.innerHTML = need
       ? `🃏 <b>캐릭터가 24종으로 늘어서 원하는 캐릭터가 잘 안 나와요!</b><br>
          <b>[🃏 전투덱]</b>에서 8마리를 고르면 <b style="color:#ffd54f">최대 6배</b> 자주 나옵니다`
@@ -4705,7 +4723,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   hasBadWord, blockUser, isBlocked, startChatPoll, openChat, closeChat,
   getBlocked: () => BLOCKED.slice(), clearBlocked: () => { BLOCKED = []; localStorage.removeItem('ltd_block'); },
   sendChatVideo, buildChatVideo, pruneChatVideos, VID_MAX_BYTES, VID_KEEP,
-  poolOfGrade, openDeck, renderDeck, deckRandom, deckSuggest, DECK_SIZE,
+  poolOfGrade, openDeck, renderDeck, deckRandom, deckSuggest, chooseNoDeck, noDeckChosen, DECK_SIZE,
   startDragon, dragonOn, IMMORTAL_TRIES, IMMORTAL_DMG,
   setDragon: ms => { DRAGON_UNTIL = ms; },
   getDeck: () => DECK.slice(), setDeck: d => { DECK = d.slice(); saveDeck(); },
