@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🎨 이펙트/애니메이션/모형 만들기 — 타워 디펜스 777</title>
+<style>
+  body { margin:0; background:#1c2333; color:#fff; font-family:'Malgun Gothic',sans-serif;
+         display:flex; flex-direction:column; align-items:center; gap:10px; padding:14px; }
+  h1 { font-size:18px; margin:0; }
+  p { font-size:13px; color:#9fb0d8; margin:0; text-align:center; line-height:1.6; }
+  canvas { background:#0f1626; border-radius:12px; touch-action:none; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+  button { background:#3f6ea8; color:#fff; border:0; border-radius:9px;
+           padding:9px 16px; font-size:14px; font-weight:800; cursor:pointer; }
+  code { background:#2a3358; padding:1px 5px; border-radius:5px; }
+</style>
+
+<h1>🎨 이펙트 / 애니메이션 / 모형 만들기</h1>
+<p>화면을 <b>누르면</b> 그 자리에 이펙트가 나옵니다<br>
+아래 <code>drawMyEffect</code> 함수만 고치고 <b>저장 → F5</b></p>
+
+<canvas id="cv" width="360" height="420"></canvas>
+<div class="row">
+  <button id="again">▶️ 다시 보기</button>
+  <button id="slow">🐢 느리게</button>
+  <button id="back" style="background:#3a4566">← 게임으로</button>
+</div>
+<p>👾 는 적입니다. 이펙트가 잘 보이는지 확인용이에요.</p>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  ✏️ 여기만 고치면 됩니다!
+//
+//  e.t    : 1 → 0 으로 줄어드는 값 (1이 시작, 0이 끝)
+//  e.x,e.y: 이펙트가 터진 위치
+//  e.r    : 크기 (기본 60)
+//  ctx    : 그림 그리는 도구
+//  TIME   : 계속 흘러가는 시간 (회전·깜빡임에 사용)
+// ═══════════════════════════════════════════════════════════
+function drawMyEffect(ctx, e, TIME) {
+
+  // ── 예시: 빨간 원이 커지면서 사라진다 ──
+  const 크기 = e.r * (1 - e.t);          // e.t가 줄수록 커짐
+
+  ctx.strokeStyle = `rgba(255,82,82,${e.t})`;   // e.t를 넣으면 서서히 투명해짐
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.arc(e.x, e.y, 크기, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // ── 예시: 불티 8개가 사방으로 흩어진다 ──
+  for (let i = 0; i < 8; i++) {
+    const 각도 = i * (Math.PI * 2 / 8) + TIME * 2;
+    const 거리 = 크기 * 0.8;
+    const x = e.x + Math.cos(각도) * 거리;
+    const y = e.y + Math.sin(각도) * 거리;
+    ctx.fillStyle = `rgba(255,213,79,${e.t})`;
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+}
+// ═══════════════════════════════════════════════════════════
+//  ⬇️ 아래는 건드리지 않아도 됩니다 (연습장 돌리는 코드)
+// ═══════════════════════════════════════════════════════════
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+let effects = [], TIME = 0, speed = 1;
+const ENEMIES = [{ x: 120, y: 150 }, { x: 180, y: 210 }, { x: 240, y: 150 }, { x: 180, y: 300 }];
+
+function fire(x, y) { effects.push({ x, y, r: 60, t: 1 }); }
+
+cv.addEventListener('pointerdown', ev => {
+  const b = cv.getBoundingClientRect();
+  fire((ev.clientX - b.left) * cv.width / b.width, (ev.clientY - b.top) * cv.height / b.height);
+});
+document.getElementById('again').onclick = () => fire(180, 210);
+document.getElementById('back').onclick = () => { location.href = 'index.html'; };
+document.getElementById('slow').onclick = e => {
+  speed = speed === 1 ? 0.25 : 1;
+  e.target.textContent = speed === 1 ? '🐢 느리게' : '🐇 보통 속도';
+};
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000) * speed;
+  last = now; TIME += dt;
+
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.fillStyle = '#0f1626'; ctx.fillRect(0, 0, cv.width, cv.height);
+
+  ctx.font = '26px sans-serif'; ctx.textAlign = 'center';
+  for (const en of ENEMIES) ctx.fillText('👾', en.x, en.y + 9);
+  ctx.textAlign = 'left';
+
+  for (let i = effects.length - 1; i >= 0; i--) {
+    const e = effects[i];
+    e.t -= dt * 1.2;                 // 1.2 = 사라지는 속도
+    if (e.t <= 0) { effects.splice(i, 1); continue; }
+    ctx.save();
+    try { drawMyEffect(ctx, e, TIME); } catch (err) {
+      ctx.restore();
+      ctx.fillStyle = '#ff8a80'; ctx.font = '13px sans-serif';
+      ctx.fillText('코드 오류: ' + err.message, 10, 24);
+      effects.length = 0;
+      requestAnimationFrame(frame); return;
+    }
+    ctx.restore();
+  }
+  requestAnimationFrame(frame);
+}
+fire(180, 210);
+requestAnimationFrame(frame);
+</script>
