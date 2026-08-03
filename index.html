@@ -1059,7 +1059,7 @@ const CHAOS_GOLEM_CD = 0.001;       // 🗿 골렘 공속
 const CHAOS_FIRE = 16;              // ⚾ 원까태인 불꽃공 16개
 const CHAOS_EVERY = 6;              // 몇 초마다 난장판이 한 번씩 터지나
 let CHAOS_UNTIL = 0;
-let CH = { on: false, t: 0, fastT: 0, stunT: 0, log: [] };
+let CH = { on: false, t: 0, fastT: 0, stunT: 0, akT: 0, log: [] };
 const chaosOn = () => Date.now() < CHAOS_UNTIL;
 
 // 🔩 노에시 → 드릴러 노에시 변신 (기획: 구예준)
@@ -2274,7 +2274,10 @@ function gameOver() {
     arcCheckMissions({ wave: S.wave, merges: S.merges || 0, high });
   }
   if (DUO.on) { duoPushStatus(); duoGameOver(); } // 👥 듀오: 파트너에게 유산 전달 + 팀 기록 제출(더 오래 버틴 쪽이 갱신)
-  if (!DEV && !ORGOL && !DUO.on && !S.immortal && !CH.on) { // 🌑 DARK KAKAO·🎼 오르골·🐲 불멸·🎪 개판오분전 기록은 저장·제출되지 않는다
+  if (CH.on) { // 🎪 개판오분전은 공식 랭킹과 완전히 분리된 전용 랭킹으로만
+    localStorage.setItem('ltd_chaos_best', Math.max(S.wave, +(localStorage.getItem('ltd_chaos_best') || 0)));
+    submitChaosScore(S.wave);
+  } else if (!DEV && !ORGOL && !DUO.on && !S.immortal) { // 🌑 DARK KAKAO·🎼 오르골·🐲 불멸 기록은 저장·제출되지 않는다
     if (S.mode === 'story') {
       localStorage.setItem('ltd_best_' + S.stage, Math.max(S.wave, bestOf(S.stage)));
       submitStoryScore();
@@ -2380,6 +2383,10 @@ function submitClassicScore(wave) {
   if (!scoreLooksReal(wave)) return;
   submitScore('classic', { wave, t: Date.now() }, cur => wave > (cur.wave || 0));
 }
+function submitChaosScore(wave) { // 🎪 개판오분전 전용 (공식 아님)
+  if (!scoreLooksReal(wave)) return;
+  submitScore('chaos', { wave, t: Date.now() }, cur => wave > (cur.wave || 0));
+}
 function submitStoryScore() {
   let stars = 0;
   for (let i = 0; i < STAGES.length; i++) if (clearedOf(i)) stars++;
@@ -2392,18 +2399,24 @@ async function renderRank() {
   const tabs = `<div style="display:flex;gap:8px;width:100%;justify-content:center;">
     <button class="ranktab ${rankTab === 'classic' ? 'on' : ''}" id="rtC">🎮 일반</button>
     <button class="ranktab ${rankTab === 'story' ? 'on' : ''}" id="rtS">🗺️ 스토리</button>
-    <button class="ranktab ${rankTab === 'duo' ? 'on' : ''}" id="rtD">👥 더블큐</button></div>`;
+    <button class="ranktab ${rankTab === 'duo' ? 'on' : ''}" id="rtD">👥 더블큐</button>
+    ${chaosOn() || +(localStorage.getItem('ltd_chaos_best') || 0) > 0
+      ? `<button class="ranktab ${rankTab === 'chaos' ? 'on' : ''}" id="rtX">🎪 개판</button>` : ''}</div>`;
   const bindTabs = () => {
     $('rtC').onclick = () => { rankTab = 'classic'; renderRank(); };
     $('rtS').onclick = () => { rankTab = 'story'; renderRank(); };
     $('rtD').onclick = () => { rankTab = 'duo'; renderRank(); };
+    if ($('rtX')) $('rtX').onclick = () => { rankTab = 'chaos'; renderRank(); };
   };
   if (!RANK_DB) {
     sel.innerHTML = tabs + `<div style="color:#9fb0d8;font-size:14px;padding:18px 8px;">랭킹 서버가 아직 연결되지 않았어요.<br>곧 열릴 예정!</div>`;
     bindTabs();
     return;
   }
-  sel.innerHTML = tabs + `<div style="color:#9fb0d8;font-size:14px;padding:16px;">불러오는 중...</div>`;
+  const chaosNote = rankTab === 'chaos'
+    ? `<div style="color:#ffb74d;font-size:12px;padding:6px 10px;line-height:1.6;background:#2b1e12;border-radius:9px;margin:6px 0;">
+         🎪 <b>개판오분전 랭킹은 공식이 아닙니다.</b><br>공격력 10억짜리 기록이라 일반 모드와 비교할 수 없어요. 그냥 재미로!</div>` : '';
+  sel.innerHTML = tabs + chaosNote + `<div style="color:#9fb0d8;font-size:14px;padding:16px;">불러오는 중...</div>`;
   bindTabs();
   try {
     const data = await (await fetch(`${RANK_DB}/rank/${rankTab}.json`)).json() || {};
@@ -2417,7 +2430,7 @@ async function renderRank() {
     const isMe = r2 => rankTab === 'duo' ? (r2.nicks || []).includes(me) : r2.nick === me;
     // 전원 등재 — 기록이 없는 유저는 🌱유망주로 이름을 올린다
     let rookies = [], presMap = {};
-    if (rankTab !== 'duo') {
+    if (rankTab !== 'duo' && rankTab !== 'chaos') {
       try {
         presMap = await (await fetch(`${PRESENCE_PATH()}.json`)).json() || {};
         const has = new Set(rows.map(x => x.nick));
@@ -2437,7 +2450,7 @@ async function renderRank() {
         <span class="nm">${escapeHtml(n)}${lvOf(n) ? levelBadge(lvOf(n)) : ''}</span>
         <span>유망주</span>
       </div>`).join('');
-    sel.innerHTML = tabs
+    sel.innerHTML = tabs + chaosNote
       + `<div class="rankcount">총 ${rows.length + rookies.length}명 · 기록 보유 ${rows.length}명</div>`
       + (list || `<div style="color:#9fb0d8;font-size:14px;padding:16px;">아직 기록이 없어요 — 1등을 노려보자!</div>`)
       + (rookieList ? `<div class="rankcount">🌱 유망주 ${rookies.length}명 — 첫 기록을 기다리는 중!</div>` + rookieList : '');
@@ -3663,7 +3676,7 @@ function startChaos() {
   setStagePath(STAGES[0].path);
   $('overlay').classList.add('hidden');
   resetGame();
-  Object.assign(CH, { on: true, t: CHAOS_EVERY, fastT: 0, stunT: 0, log: [] });
+  Object.assign(CH, { on: true, t: CHAOS_EVERY, fastT: 0, stunT: 0, akT: 0, log: [] });
   S.running = true;
   S.gold = 99999;
   S.hyperCharges = 99;
@@ -3705,6 +3718,32 @@ const CHAOS_ACTS = [
         sl.unit = { ...rand(poolOfGrade(g2)), cdT: 0, popT: 0.35, moveT: 0 };
       }
     } },
+  { name: '🏹 궁수의 AK47!', msg: '적 전체 전멸 + 5초간 나오는 족족 사살!', run: () => {
+      CH.akT = 5;
+      for (const e of S.enemies) e.hp = 0;
+      for (let k = 0; k < 12; k++)
+        S.effects.push({ kind: 'boom', x: 40 + Math.random() * (WORLD_W - 80), y: 90 + Math.random() * 340, r: 40, t: 1, fire: true });
+    } },
+  { name: '😇 도베르만 각성!', msg: '99% 즉사!!', run: () => {
+      for (const e of S.enemies) if (Math.random() < 0.99) {
+        e.hp = 0;
+        const p = posAt(e.d);
+        S.effects.push({ kind: 'smite', x: p.x, y: p.y, t: 1, decay: 30 / 17 });
+      }
+    } },
+  { name: '🐗 투곰 분신술!', msg: '빈 칸이 전부 투곰이 된다!', run: () => {
+      const proto = UNITS.find(u => u.type === 'toogom');
+      let n = 0;
+      for (const sl of slots) if (!sl.unit) { sl.unit = { ...proto, ghost: true, cdT: 0, popT: 0.4, moveT: 0 }; n++; }
+      if (n > 0) S.buffT.ghost = 15;
+    } },
+  { name: '🦕 쥬라 초가속!', msg: '공속 0.0000000000000001초!!', run: () => { CH.fastT = 20; } },
+  { name: '⚔️ 검사의 엑스칼리버!', msg: '999999억 데미지!!', run: () => {
+      for (const e of S.enemies) e.hp -= 999999e8;
+      S.effects.push({ kind: 'soulcircle', x: WORLD_W / 2, y: 260, r: 200, t: 1, decay: 0.8 });
+      for (const e of S.enemies) { const p = posAt(e.d);
+        S.effects.push({ kind: 'soulslash', x: p.x, y: p.y, r: 70, t: 1, decay: 1.6 }); }
+    } },
   { name: '🌋 라바 분출!', msg: '적 전원 즉시 소멸!', run: () => {
       for (const e of S.enemies) e.hp = 0;
       S.effects.push({ kind: 'carpet', x: WORLD_W / 2, y: 260, t: 1, decay: 1.2 });
@@ -3712,6 +3751,7 @@ const CHAOS_ACTS = [
 ];
 function chaosUpdate(dt) {
   if (CH.fastT > 0) CH.fastT -= dt;
+  if (CH.akT > 0) { CH.akT -= dt; for (const e of S.enemies) e.hp = 0; }   // 🏹 AK47 지속 사격
   if (CH.stunT > 0) { CH.stunT -= dt; for (const e of S.enemies) e.frozenT = Math.max(e.frozenT || 0, 0.2); }
   CH.t -= dt;
   if (CH.t > 0) return;
