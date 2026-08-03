@@ -24,13 +24,21 @@
   .chips button { background:#2a3358; border:0; border-radius:8px; padding:4px 7px; font-size:12px;
                   font-weight:800; color:#dbe6ff; cursor:pointer; }
   .chips button.on { background:#ffd54f; color:#2c0a16; }
-  .emos { display:flex; flex-wrap:wrap; gap:4px; max-height:118px; overflow-y:auto;
+  .emos { display:flex; flex-wrap:wrap; gap:4px; max-height:132px; overflow-y:auto;
           background:#1a2136; border-radius:9px; padding:6px; }
   .emos button { background:#2a3358; border:0; border-radius:7px; padding:3px 6px; font-size:18px; cursor:pointer; }
+  .emos button.on { background:#ffd54f; box-shadow:0 0 0 2px #fff inset; }
   .cat { display:flex; flex-wrap:wrap; gap:4px; }
   .cat button { background:#2a3358; border:0; border-radius:7px; padding:4px 8px; font-size:11px;
                 font-weight:800; color:#dbe6ff; cursor:pointer; }
   .cat button.on { background:#6a3fa0; color:#fff; }
+  /* 고른 이모지 바구니 */
+  #basket { display:flex; flex-wrap:wrap; gap:5px; align-items:center; background:#2d1f45;
+            border:2px solid #6a3fa0; border-radius:9px; padding:6px 8px; min-height:42px; }
+  #basket .pick { background:#12182a; border-radius:8px; padding:3px 7px; font-size:20px; cursor:pointer;
+                  border:0; color:#fff; position:relative; }
+  #basket .pick:after { content:'✕'; font-size:9px; color:#ff8a80; margin-left:3px; vertical-align:top; }
+  #basket .empty { font-size:12px; color:#b39ddb; }
   .row { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; }
   button { background:#3f6ea8; color:#fff; border:0; border-radius:9px;
            padding:9px 14px; font-size:13px; font-weight:800; cursor:pointer; }
@@ -52,19 +60,26 @@
 
 <!-- ── 이펙트 ── -->
 <div class="panel" id="panelFx">
+  <div class="ctl" style="padding:6px 8px"><label>움직임</label><div class="chips" id="motions"></div></div>
+  <div id="basket"></div>
   <div class="cat" id="cats"></div>
   <div class="emos" id="quick"></div>
-  <div class="ctl"><label>직접 입력</label><input type="text" id="emo" value="🔥" maxlength="8"></div>
-  <div class="ctl"><label>개수</label><input type="range" id="count" min="1" max="24" value="8"><span class="val" id="vcount"></span></div>
-  <div class="ctl"><label>크기</label><input type="range" id="size" min="8" max="60" value="24"><span class="val" id="vsize"></span></div>
-  <div class="ctl"><label>퍼짐</label><input type="range" id="spread" min="0" max="150" value="70"><span class="val" id="vspread"></span></div>
+  <div class="ctl"><label>직접 넣기</label><input type="text" id="emo" placeholder="이모지 붙여넣고 엔터" maxlength="8"></div>
+  <div class="ctl"><label>개수</label><input type="range" id="count" min="1" max="40" value="8"><span class="val" id="vcount"></span></div>
+  <div class="ctl"><label>크기</label><input type="range" id="size" min="8" max="70" value="24"><span class="val" id="vsize"></span></div>
+  <div class="ctl"><label>퍼짐</label><input type="range" id="spread" min="0" max="160" value="70"><span class="val" id="vspread"></span></div>
   <div class="ctl"><label>회전</label><input type="range" id="spin" min="0" max="20" value="6"><span class="val" id="vspin"></span></div>
-  <div class="ctl"><label>지속</label><input type="range" id="life" min="3" max="30" value="12"><span class="val" id="vlife"></span></div>
+  <div class="ctl"><label>지속</label><input type="range" id="life" min="3" max="40" value="12"><span class="val" id="vlife"></span></div>
   <div class="ctl"><label>중력</label><input type="range" id="grav" min="0" max="100" value="0"><span class="val" id="vgrav"></span></div>
   <div class="row">
     <button id="ring">⭕ 원 테두리</button>
     <button id="flash">✨ 번쩍임</button>
     <button id="rise">⬆️ 위로 솟기</button>
+  </div>
+  <div class="row">
+    <button id="trail">💨 꼬리</button>
+    <button id="grow">🔍 점점 커짐</button>
+    <button id="fade">🌫️ 점점 사라짐</button>
   </div>
   <div class="ctl"><label>원 색</label><input type="color" id="ringcol" value="#ff5252"><span class="val" id="vringcol"></span></div>
 </div>
@@ -103,26 +118,25 @@ const ENEMIES = [{ x: 110, y: 110 }, { x: 180, y: 168 }, { x: 250, y: 110 }, { x
 
 /* ── 이모지 (카테고리별) ── */
 const EMOJI = {
-  '불·폭발': ['🔥','💥','💢','☄️','🎆','🎇','✨','💫','🌟','⭐','🧨','💣'],
-  '얼음·물': ['❄️','🧊','💧','🫧','🌊','💦','☔','🥶','🌨️'],
-  '번개·바람': ['⚡','🌀','💨','🌪️','☁️','🌫️'],
-  '자연': ['🍃','🌸','🌺','🌷','🍂','🌿','🌱','🪶','🍀','🌻','🌵'],
-  '무기': ['🗡️','⚔️','🏹','🪓','🔨','🪃','🛡️','🔱','🥊','👊','🤛'],
-  '어둠·죽음': ['💀','☠️','👻','🕷️','🕸️','🩸','🖤','🦇','⚰️','😈','👹'],
-  '빛·신성': ['🌞','☀️','🌙','💛','🔆','😇','🪽','🕊️','🔮','📿'],
-  '마음·표정': ['❤️','💔','💖','💘','😡','😱','😵','🤢','😤','🥵','💤'],
-  '음식': ['🍡','🍜','🍕','🍎','🍇','🥔','🌰','🍪','🍬','🥟','🍖','🥚'],
-  '동물': ['🐍','🦴','🐾','🦋','🐝','🦈','🐙','🦂','🐺','🦅','🐲'],
-  '기타': ['🎵','🎶','🔔','💰','⚙️','🌐','🎲','🃏','🔑','📜','⏳','🧲'],
+  '불·폭발': ['🔥','💥','💢','☄️','🎆','🎇','✨','💫','🌟','⭐','🧨','💣','🌋','🕯️','♨️','🔆','🎃','🥌'],
+  '얼음·물': ['❄️','🧊','💧','🫧','🌊','💦','☔','🥶','🌨️','⛄','🏔️','🌧️','🚿','🧼','🩵'],
+  '번개·바람': ['⚡','🌀','💨','🌪️','☁️','🌫️','🎐','🪁','🍃','🌬️'],
+  '자연': ['🍃','🌸','🌺','🌷','🍂','🌿','🌱','🪶','🍀','🌻','🌵','🌳','🌴','🎋','🌾','🪷','🍁','🌼','🪻','🌰','🪵'],
+  '무기': ['🗡️','⚔️','🏹','🪓','🔨','🪃','🛡️','🔱','🥊','👊','🤛','🔫','⛏️','🪚','🔪','🏏','🥍','🪤'],
+  '어둠·죽음': ['💀','☠️','👻','🕷️','🕸️','🩸','🖤','🦇','⚰️','😈','👹','👺','🧟','🌑','🦴','🫥','🕳️'],
+  '빛·신성': ['🌞','☀️','🌙','💛','🔆','😇','🪽','🕊️','🔮','📿','⛪','🙏','🪬','🌠','🌈','💫','🔯','☯️'],
+  '마음·표정': ['❤️','💔','💖','💘','😡','😱','😵','🤢','😤','🥵','💤','🥺','😭','🤬','🫠','🤯','💯','😎','🤪','🫨'],
+  '음식': ['🍡','🍜','🍕','🍎','🍇','🥔','🌰','🍪','🍬','🥟','🍖','🥚','🍔','🌭','🍟','🍰','🧁','🍩','🍭','🥨','🍿','🥞','🍦','🍺'],
+  '동물': ['🐍','🦴','🐾','🦋','🐝','🦈','🐙','🦂','🐺','🦅','🐲','🐉','🦖','🦕','🐢','🐌','🐜','🦗','🐡','🦑','🐕','🐈','🐧','🦉'],
+  '기타': ['🎵','🎶','🔔','💰','⚙️','🌐','🎲','🃏','🔑','📜','⏳','🧲','💎','🏆','🎁','📦','🔩','🪙','🎯','🧿','♟️','🎪','🎨','🩹','🛞','🧬'],
+  '기호': ['‼️','⁉️','❓','❗','⭕','❌','🚫','✅','💠','🔷','🔶','🟥','🟦','🟨','🟩','🟪','⬛','⬜','♦️','♠️'],
 };
 let curCat = '불·폭발';
 $('cats').innerHTML = Object.keys(EMOJI).map(c => `<button data-c="${c}">${c}</button>`).join('');
-function paintCat() {
-  $('cats').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.c === curCat));
-  $('quick').innerHTML = EMOJI[curCat].map(e => `<button data-e="${e}">${e}</button>`).join('');
-}
-$('cats').onclick = ev => { const c = ev.target.dataset.c; if (c) { curCat = c; paintCat(); } };
-$('quick').onclick = ev => { const e = ev.target.dataset.e; if (e) { $('emo').value = e; sync(); fire(180, 168); } };
+
+/* ── 움직임 패턴 ── */
+const MOTIONS = ['퍼짐','소용돌이','궤도','비','분수','회오리','파도','돌진','제자리'];
+$('motions').innerHTML = MOTIONS.map(m => `<button data-m="${m}">${m}</button>`).join('');
 
 /* ── 모형 파츠 ── */
 const PARTS = {
@@ -140,17 +154,41 @@ for (const key in PARTS) {
 }
 
 /* ── 이펙트 옵션 ── */
-const fx = { emo:'🔥', count:8, size:24, spread:70, spin:6, life:12, grav:0,
-             ring:true, flash:false, rise:false, ringcol:'#ff5252' };
+const fx = { emos:['🔥'], motion:'퍼짐', count:8, size:24, spread:70, spin:6, life:12, grav:0,
+             ring:true, flash:false, rise:false, trail:false, grow:false, fade:true, ringcol:'#ff5252' };
 let mode = 'fx', effects = [], TIME = 0, speed = 1;
+const MAX_PICK = 8;
+
+/* 이모지 고르기 — 눌러서 담고, 바구니에서 눌러서 뺀다 */
+function toggleEmo(e) {
+  const i = fx.emos.indexOf(e);
+  if (i >= 0) { if (fx.emos.length > 1) fx.emos.splice(i, 1); }
+  else if (fx.emos.length < MAX_PICK) fx.emos.push(e);
+  paintCat(); sync(); fire(180, 168);
+}
+function paintCat() {
+  $('cats').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.c === curCat));
+  $('quick').innerHTML = EMOJI[curCat]
+    .map(e => `<button data-e="${e}" class="${fx.emos.includes(e) ? 'on' : ''}">${e}</button>`).join('');
+  $('motions').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.m === fx.motion));
+  $('basket').innerHTML = fx.emos.length
+    ? fx.emos.map(e => `<button class="pick" data-e="${e}">${e}</button>`).join('')
+      + `<span class="empty">이모지를 눌러 담고, 여기서 눌러 빼요 (최대 ${MAX_PICK})</span>`
+    : `<span class="empty">아래에서 이모지를 골라주세요</span>`;
+}
+$('cats').onclick = ev => { const c = ev.target.dataset.c; if (c) { curCat = c; paintCat(); } };
+$('quick').onclick = ev => { const e = ev.target.dataset.e; if (e) toggleEmo(e); };
+$('basket').onclick = ev => { const e = ev.target.dataset.e; if (e) toggleEmo(e); };
+$('motions').onclick = ev => { const m = ev.target.dataset.m; if (m) { fx.motion = m; paintCat(); sync(); fire(180,168); } };
+$('emo').onchange = () => { const v = $('emo').value.trim(); if (v) { toggleEmo(v); $('emo').value = ''; } };
 
 const fxSliders = ['count','size','spread','spin','life','grav'];
 const mdSliders = ['mSize','mCount'];
+const fxToggles = ['ring','flash','rise','trail','grow','fade'];
 function sync() {
-  fx.emo = $('emo').value || '🔥';
   for (const k of fxSliders) { fx[k] = +$(k).value; $('v'+k).textContent = $(k).value; }
   fx.ringcol = $('ringcol').value; $('vringcol').textContent = '';
-  for (const k of ['ring','flash','rise']) $(k).classList.toggle('on', fx[k]);
+  for (const k of fxToggles) $(k).classList.toggle('on', fx[k]);
   for (const k of mdSliders) { md[k] = +$(k).value; $('v'+k).textContent = $(k).value; }
   md.bodyCol = $('bodyCol').value; md.lineCol = $('lineCol').value; md.auraCol = $('auraCol').value;
   for (const k of ['aura','drop','bob']) $(k).classList.toggle('on', md[k]);
@@ -160,8 +198,8 @@ function sync() {
 }
 for (const k of fxSliders) $(k).oninput = sync;
 for (const k of mdSliders) $(k).oninput = sync;
-for (const k of ['emo','ringcol','bodyCol','lineCol','auraCol']) $(k).oninput = sync;
-for (const k of ['ring','flash','rise']) $(k).onclick = () => { fx[k] = !fx[k]; sync(); fire(180,168); };
+for (const k of ['ringcol','bodyCol','lineCol','auraCol']) $(k).oninput = sync;
+for (const k of fxToggles) $(k).onclick = () => { fx[k] = !fx[k]; sync(); fire(180,168); };
 for (const k of ['aura','drop','bob']) $(k).onclick = () => { md[k] = !md[k]; sync(); fire(180,168); };
 
 $('tabFx').onclick = () => setMode('fx');
@@ -175,7 +213,7 @@ function setMode(m) {
   effects = []; fire(180, 168); sync();
 }
 
-function fire(x, y) { effects.push({ x, y, t: 1 }); }
+function fire(x, y) { effects.push({ x, y, t: 1, seed: Math.random() * 1000 }); }
 cv.addEventListener('pointerdown', ev => {
   const b = cv.getBoundingClientRect();
   fire((ev.clientX - b.left) * cv.width / b.width, (ev.clientY - b.top) * cv.height / b.height);
@@ -185,36 +223,74 @@ $('back').onclick = () => { location.href = 'index.html'; };
 $('slow').onclick = e => { speed = speed === 1 ? 0.25 : 1;
   e.target.textContent = speed === 1 ? '🐢 느리게' : '🐇 보통 속도'; };
 $('copy').onclick = () => {
+  const onoff = b => b ? '켬' : '끔';
   const txt = mode === 'fx'
-    ? `✨ 이펙트 설정\n이모지: ${fx.emo}\n개수: ${fx.count}\n크기: ${fx.size}\n퍼짐: ${fx.spread}\n회전: ${fx.spin}\n지속: ${fx.life}\n중력: ${fx.grav}\n원 테두리: ${fx.ring ? '켬 ' + fx.ringcol : '끔'}\n번쩍임: ${fx.flash ? '켬' : '끔'}\n위로 솟기: ${fx.rise ? '켬' : '끔'}`
-    : `🛡️ 모형 설정\n몸 모양: ${md.bodyShape}\n몸 색: ${md.bodyCol}\n테두리 색: ${md.lineCol}\n눈: ${md.eyeType}\n손에: ${md.handType}\n머리: ${md.headType}\n크기: ${md.mSize}\n몇 기: ${md.mCount}\n발밑 오라: ${md.aura ? '켬 ' + md.auraCol : '끔'}\n위에서 강림: ${md.drop ? '켬' : '끔'}\n둥실둥실: ${md.bob ? '켬' : '끔'}`;
+    ? `✨ 이펙트 설정\n이모지: ${fx.emos.join(' ')}\n움직임: ${fx.motion}\n개수: ${fx.count}\n크기: ${fx.size}\n`
+      + `퍼짐: ${fx.spread}\n회전: ${fx.spin}\n지속: ${fx.life}\n중력: ${fx.grav}\n`
+      + `원 테두리: ${fx.ring ? '켬 ' + fx.ringcol : '끔'}\n번쩍임: ${onoff(fx.flash)}\n위로 솟기: ${onoff(fx.rise)}\n`
+      + `꼬리: ${onoff(fx.trail)}\n점점 커짐: ${onoff(fx.grow)}\n점점 사라짐: ${onoff(fx.fade)}`
+    : `🛡️ 모형 설정\n몸 모양: ${md.bodyShape}\n몸 색: ${md.bodyCol}\n테두리 색: ${md.lineCol}\n눈: ${md.eyeType}\n손에: ${md.handType}\n머리: ${md.headType}\n크기: ${md.mSize}\n몇 기: ${md.mCount}\n발밑 오라: ${md.aura ? '켬 ' + md.auraCol : '끔'}\n위에서 강림: ${onoff(md.drop)}\n둥실둥실: ${onoff(md.bob)}`;
   navigator.clipboard && navigator.clipboard.writeText(txt).catch(() => {});
   $('out').textContent = txt + '\n\n📋 복사했어요! 클로드에게 붙여넣고\n어느 캐릭터·기술에 넣을지 말해주세요.';
 };
 function render() {
   $('out').textContent = mode === 'fx'
-    ? `${fx.emo} ${fx.count}개 · 크기 ${fx.size} · 퍼짐 ${fx.spread} · 회전 ${fx.spin}` +
-      (fx.ring ? ' · 원' : '') + (fx.flash ? ' · 번쩍임' : '') + (fx.rise ? ' · 위로' : '')
+    ? `${fx.emos.join('')} ${fx.count}개 · ${fx.motion} · 크기 ${fx.size} · 퍼짐 ${fx.spread}` +
+      (fx.ring ? ' · 원' : '') + (fx.flash ? ' · 번쩍임' : '') + (fx.rise ? ' · 위로' : '') +
+      (fx.trail ? ' · 꼬리' : '') + (fx.grow ? ' · 커짐' : '')
     : `${md.bodyShape} ${md.mCount}기 · 눈 ${md.eyeType} · 손 ${md.handType} · 머리 ${md.headType}` +
       (md.aura ? ' · 오라' : '') + (md.drop ? ' · 강림' : '');
 }
 
 /* ── 그리기 ── */
+const rnd = n => { const s = Math.sin(n * 127.1) * 43758.5453; return s - Math.floor(s); };
+
+// 알갱이 하나의 위치 — 움직임 패턴별 계산
+function partPos(i, n, grow, e) {
+  const base = (i / n) * Math.PI * 2;
+  const R = fx.spread, sd = e.seed;
+  switch (fx.motion) {
+    case '소용돌이': { const a = base + grow * 5; return [e.x + Math.cos(a) * R * grow, e.y + Math.sin(a) * R * grow]; }
+    case '궤도':    { const a = base + TIME * 2.2; return [e.x + Math.cos(a) * R, e.y + Math.sin(a) * R]; }
+    case '비':      { const rx = (rnd(i + sd) - 0.5) * R * 2.2;
+                      return [e.x + rx, e.y - R * 1.1 + grow * R * 2.4 + rnd(i + sd + 9) * 20]; }
+    case '분수':    { const vx = (rnd(i + sd) - 0.5) * 2.2, up = 1.5;
+                      return [e.x + vx * R * grow, e.y - R * up * grow + R * 2.1 * grow * grow]; }
+    case '회오리':  { const a = base + grow * 9, r = R * (1 - grow * 0.75);
+                      return [e.x + Math.cos(a) * r, e.y + R * 0.5 - grow * R * 1.7]; }
+    case '파도':    { const t = i / n - 0.5;
+                      return [e.x + t * R * 2 + (grow - 0.5) * R, e.y + Math.sin(grow * 7 + i * 0.9) * R * 0.4]; }
+    case '돌진':    { return [e.x - R * 1.2 + grow * R * 2.6, e.y + (i / n - 0.5) * R * 0.9]; }
+    case '제자리':  { const w = 1 + Math.sin(TIME * 9 + i) * 0.18;
+                      return [e.x + Math.cos(base) * R * 0.28 * w, e.y + Math.sin(base) * R * 0.28 * w]; }
+    default:        return [e.x + Math.cos(base) * R * grow, e.y + Math.sin(base) * R * grow]; // 퍼짐
+  }
+}
+
 function drawFx(e) {
   const grow = 1 - e.t;
-  const alpha = fx.flash ? Math.abs(Math.sin(TIME * 14)) * e.t : e.t;
+  const baseA = fx.fade ? e.t : 1;
+  const alpha = fx.flash ? Math.abs(Math.sin(TIME * 14)) * baseA : baseA;
   if (fx.ring) {
     ctx.strokeStyle = fx.ringcol; ctx.globalAlpha = e.t; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.arc(e.x, e.y, fx.spread * grow, 0, Math.PI * 2); ctx.stroke();
     ctx.globalAlpha = 1;
   }
-  ctx.font = `${fx.size}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const sizeNow = fx.size * (fx.grow ? 0.45 + grow * 1.1 : 1);
+  const steps = fx.trail ? 4 : 1;                        // 꼬리: 조금 전 위치를 흐리게 겹쳐 그린다
   for (let i = 0; i < fx.count; i++) {
-    const ang = (i / fx.count) * Math.PI * 2, dist = fx.spread * grow;
-    const x = e.x + Math.cos(ang) * dist;
-    const y = e.y + Math.sin(ang) * dist - (fx.rise ? grow * 60 : 0) + (fx.grav/100) * 260 * grow * grow;
-    ctx.save(); ctx.translate(x, y); ctx.rotate(TIME * fx.spin + ang);
-    ctx.globalAlpha = alpha; ctx.fillText(fx.emo, 0, 0); ctx.restore();
+    const emo = fx.emos[i % fx.emos.length] || '🔥';
+    for (let s = steps - 1; s >= 0; s--) {
+      const g2 = Math.max(0, grow - s * 0.06);
+      const [x, y0] = partPos(i, fx.count, g2, e);
+      const y = y0 - (fx.rise ? g2 * 60 : 0) + (fx.grav / 100) * 260 * g2 * g2;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(TIME * fx.spin + (i / fx.count) * Math.PI * 2);
+      ctx.globalAlpha = alpha * (s === 0 ? 1 : 0.22);
+      ctx.font = `${sizeNow * (s === 0 ? 1 : 0.8)}px sans-serif`;
+      ctx.fillText(emo, 0, 0);
+      ctx.restore();
+    }
   }
   ctx.globalAlpha = 1; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 }
