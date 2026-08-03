@@ -63,6 +63,9 @@
     animation:hyperpulse 0.9s infinite alternate;
   }
   #hyperBtn + #sellBtn { margin-left:8px; }
+  #drillBtn { display:none; background:#c1440e; box-shadow:0 3px 0 #7d2b09; color:#fff;
+              padding:7px 13px; font-size:13px; font-weight:800; border-radius:9px; margin-left:8px; }
+  #drillBtn:disabled { filter:grayscale(1); opacity:.55; }
   #giftBtn { padding:7px 12px; background:#d81b60; box-shadow:0 3px 0 #880e4f; display:none; margin-left:8px; font-size:14px; }
   @keyframes hyperpulse { from { filter:brightness(1); } to { filter:brightness(1.35); } }
   .small { padding:0 13px; background:#3a4566; font-size:15px; }
@@ -555,7 +558,7 @@
 <canvas id="game"></canvas>
 
 <div id="bottombar">
-  <div id="unitinfo"><span id="uiHint">캐릭터를 누른 뒤: 같은 캐릭터=합성 🎲 · 빈 칸=이동 · 다른 캐릭터=교체</span><button id="hyperBtn">⚡ 하이퍼차지 발동!</button><button id="sellBtn">판매</button><button id="giftBtn">💝50G</button></div>
+  <div id="unitinfo"><span id="uiHint">캐릭터를 누른 뒤: 같은 캐릭터=합성 🎲 · 빈 칸=이동 · 다른 캐릭터=교체</span><button id="hyperBtn">⚡ 하이퍼차지 발동!</button><button id="drillBtn">🔩 드릴러 변신</button><button id="sellBtn">판매</button><button id="giftBtn">💝50G</button></div>
   <div id="devbar">
     <span id="devTag">🌑 DARK KAKAO</span>
     <button class="devbtn" id="devGold">💰+1만</button>
@@ -914,6 +917,7 @@ const UNITS = [
   // 희귀
   { type:'jurasaurus', grade:1, emoji:'🦕', name:'쥬라사우르스', dmg:32, cd:0.45, range:100, atk:'bite', hyper:'하이퍼 사우르스', img:'character/rare1.png' },
   { type:'wonkkataein',grade:1, emoji:'⚾', name:'원까태인', hyper:'벤치클리어링', dmg:22, cd:0.30, range:175, atk:'ball', special:'fireball', img:'character/rare2.png' },
+  { type:'noesi',      grade:1, emoji:'🧒', name:'노에시',     dmg:12,  cd:1.00, range:105, atk:'drill', special:'drill', img:'character/rare4.png' },
   { type:'tankboy',    grade:1, emoji:'🚜', name:'탱크보이', dmg:45, cd:1.60, range:165, splash:50, atk:'shell', hyper:'기가파르도 장군님', img:'character/rare3.png' },
   // 영웅 — 아들 그림!
   { type:'deathpierrot', grade:2, emoji:'🤡', name:'데스삐에로', dmg:72,  cd:0.80, range:140, atk:'punch', special:'shock', img:'character/hero1.png' },
@@ -930,6 +934,7 @@ const UNITS = [
   { type:'catmachine', grade:4, emoji:'🐱', name:'캣머신',     dmg:170, cd:0.50, range:110, splash:30, atk:'missile', img:'character/legend3.png' },
   { type:'royalchef',  grade:4, emoji:'👨‍🍳', name:'로얄 셰프', dmg:0,   cd:30,   range:0,   support:'chef', img:'character/legend6.png' }, // 🍳 2026-08-02 굴에서 나온 날
   { type:'tez',        grade:4, emoji:'👊', name:'테즈',       dmg:211, cd:1.20, range:100, splash:45, atk:'tez', special:'chain', img:'character/legend5.png' },
+  { type:'tenhan',     grade:4, emoji:'🪴', name:'텐한',       dmg:400, cd:0.50, range:150, splash:55, atk:'orb', special:'pot', img:'character/legend7.png' },
   { type:'penguin',    grade:4, emoji:'🐧', name:'펭귄악사',   dmg:0,   cd:1,    range:130, support:'aura', img:'character/legend4.png' }, // 오라 서포터
   // 신화 추가
   { type:'blader',     grade:3, emoji:'🗡️', name:'블레이더',   dmg:159, cd:0.56, range:290, atk:'dagger', special:'daggers', img:'character/myth6.png' },
@@ -1032,6 +1037,15 @@ const RAID_MAX_TEAM = 5;                     // 최대 5인 팀
 const RAID_BOSS_SPD = 20;                    // 홀로 도는 이동 속도
 const RAID_HIT_CAP = RAID_HP * 0.005;        // 한 방 상한 = 최대체력의 0.5% — %체력 능력·불멸 드래곤이 판을 끝내지 못하게
 const RAID_SYNC = 1500;                      // 팀 데미지 동기화 주기(ms)
+
+// 🔩 노에시 → 드릴러 노에시 변신 (기획: 구예준)
+const DRILL_COST = 250, DRILL_COST_INC = 50;   // 변신 비용 250골드, 쓸수록 +50
+const DRILL_DMG = 280, DRILL_TIME = 20;        // 드릴 피해 280, 20초 뒤 노에시로 복귀
+const DRILL_SPEED = 105;                       // 길목을 누비는 속도
+const DRILL_RADIUS = 27;                       // 밟히는 판정 반경
+const DRILL_HIT_CD = 0.5;                      // 같은 적을 다시 밟기까지의 간격
+// 🪴 텐한: 화분 요괴 (기획: 구예준)
+const POT_EVERY = 3;                           // 3웨이브에 1번만 화분에서 나온다
 
 let RAID_UNTIL = 0;                                                    // 이벤트 종료 시각
 let RAID = { cleared: false, skin: false, ticket: 0, best: 0 };        // 내 레이드 기록 (localStorage)
@@ -1301,6 +1315,7 @@ const KR_ATK = 1.2, KR_BOSS_HP = 0.7, KR_SPD = 1.3; // 검사: 공격력 ×1.2 /
 const IMAGES = {};
 for (const u of UNITS) {
   if (u.img) { const im = new Image(); im.src = u.img; IMAGES[u.type] = im; }
+  if (u.special === 'drill') { const dm = new Image(); dm.src = 'character/myth7.png'; IMAGES['noesi_drill'] = dm; } // 🔩 변신 모습
 }
 
 // ---------- 트랙 경로 계산 ----------
@@ -1448,7 +1463,8 @@ const S = {
 function resetGame() {
   S.over = false; S.wave = 0; S.gold = 80; S.summonCost = SUMMON_BASE;
   S.roundT = 0; S.toSpawn = 0;
-  S.enemies = []; S.projectiles = []; S.texts = []; S.effects = []; S.bombs = []; S.knights = []; S.mates = [];
+  S.enemies = []; S.projectiles = []; S.texts = []; S.effects = []; S.bombs = []; S.knights = []; S.mates = []; S.drills = [];
+  S.drillUses = 0;   // 🔩 이번 판에 변신한 횟수 (쓸수록 비용 +50)
   S.buffT = { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0, jura: 0, bleed: 0, car: 0, pool: 0, bench: 0 };
   S.atkLv = 0;
   S.hyperCharges = 0;
@@ -1866,6 +1882,8 @@ function update(dt) {
     if (u.cheerT > 0) u.cheerT -= dt; // 🤠 인디의 응원 버프
     if (u.partyWarm > 0) { u.partyWarm -= dt; continue; } // 🎤 제프: 마이크 잡는 동안 공격 불가
     if (u.moveT > 0) { u.moveT -= dt; continue; } // 이동 직후엔 공격 불가
+    if (u.away) continue;                          // 🔩 드릴러로 변신해 땅속에 있는 중
+    if (u.special === 'pot' && S.wave % POT_EVERY !== 0) continue; // 🪴 텐한은 3웨이브에 1번만 나온다
     u.cdT -= dt;
     if (u.cdT > 0) continue;
     if (u.support === 'aura') continue; // 🐧 펭귄악사는 공격 대신 상시 연주
@@ -2011,6 +2029,32 @@ function update(dt) {
     }
   }
   // ⚔️ 암흑의 기사 (영혼 사냥시간)
+  // 🔩 드릴러 노에시 — 길목을 누비며 밟고 지나간다
+  if (S.drills && S.drills.length) {
+    for (let i = S.drills.length - 1; i >= 0; i--) {
+      const dr = S.drills[i];
+      dr.t -= dt;
+      dr.d += DRILL_SPEED * dt;
+      const dp = posAt(dr.d);
+      const dmg = Math.round(DRILL_DMG * Math.pow(1.1, S.atkLv) * ALLY_ATK_MUL
+        * (S.buffT.bleed > 0 ? BLEED_MUL : 1) * (S.buffT.pool > 0 ? POOL_ATK : 1)
+        * (S.buffT.dmg > 0 ? 1.3 : 1));
+      for (const e of S.enemies) {                       // 밟힌 적에게 피해
+        const ep = posAt(e.d);
+        if (Math.hypot(ep.x - dp.x, ep.y - dp.y) > DRILL_RADIUS) continue;
+        e.drillT = e.drillT || 0;
+        if (S.time < e.drillT) continue;                 // 같은 적 연타 방지
+        e.drillT = S.time + DRILL_HIT_CD;
+        e.hp -= dmg;
+        S.effects.push({ kind: 'boom', x: ep.x, y: ep.y, r: 24, t: 1, fire: false });
+      }
+      if (dr.t <= 0) {                                   // 20초 뒤 노에시로 복귀
+        if (dr.slot && dr.slot.unit) { dr.slot.unit.away = false; dr.slot.unit.cdT = 0.3; }
+        addText(dp.x, dp.y, '노에시 복귀!', '#b39ddb', 13);
+        S.drills.splice(i, 1);
+      }
+    }
+  }
   if (S.knights && S.knights.length) {
     for (let i = S.knights.length - 1; i >= 0; i--) {
       const k = S.knights[i];
@@ -2458,6 +2502,24 @@ function draw() {
     ctx.beginPath(); ctx.arc(b.x + 5, b.y - 15, 2 + Math.sin(S.time * 30), 0, Math.PI * 2); ctx.fill();
   }
 
+  // 🔩 드릴러 노에시 — 길목을 파고드는 드릴차
+  if (S.drills && S.drills.length) {
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const dr of S.drills) {
+      const dp = posAt(dr.d);
+      ctx.fillStyle = 'rgba(93,64,55,0.55)';                       // 파헤쳐진 흙
+      ctx.beginPath(); ctx.ellipse(dp.x, dp.y + 5, 20, 11, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = `rgba(255,112,67,${0.5 + Math.abs(Math.sin(S.time * 8)) * 0.5})`;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(dp.x, dp.y, DRILL_RADIUS, 0, Math.PI * 2); ctx.stroke();
+      const im = IMAGES['noesi_drill'];
+      if (im && im.complete && im.naturalWidth) ctx.drawImage(im, dp.x - 24, dp.y - 24, 48, 48);
+      else { ctx.font = '30px sans-serif'; ctx.fillText('🔩', dp.x, dp.y); }
+      const left = Math.ceil(dr.t);                                 // 남은 시간
+      ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = '#ffd54f';
+      ctx.fillText(left + 's', dp.x, dp.y - 30);
+    }
+  }
   // 적
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (const e of S.enemies) {
@@ -2516,6 +2578,14 @@ function draw() {
     ctx.strokeStyle = u.ghost ? '#81d4fa' : GRADES[u.grade].color; ctx.lineWidth = 3;
     ctx.fillStyle = 'rgba(0,0,0,0.18)';
     ctx.fill(); ctx.stroke();
+    if (u.away) {          // 🔩 드릴러로 나가 있는 동안엔 자리에 구멍만 남는다
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#2b2016';
+      ctx.beginPath(); ctx.ellipse(sl.cx, sl.cy + 4, 17, 10, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#6d4c41'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.font = '15px sans-serif'; ctx.fillText('🕳️', sl.cx, sl.cy + 2);
+      continue;
+    }
     // 🛟 한정판 윌리 스킨 — 떡장수를 잡은 사람만 보이는 황금 테두리 (그림은 예준이 작업 예정)
     const limited = u.special === 'pool' && raidSkinOn();
     if (limited) {
@@ -2539,6 +2609,15 @@ function draw() {
     if (u.cheerT > 0) { // 🤠 응원 버프 받는 중
       ctx.font = '13px sans-serif';
       ctx.fillText('📣', sl.cx + 17, sl.cy - 17);
+    }
+    if (u.special === 'pot') {    // 🪴 텐한: 화분에서 쉬는 중인지 나왔는지
+      ctx.font = '13px sans-serif';
+      ctx.fillText(S.wave % POT_EVERY === 0 ? '👹' : '🪴', sl.cx - 17, sl.cy - 17);
+      if (S.wave % POT_EVERY !== 0) {   // 쉬는 중이면 어둡게
+        ctx.globalAlpha = 0.35; ctx.fillStyle = '#000';
+        ctx.beginPath(); ctx.arc(sl.cx, sl.cy, 24, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+      }
     }
     if (u.special === 'office') { // 🕴️ 제프의 현재 모드
       ctx.font = '13px sans-serif';
@@ -3080,6 +3159,22 @@ function updateTopbar() {
   }
 }
 function upgradeCost() { return 100 + S.atkLv * 30; }
+function drillCost() { return DRILL_COST + (S.drillUses || 0) * DRILL_COST_INC; } // 🔩 쓸수록 +50
+function castDrill() { // 노에시 → 드릴러 노에시
+  const sl = S.selected;
+  if (!sl || !sl.unit || sl.unit.special !== 'drill' || sl.unit.away) return;
+  const cost = drillCost();
+  if (S.gold < cost) { addText(WORLD_W / 2, 460, `골드가 부족해요! (${cost}G 필요)`, '#ff8a8a', 14); sfx('error'); return; }
+  S.gold -= cost;
+  S.drillUses = (S.drillUses || 0) + 1;
+  sl.unit.away = true;
+  S.drills = S.drills || [];
+  S.drills.push({ d: 0, t: DRILL_TIME, slot: sl });
+  addText(sl.cx, sl.cy - 26, '🔩 드릴러 노에시!', '#ff7043', 16);
+  addText(WORLD_W / 2, 250, `🔩 드릴러 노에시 출동! ${DRILL_TIME}초간 길목을 누빈다`, '#ff8a65', 15);
+  sfx('jackpot');
+  updateInfoPanel(); updateButtons();
+}
 function updateButtons() {
   $('summonBtn').textContent = `🎲 소환 ${S.summonCost}G`;
   $('summonBtn').disabled = S.gold < S.summonCost;
@@ -3087,10 +3182,15 @@ function updateButtons() {
   $('upBtn').disabled = S.gold < upgradeCost();
 }
 function updateInfoPanel() {
-  const hint = $('uiHint'), sell = $('sellBtn'), hyp = $('hyperBtn');
+  const hint = $('uiHint'), sell = $('sellBtn'), hyp = $('hyperBtn'), drl = $('drillBtn');
   if (S.selected && S.selected.unit) {
     const u = S.selected.unit;
     hyp.style.display = (u.hyper && (S.hyperCharges > 0 || ORGOL)) ? 'block' : 'none';
+    if (drl) { // 🔩 노에시 변신 버튼
+      const on = u.special === 'drill' && !u.away;
+      drl.style.display = on ? 'block' : 'none';
+      if (on) { drl.textContent = `🔩 드릴러 변신 ${drillCost()}G`; drl.disabled = S.gold < drillCost(); }
+    }
     const extra = (u.splash ? ' · 범위공격' : '') + (u.slow ? ' · 감속' : '')
       + (u.special === 'fireball' ? ` · 🔥${Math.round(FIREBALL_CHANCE * 100)}% 불꽃공(${FIREBALL_MUL}배)` : '')
       + (u.special === 'bomb' ? ' · 💣15% 폭탄 설치' : '')
@@ -3101,6 +3201,10 @@ function updateInfoPanel() {
       + (u.special === 'shock' ? ` · ⚡${Math.round(SHOCK_CHANCE * 100)}% 전기 연쇄` : '')
       + (u.type === 'catmachine' ? ` · 🎯${Math.round(CAT_HOMING_CHANCE * 100)}% 유도 미사일` : '')
       + (u.special === 'cheer' ? ' · 📣15% 주변 공속 UP' : '')
+      + (u.special === 'drill' ? ` · 🔩${drillCost()}G로 드릴러 변신(${DRILL_DMG} 피해 · ${DRILL_TIME}초)` : '')
+      + (u.special === 'pot' ? (S.wave % POT_EVERY === 0
+          ? ' · 🪴 화분에서 나왔다! 지금 공격 중'
+          : ` · 🪴 화분에서 쉬는 중 — ${POT_EVERY - (S.wave % POT_EVERY)}웨이브 뒤 등장`) : '')
       + (u.special === 'office' ? (S.jeffParty
           ? ` · 🎤파티 모드! 공격 ${u.dmg + JEFF_PARTY_BONUS} + 아군 전체 +${Math.round((JEFF_TEAM_BUFF - 1) * 100)}%`
           : ` · 💼근무 모드(공격 ${JEFF_WORK_DMG} · 속도 ${JEFF_WORK_CD}s) · ${JEFF_PARTY_EVERY}웨이브마다 파티!`) : '')
@@ -3116,6 +3220,7 @@ function updateInfoPanel() {
     hint.textContent = '캐릭터를 누른 뒤: 같은 캐릭터=합성 🎲 · 빈 칸=이동 · 다른 캐릭터=교체';
     sell.style.display = 'none';
     hyp.style.display = 'none';
+    if (drl) drl.style.display = 'none';
   }
 }
 
@@ -3195,6 +3300,7 @@ $('pauseBtn').addEventListener('click', () => {
 });
 $('sellBtn').addEventListener('click', sellSelected);
 $('hyperBtn').addEventListener('click', () => castHyper()); // 이벤트 객체가 인자로 들어가지 않게!
+$('drillBtn').addEventListener('click', () => castDrill()); // 🔩 노에시 변신
 $('speedBtn').addEventListener('click', () => {
   S.speed = S.speed === 1 ? 2 : 1;
   $('speedBtn').textContent = `x${S.speed}`;
@@ -3571,7 +3677,7 @@ const HOLLY_TIER = { // 현 메타 티어 (일반 모드 기준)
   reddragon:'S', dosa:'B', angeldog:'S',
   catmachine:'A', lumberjack:'A', jurasaurus:'A', farmer:'A',
   deathpierrot:'B', darkrider:'B', miner:'B', tankboy:'B', ronin:'B',
-  wonkkataein:'C', ricecake:'C', swordsman:'C',
+  wonkkataein:'C', ricecake:'C', swordsman:'C', noesi:'C', tenhan:'A',
   archer:'S', royalchef:'A',
   penguin:'S', bane:'A', indie:'B', jeff:'B',
   tez:'A', blader:'A', willy:'B',
@@ -3589,6 +3695,8 @@ const HOLLY_EVAL = {
   darkrider: '수리검 비의 잔몹 청소부',
   miner: '폭탄 낭만 + 강화 스케일링 — 후반에도 현역',
   ricecake: '물량전의 왕, 보스전의 실업자',
+  noesi: '평소엔 최약체, 250골드 내면 판을 뒤집는 드릴차',
+  tenhan: '3웨이브에 1번만 나오는 화분 요괴 — 나온 웨이브는 압도적',
   ronin: '만능 이류 — 하지만 발도술은 진짜',
   angeldog: '이론상 최강, 실전도 최강(후반) — 즉사는 모든 스케일링을 무시',
   reddragon: '전개덱의 심장 — 일륜도 빙결+브레스가 현 메타 최강 콤보',
@@ -3615,6 +3723,8 @@ const HOLLY_USE = { // 사용처
   darkrider: '잔몹 청소 전담, 아무 칸 — 단일딜과 짝지을 것',
   miner: '싸이클덱 엔진 · 초중반 광역 · 러시 카운터',
   ricecake: '러시·물량 스테이지 특화 — 쌍둥이 보스 스테이지 비추',
+  noesi: '위기 웨이브에 변신 1번 = 광역 딜 폭발 · 골드 남을 때만',
+  tenhan: '3의 배수 웨이브를 믿고 가는 도박형 딜러 — 빈 웨이브 대비 필수',
   ronin: '중후반 트랙 옆 단일딜 + 발도술 광역 보험',
   angeldog: '웨이브 25+ 필수 · 스토리 2~3장 코어 · 운영덱은 3~4마리 스택',
   reddragon: '아무 칸(전맵 사거리) — 물량 청소, 일륜도 빙결 콤보의 완성',
@@ -4472,7 +4582,7 @@ function updateEventUI() {
   if (db) {
     const need = !DECK.length && !isNewbie() && !noDeckChosen();
     db.innerHTML = need
-      ? `🃏 <b>캐릭터가 24종으로 늘어서 원하는 캐릭터가 잘 안 나와요!</b><br>
+      ? `🃏 <b>캐릭터가 26종으로 늘어서 원하는 캐릭터가 잘 안 나와요!</b><br>
          <b>[🃏 전투덱]</b>에서 8마리를 고르면 <b style="color:#ffd54f">최대 6배</b> 자주 나옵니다`
       : '';
     db.classList.toggle('hidden', !need);
@@ -5155,6 +5265,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   deckEditState: () => ({ edit: deckEdit.slice(), sel: deckSel }),
   ARC, KEYRINGS, startArc, arcOn, renderArc, arcCatch, arcShoot, gachaDraw, useKeyring, renderNoodleBar,
   getArc: () => ({ ...ARC, until: ARC_UNTIL }),
+  castDrill, drillCost, POT_EVERY, DRILL_TIME, DRILL_DMG,
   RD, RAID, startRaid, raidUpdate, raidWin, raidFail, mkRaidBoss, openRaid, raidBarrierMul,
   raidOn, startRaidEvent, RAID_HP, RAID_TIME,
   setRaid: (until) => { RAID_UNTIL = until; updateEventUI(); },
