@@ -8,6 +8,8 @@
 
 폰 브라우저로 열면 바로 게임 시작! 친구들에게 이 링크를 보내주세요.
 
+📺 공식 유튜브 → **[타워 디펜스 777 공식계정](https://www.youtube.com/@Tower-desfense-official777)**
+
 📔 개발 과정이 궁금하다면 → [개발 일지 (DEVLOG.md)](DEVLOG.md)
 
 ## 🎮 게임 방법
