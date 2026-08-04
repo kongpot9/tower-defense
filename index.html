@@ -4107,10 +4107,25 @@ function applyLayout() {
   try { cfg = JSON.parse(localStorage.getItem('ltd_layout') || 'null'); } catch (e) {}
   const ov = $('overlay');
   if (!ov) return;
-  if (cfg && Array.isArray(cfg.order)) {          // 순서 재배치
-    for (const id of cfg.order) { const el = $(id); if (el && el.parentNode === ov) ov.appendChild(el); }
+  const all = [...ov.querySelectorAll('button[id^="ovBtn"]'), $('ovBtn')].filter(Boolean);
+  if (!cfg || !cfg.pos) {                          // 설정이 없으면 원래 흐름대로 되돌린다
+    for (const el of all) {
+      el.style.removeProperty('position'); el.style.removeProperty('left');
+      el.style.removeProperty('top'); el.style.removeProperty('transform');
+      el.style.removeProperty('margin');
+    }
+    return;
   }
-  if (cfg && Array.isArray(cfg.hidden)) {         // 숨기라고 한 것만 추가로 숨긴다
+  for (const el of all) {                          // 끌어다 놓은 자리로
+    const p = cfg.pos[el.id];
+    if (!p) continue;
+    el.style.position = 'absolute';
+    el.style.left = p[0] + '%';
+    el.style.top = p[1] + '%';
+    el.style.transform = 'translate(-50%,-50%)';
+    el.style.margin = '0';
+  }
+  if (Array.isArray(cfg.hidden)) {                 // 숨기라고 한 것만 추가로 숨긴다
     for (const id of cfg.hidden) { if (id === 'ovBtn') continue; const el = $(id); if (el) el.classList.add('hidden'); }
   }
 }
