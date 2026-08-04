@@ -73,6 +73,8 @@
   @keyframes hyperpulse { from { filter:brightness(1); } to { filter:brightness(1.35); } }
   .small { padding:0 13px; background:#3a4566; font-size:15px; }
   #pauseBtn.on { background:#66d36e; color:#0d3312; }
+  #giveupBtn { background:#5a3340; }
+  #giveupBtn.armed { background:#c62828; }   /* 한 번 더 누르면 진짜 항복 */
   #overlay {
     position:fixed; inset:0; background:rgba(10,14,26,.88);
     display:flex; flex-direction:column; align-items:center; justify-content:safe center;
@@ -599,6 +601,7 @@
     <button id="summonBtn">🎲 소환 20G</button>
     <button id="upBtn">⚔️ 강화 100G</button>
     <button id="pauseBtn" class="small">⏸</button>
+    <button id="giveupBtn" class="small">🏳️</button>
     <button id="speedBtn" class="small">x1</button>
     <button id="soundBtn" class="small">🔊</button>
   </div>
@@ -1212,7 +1215,7 @@ function startRaid() {
   S.roundT = 1e9;                                           // 레이드엔 웨이브가 없다
   S.hyperCharges = 2;                                       // 웨이브가 없으니 하이퍼차지는 미리 2개 지급
   RD.myDmg = 0; RD.paid = 0; RD.mateDmg = 0; RD.barrier = 0; RD.barCd = RAID_BAR_CD;
-  RD.t = RAID_TIME; RD.syncT = 0; RD.on = true;
+  RD.t = RAID_TIME; RD.syncT = 0; RD.on = true; RD.gaveUp = false;
   RD.boss = mkRaidBoss();
   S.enemies.push(RD.boss);
   $('raidHud').classList.remove('hidden');
@@ -1286,7 +1289,8 @@ function raidWin() {
   sfx('jackpot');
   showOverlay('raidwin');
 }
-function raidFail() {
+function raidFail(gaveUp) {
+  RD.gaveUp = !!gaveUp;
   RD.on = false;
   S.running = false;
   $('raidHud').classList.add('hidden');
@@ -1888,6 +1892,30 @@ function swapUnits(a, b) { // 서로 다른 캐릭터 자리 맞교환 (무료, 
   sfx('move');
   S.selected = null;
   updateInfoPanel();
+}
+let giveupArm = 0;   // 🏳️ 항복 확인 대기 (2초 안에 한 번 더 누르면 확정)
+function giveUp() {
+  if (!S.running || S.over) return;
+  const btn = $('giveupBtn');
+  if (Date.now() > giveupArm) {                     // 첫 번째 누름 — 확인만
+    giveupArm = Date.now() + 2000;
+    btn.classList.add('armed');
+    btn.textContent = '정말?';
+    addText(WORLD_W / 2, 460, '🏳️ 한 번 더 누르면 항복해요', '#ff8a8a', 15);
+    setTimeout(() => {
+      if (Date.now() > giveupArm) { btn.classList.remove('armed'); btn.textContent = '🏳️'; }
+    }, 2100);
+    return;
+  }
+  giveupArm = 0;                                    // 두 번째 누름 — 확정
+  btn.classList.remove('armed'); btn.textContent = '🏳️';
+  S.paused = false;
+  giveupArm = 0;
+  const gb = $('giveupBtn'); if (gb) { gb.classList.remove('armed'); gb.textContent = '🏳️'; }
+  $('pauseBtn').textContent = '⏸'; $('pauseBtn').classList.remove('on');
+  addText(WORLD_W / 2, 300, '🏳️ 항복!', '#ff8a8a', 22);
+  if (RD.on) { raidFail(true); return; }            // 🍡 레이드는 전용 실패 화면으로
+  gameOver();                                        // 나머지는 평소 게임오버와 같게 (기록도 그대로 저장)
 }
 function castHyper(slot) { // ⚡ 하이퍼차지 발동! (캐릭터마다 다른 필살기)
   const sl = slot || S.selected;
@@ -3603,6 +3631,7 @@ $('pauseBtn').addEventListener('click', () => {
 $('sellBtn').addEventListener('click', sellSelected);
 $('hyperBtn').addEventListener('click', () => castHyper()); // 이벤트 객체가 인자로 들어가지 않게!
 $('drillBtn').addEventListener('click', () => castDrill()); // 🔩 노에시 변신
+$('giveupBtn').addEventListener('click', giveUp); // 🏳️ 항복 (망한 판 탈출용)
 $('speedBtn').addEventListener('click', () => {
   S.speed = S.speed === 1 ? 2 : 1;
   $('speedBtn').textContent = `x${S.speed}`;
@@ -3776,11 +3805,11 @@ function showOverlay(mode) {
     b2.textContent = '처음으로';
     b2.classList.remove('hidden');
   } else if (mode === 'raidfail') { // 🍡 시간 초과
-    ov.querySelector('h1').textContent = '⏱️ 시간 초과!';
+    ov.querySelector('h1').textContent = RD.gaveUp ? '🏳️ 항복' : '⏱️ 시간 초과!';
     $('ovChars').style.display = 'none';
     sel.style.display = 'none';
     const left = RD.boss ? RD.boss.hp : RAID_HP;
-    $('ovMsg').innerHTML = `🍡 떡장수가 도망쳤다...<br>` +
+    $('ovMsg').innerHTML = (RD.gaveUp ? `🍡 떡장수를 두고 물러났다...<br>` : `🍡 떡장수가 도망쳤다...<br>`) +
       `남은 체력 <b style="font-size:20px;color:#ff8a65">${fmtNum(left)}</b> (${(left / RAID_HP * 100).toFixed(1)}%)<br>` +
       `내가 넣은 피해 <b>${fmtNum(RD.myDmg)}</b>` +
       (RD.code ? '' : '<br><br>💡 <b>팀을 짜면</b> 피해량이 합산돼요! 최대 5명');
@@ -5776,6 +5805,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   getArc: () => ({ ...ARC, until: ARC_UNTIL }),
   castDrill, drillCost, POT_EVERY, DRILL_TIME, DRILL_DMG,
   GIFT_CODES, hasSkin, getSkins: () => SKINS, openGift, openGiftCode, giveGift, getGifts: () => GIFTS,
+  giveUp,
   CH, startChaos, startChaosEvent, chaosOn, CHAOS_ACTS, chaosUpdate,
   setChaos: (until) => { CHAOS_UNTIL = until; updateEventUI(); },
   RD, RAID, startRaid, raidUpdate, raidWin, raidFail, mkRaidBoss, openRaid, raidBarrierMul,
