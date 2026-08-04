@@ -223,12 +223,30 @@
   #deckBtns { display:flex; gap:8px; }
   #deckBtns button { padding:8px 16px; font-size:13px; border-radius:9px; }
   /* 🏀 베인오락실 */
-  #arcade, #gacha, #keyring, #cards, #raid, #gift {
+  #arcade, #gacha, #keyring, #cards, #raid, #gift, #shop {
     position:fixed; inset:0; background:#161b2c; z-index:23;
     padding:16px 14px calc(14px + env(safe-area-inset-bottom));
     display:flex; flex-direction:column; align-items:center; gap:8px; overflow-y:auto;
   }
-  #arcade.hidden, #gacha.hidden, #keyring.hidden, #cards.hidden, #raid.hidden, #gift.hidden { display:none; }
+  #arcade.hidden, #gacha.hidden, #keyring.hidden, #cards.hidden, #raid.hidden, #gift.hidden, #shop.hidden { display:none; }
+  /* 🛒 상점 */
+  #shop h2 { color:#ffd54f; font-size:22px; }
+  #shopWallet { font-size:22px; font-weight:900; color:#81d4fa; }
+  #shopBox { width:100%; max-width:420px; background:#1a2136; border:2px solid #3a4566;
+             border-radius:12px; padding:10px; text-align:center; }
+  #shopBoxIcon { font-size:52px; line-height:1.1; }
+  #boxBtn { width:100%; padding:12px; font-size:15px; font-weight:800; border-radius:10px;
+            background:#c98a2f; box-shadow:0 4px 0 #8d5c1c; }
+  #boxBtn:disabled { filter:grayscale(1); opacity:.5; box-shadow:none; }
+  #boxResult { font-size:13px; color:#ffe082; line-height:1.7; margin-top:6px; min-height:20px; }
+  #shopList { width:100%; max-width:420px; display:flex; flex-direction:column; gap:6px; }
+  .sitem { display:flex; align-items:center; gap:9px; background:#1e2438; border-radius:10px; padding:9px 11px; }
+  .sitem .ic { font-size:24px; }
+  .sitem .tx { flex:1; min-width:0; font-size:13px; line-height:1.45; }
+  .sitem .tx small { color:#9fb0d8; font-size:11px; }
+  .sitem button { padding:8px 12px; font-size:12px; font-weight:800; border-radius:9px; background:#3f6ea8; }
+  .sitem button:disabled { filter:grayscale(1); opacity:.5; }
+  .sitem button.owned { background:#4a7c59; }
   /* 📦 이상한 소포 */
   #gift h2 { color:#ffd54f; font-size:22px; }
   #giftBox { font-size:76px; line-height:1; margin:4px 0 2px;
@@ -242,8 +260,8 @@
   #giftResult { width:100%; max-width:420px; font-size:14px; line-height:1.8; text-align:center; color:#ffe082; }
   #giftResult .got { background:#2c2416; border:1px solid #6a4a2c; border-radius:10px; padding:11px; margin-top:6px; }
   #giftLog { width:100%; max-width:420px; font-size:11px; color:#7d8ab0; text-align:center; line-height:1.7; }
-  #arcade h2, #gacha h2, #keyring h2, #cards h2, #raid h2, #gift h2 { color:#ffd54f; font-size:22px; }
-  #arcade .sub, #gacha .sub, #keyring .sub, #cards .sub, #raid .sub, #gift .sub { color:#9fb0d8; font-size:12px; text-align:center; line-height:1.6; }
+  #arcade h2, #gacha h2, #keyring h2, #cards h2, #raid h2, #gift h2, #shop h2 { color:#ffd54f; font-size:22px; }
+  #arcade .sub, #gacha .sub, #keyring .sub, #cards .sub, #raid .sub, #gift .sub, #shop .sub { color:#9fb0d8; font-size:12px; text-align:center; line-height:1.6; }
   /* 🍡 최강의 떡장수 레이드 */
   #raid > div { width:100%; max-width:420px; }
   #raidBtns { display:flex; flex-direction:column; gap:8px; }
@@ -263,7 +281,7 @@
   #rhInfo { display:flex; justify-content:space-between; font-size:11px; font-weight:800; margin-top:3px; text-shadow:0 1px 2px #000; }
   #rhTime { color:#ffd54f; } #rhTeam { color:#90caf9; } #rhBuff { color:#ff8a65; }
   #arcTime { color:#ff8a65; font-weight:800; }
-  #arcade .close, #gacha .close, #keyring .close, #cards .close, #gift .close { background:#3a4566; padding:9px 26px; font-size:14px; border-radius:10px; }
+  #arcade .close, #gacha .close, #keyring .close, #cards .close, #gift .close, #shop .close { background:#3a4566; padding:9px 26px; font-size:14px; border-radius:10px; }
   #arcade > .grid, #gacha > div, #keyring > div { width:100%; max-width:420px; }
   #court, #arcResult, #gachaResult, #krList, #krPageList, #cardList { width:100%; max-width:420px; }
   .atabs { display:flex; gap:5px; width:100%; max-width:420px; }
@@ -408,7 +426,7 @@
   /* 홈 보조 버튼: 작게 — 개수가 많아 세로가 넘치지 않도록 */
   #overlay #ovBtn2, #overlay #ovBtn3, #overlay #ovBtnK, #overlay #ovBtn4,
   #overlay #ovBtnA, #overlay #ovBtn5, #overlay #ovBtnB, #overlay #ovBtn6,
-  #overlay #ovBtnD, #overlay #ovBtn7, #overlay #ovBtnN, #overlay #ovBtnY, #overlay #ovBtnR, #overlay #ovBtnC, #overlay #ovBtnG {
+  #overlay #ovBtnD, #overlay #ovBtn7, #overlay #ovBtnN, #overlay #ovBtnY, #overlay #ovBtnR, #overlay #ovBtnC, #overlay #ovBtnG, #overlay #ovBtnS {
     margin-top:0; padding:10px 28px; font-size:15px; min-width:200px;
     background:#3a4566; box-shadow:0 4px 0 #232a42;
   }
@@ -418,6 +436,7 @@
   #overlay #ovBtnR { background:#c94f7c; box-shadow:0 4px 0 #8d3554; } /* 🍡 최강의 떡장수 */
   #overlay #ovBtnC { background:linear-gradient(90deg,#e64a19,#fbc02d,#8e24aa); box-shadow:0 4px 0 #4a148c; } /* 🎪 개판오분전 */
   #overlay #ovBtnG { background:#c98a2f; box-shadow:0 4px 0 #8d5c1c; } /* 📦 이상한 소포 */
+  #overlay #ovBtnS { background:#2e7d6b; box-shadow:0 4px 0 #1b4c41; } /* 🛒 상점 */
   @media (max-height: 780px) {
     #overlay h1 { font-size:26px; }
     #overlay .big-emoji img { width:44px; height:44px; }
@@ -425,7 +444,7 @@
     #overlay button { padding:12px 40px; font-size:17px; }
     #overlay #ovBtn2, #overlay #ovBtn3, #overlay #ovBtnK, #overlay #ovBtn4,
     #overlay #ovBtnA, #overlay #ovBtn5, #overlay #ovBtnB, #overlay #ovBtn6,
-    #overlay #ovBtnD, #overlay #ovBtn7, #overlay #ovBtnN, #overlay #ovBtnY, #overlay #ovBtnR, #overlay #ovBtnC, #overlay #ovBtnG { padding:8px 22px; font-size:14px; }
+    #overlay #ovBtnD, #overlay #ovBtn7, #overlay #ovBtnN, #overlay #ovBtnY, #overlay #ovBtnR, #overlay #ovBtnC, #overlay #ovBtnG, #overlay #ovBtnS { padding:8px 22px; font-size:14px; }
   }
   .lvcard {
     display:inline-flex; align-items:center; gap:3px; padding:1px 7px; margin-left:4px;
@@ -630,6 +649,7 @@
   <button id="ovBtn2" class="hidden">스테이지 선택</button>
   <button id="ovBtn3" class="hidden">🏆 랭킹</button>
   <button id="ovBtnC" class="hidden">🎪 개판오분전</button>
+  <button id="ovBtnS" class="hidden">🛒 상점</button>
   <button id="ovBtnG" class="hidden">📦 이상한 소포</button>
   <button id="ovBtnY" class="hidden">📺 공식 채널</button>
   <button id="ovBtn4" class="hidden">👥 더블큐</button>
@@ -846,6 +866,20 @@
   <p class="sub">게임 중에 <b>1개만</b> 사용할 수 있어요<br>🍜누들과 키링은 <b>둘 중 하나만</b> 쓸 수 있습니다</p>
   <div id="krPageList"></div>
   <button class="close" id="krClose">나가기</button>
+</div>
+
+<div id="shop" class="hidden">
+  <h2>🛒 상점</h2>
+  <p class="sub">게임이 끝날 때마다 <b>도달 웨이브만큼 🐚조개돈</b>이 쌓여요<br>
+    끝난 이벤트에 남은 재화도 자동으로 조개돈이 됩니다</p>
+  <div id="shopWallet">🐚 0</div>
+  <div id="shopBox">
+    <div id="shopBoxIcon">🎁</div>
+    <button id="boxBtn">🎲 상자 열기 (🐚20)</button>
+    <div id="boxResult"></div>
+  </div>
+  <div id="shopList"></div>
+  <button class="close" id="shopClose">나가기</button>
 </div>
 
 <div id="gift" class="hidden">
@@ -1119,6 +1153,30 @@ const GIFT_CODES = [
   { code: 'NOGUARD DRG', name: '🐯 봉인된 소포', msg: '소포가 으르렁거린다...', give: { skin: 'hoyong' } }, // 철자 오타 대비 별칭
 ];
 let GIFTS = [];   // 이미 뜯은 코드 (localStorage)
+
+// 🛒 상점 (기획: 구예준) — 화폐는 🐚조개돈. 낚시(진주)와 지갑을 따로 둬서 보물 노가다를 건드리지 않는다
+let SHELL = 0;
+const SHELL_PER_WAVE = 1;                  // 게임이 끝나면 도달 웨이브만큼
+const SHELL_RATE = { won: 20, play: 5, key: 10, frag: 3 };   // 끝난 이벤트 재화 → 조개돈 환전비
+const BOX_COST = 20;                       // 🎲 상자는 싸게 — 상자깡이 되도록
+const PRICE = { noodle: 70, keyring: 150, skin: 400 };
+// 상점 전용 스킨 — 아군 전체에 색 오라가 돈다 (성능 0)
+const SHOP_SKINS = [
+  { id: 'aura_gold',   name: '황금 오라',   color: '#ffd54f' },
+  { id: 'aura_blue',   name: '심해 오라',   color: '#4fc3f7' },
+  { id: 'aura_purple', name: '암흑 오라',   color: '#b388ff' },
+  { id: 'aura_green',  name: '맹독 오라',   color: '#9ccc65' },
+];
+// 🎲 상자 내용물 (진주는 넣지 않는다 — 낚시 경제를 건드리지 않기 위해)
+const BOX_TABLE = [
+  { w: 34, kind: 'shell',   min: 5,  max: 15, label: '🐚 조개돈' },
+  { w: 20, kind: 'shell',   min: 20, max: 45, label: '🐚 조개돈 (많이!)' },
+  { w: 18, kind: 'won',     min: 80, max: 250, label: '💰 오락실 원' },
+  { w: 15, kind: 'noodle',  label: '🍜 누들' },
+  { w: 8,  kind: 'keyring', label: '🔑 키링' },
+  { w: 4,  kind: 'skin',    label: '🎨 스킨' },
+  { w: 1,  kind: 'jackpot', label: '🎉 대박' },
+];
 // 🎴 한정판 스킨 보관함 — 코드·이벤트로 얻는 수집품
 let SKINS = {};
 const hasSkin = id => !!SKINS[id];
@@ -2425,6 +2483,7 @@ function gameOver() {
   S.over = true;
   sfx('over');
   if (!DEV && !ORGOL && !CH.on) gainPearl(Math.max(1, Math.floor(S.wave / 2))); // 🫧 진주 획득 (낚시 밑천)
+  if (!DEV && !ORGOL && !CH.on && S.wave > 0) gainShell(S.wave * SHELL_PER_WAVE);  // 🐚 조개돈 획득 (상점 밑천)
   // 🌋 라바 이벤트는 🌑 DARK KAKAO에서도 보상 지급 (개발자 특권)
   if (lavaOn() && !ORGOL && S.wave > 0) { FREEFISH += S.wave; saveTreasure(); }
   if (!DEV && !ORGOL && !CH.on && S.wave > 0) { // ⭐ 전투 경험치 (도달 웨이브만큼)
@@ -2837,6 +2896,13 @@ function draw() {
       ctx.strokeStyle = '#6d4c41'; ctx.lineWidth = 2; ctx.stroke();
       ctx.font = '15px sans-serif'; ctx.fillText('🕳️', sl.cx, sl.cy + 2);
       continue;
+    }
+    const auraCol = skinColor();   // 🎨 상점 스킨 — 아군 전체에 색 오라 (성능 변화 없음)
+    if (auraCol) {
+      const ph = 0.35 + Math.abs(Math.sin(S.time * 2 + sl.cx * 0.02)) * 0.45;
+      ctx.strokeStyle = auraCol; ctx.globalAlpha = ph; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(sl.cx, sl.cy, 29, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = locked ? 0.55 : u.ghost ? 0.5 : 1;
     }
     // 🐯 한정판 패왕호룡 — NOGAURD DRG 코드로만 얻는 드래곤 (모션·그림은 예준이 작업 예정)
     if (u.type === 'reddragon' && hasSkin('hoyong')) {
@@ -3715,6 +3781,7 @@ function showOverlay(mode) {
   $('ovBtnR').classList.add('hidden');
   $('ovBtnC').classList.add('hidden');
   $('ovBtnG').classList.add('hidden');
+  $('ovBtnS').classList.add('hidden');
   $('ovBtnK').classList.add('hidden');
   $('ovBtnL').classList.add('hidden');
   $('nickLine').classList.add('hidden');
@@ -3893,9 +3960,92 @@ function updatePoison(dt) {
     S.effects.push({ kind: 'venomtick', x: p.x, y: p.y, t: 1, decay: 3 });
   }
 }
+// ---------- 🛒 상점 ----------
+const activeSkin = () => { try { return localStorage.getItem('ltd_skin_on') || ''; } catch (e) { return ''; } };
+function setActiveSkin(id) { try { localStorage.setItem('ltd_skin_on', id || ''); } catch (e) {} }
+const skinColor = () => { const s2 = SHOP_SKINS.find(x => x.id === activeSkin()); return s2 && SKINS[s2.id] ? s2.color : ''; };
+
+function shopPay(n) { if (SHELL < n) return false; SHELL -= n; saveShell(); return true; }
+function renderShop() {
+  $('shopWallet').textContent = `🐚 ${Math.round(SHELL).toLocaleString()}`;
+  $('boxBtn').disabled = SHELL < BOX_COST;
+  $('boxBtn').textContent = `🎲 상자 열기 (🐚${BOX_COST})`;
+  const row = (ic, title, desc, btn) =>
+    `<div class="sitem"><span class="ic">${ic}</span><span class="tx"><b>${title}</b><br><small>${desc}</small></span>${btn}</div>`;
+  let html = row('🍜', `누들 (랜덤 1개) — 🐚${PRICE.noodle}`,
+    '이벤트가 끝나도 살 수 있어요 · 한 판에 종류별 1회',
+    `<button data-buy="noodle" ${SHELL < PRICE.noodle ? 'disabled' : ''}>구매</button>`);
+  html += KEYRINGS.map(k => row(k.icon, `${k.name} — 🐚${PRICE.keyring}`,
+    `${k.desc} · 보유 ${(ARC.kr[k.id] || 0)}개`,
+    `<button data-kr="${k.id}" ${SHELL < PRICE.keyring ? 'disabled' : ''}>구매</button>`)).join('');
+  html += SHOP_SKINS.map(sk => {
+    const own = !!SKINS[sk.id], on = activeSkin() === sk.id;
+    return row('🎨', `${sk.name}${own ? '' : ` — 🐚${PRICE.skin}`}`,
+      own ? '아군 전체에 오라가 돌아요 (성능 변화 없음)' : '아군 전체에 색 오라 · 성능은 그대로',
+      own ? `<button data-skin="${on ? '' : sk.id}" class="owned">${on ? '해제' : '착용'}</button>`
+          : `<button data-buyskin="${sk.id}" ${SHELL < PRICE.skin ? 'disabled' : ''}>구매</button>`);
+  }).join('');
+  $('shopList').innerHTML = html;
+}
+function openShop() {
+  loadShell();
+  const conv = convertLeftovers();
+  $('shop').classList.remove('hidden');
+  $('boxResult').innerHTML = conv
+    ? `<span style="color:#81e88c">끝난 이벤트 재화를 🐚${conv} 로 바꿔뒀어요</span>` : '';
+  $('shopBoxIcon').textContent = '🎁';
+  renderShop();
+}
+function openBox() {
+  if (!shopPay(BOX_COST)) return;
+  const total = BOX_TABLE.reduce((a, x) => a + x.w, 0);
+  let r = Math.random() * total, hit = BOX_TABLE[0];
+  for (const x of BOX_TABLE) { r -= x.w; if (r <= 0) { hit = x; break; } }
+  let msg = '';
+  if (hit.kind === 'shell') {
+    const n = hit.min + Math.floor(Math.random() * (hit.max - hit.min + 1));
+    gainShell(n); msg = `🐚 조개돈 ${n}개`;
+  } else if (hit.kind === 'won') {
+    const n = hit.min + Math.floor(Math.random() * (hit.max - hit.min + 1));
+    ARC.coin += n; saveArc(); msg = `💰 오락실 ${n}원`;
+  } else if (hit.kind === 'noodle') {
+    const n = rand(NOODLES); GOB['n' + n.id]++; saveGob(); msg = `${n.icon} ${n.name}`;
+  } else if (hit.kind === 'keyring') {
+    const k = rand(KEYRINGS); ARC.kr[k.id] = (ARC.kr[k.id] || 0) + 1; ARC.unlocked = true; saveArc();
+    msg = `${k.icon} ${k.name}`;
+  } else if (hit.kind === 'skin') {
+    const left = SHOP_SKINS.filter(x => !SKINS[x.id]);
+    if (left.length) { const sk = rand(left); SKINS[sk.id] = true; saveSkins(); msg = `🎨 ${sk.name} (스킨!)`; }
+    else { gainShell(120); msg = '🐚 조개돈 120개 (스킨은 이미 다 모았어요)'; }
+  } else {
+    gainShell(300); msg = '🎉 대박! 🐚 조개돈 300개';
+  }
+  $('shopBoxIcon').textContent = hit.kind === 'jackpot' ? '🎉' : '📦';
+  $('boxResult').innerHTML = `<b>${msg}</b>`;
+  sfx(hit.kind === 'jackpot' || hit.kind === 'skin' ? 'jackpot' : 'summon');
+  renderShop();
+}
 // ---------- 📦 이상한 소포 ----------
 function loadGifts() { try { GIFTS = JSON.parse(localStorage.getItem('ltd_gift') || '[]'); } catch (e) { GIFTS = []; } }
 function loadSkins() { try { SKINS = JSON.parse(localStorage.getItem('ltd_skins') || '{}'); } catch (e) { SKINS = {}; } }
+function loadShell() { SHELL = Math.max(0, +(localStorage.getItem('ltd_shell') || 0)); }
+function saveShell() { try { localStorage.setItem('ltd_shell', String(Math.round(SHELL))); } catch (e) {} }
+function gainShell(n) { SHELL += n; saveShell(); }
+function convertLeftovers() {   // 끝난 이벤트에 남은 재화를 조개돈으로 바꿔준다 (증발 방지)
+  let got = 0;
+  if (!arcOn()) {
+    if (ARC.coin > 0)  { got += Math.floor(ARC.coin / SHELL_RATE.won);  ARC.coin = 0; }
+    if (ARC.shots > 0) { got += ARC.shots * SHELL_RATE.play;            ARC.shots = 0; }
+    if (got) saveArc();
+  }
+  if (!gobOn()) {
+    if (GOB.key > 0)  { got += GOB.key * SHELL_RATE.key;   GOB.key = 0; }
+    if (GOB.frag > 0) { got += GOB.frag * SHELL_RATE.frag; GOB.frag = 0; }
+    if (got) saveGob();
+  }
+  if (got > 0) { gainShell(got); return got; }
+  return 0;
+}
 function saveSkins() { try { localStorage.setItem('ltd_skins', JSON.stringify(SKINS)); } catch (e) {} }
 function saveGifts() { try { localStorage.setItem('ltd_gift', JSON.stringify(GIFTS)); } catch (e) {} }
 const normCode = c => String(c || '').trim().replace(/\s+/g, '').toLowerCase();
@@ -5205,6 +5355,32 @@ $('krClose').addEventListener('click', () => $('keyring').classList.add('hidden'
 // 🍡 최강의 떡장수 레이드
 $('ovBtnR').addEventListener('click', openRaid);
 $('ovBtnC').addEventListener('click', startChaos);
+$('ovBtnS').addEventListener('click', openShop);
+$('shopClose').addEventListener('click', () => $('shop').classList.add('hidden'));
+$('boxBtn').addEventListener('click', openBox);
+$('shopList').addEventListener('click', ev => {
+  const b2 = ev.target.closest('button'); if (!b2) return;
+  const d = b2.dataset;
+  if (d.buy === 'noodle' && shopPay(PRICE.noodle)) {
+    const n = rand(NOODLES); GOB['n' + n.id]++; saveGob();
+    $('boxResult').innerHTML = `<b>${n.icon} ${n.name}</b> 구매!`;
+    sfx('jackpot');
+  } else if (d.kr && shopPay(PRICE.keyring)) {
+    ARC.kr[d.kr] = (ARC.kr[d.kr] || 0) + 1; ARC.unlocked = true; saveArc();
+    const k = KEYRINGS.find(x => x.id === d.kr);
+    $('boxResult').innerHTML = `<b>${k.icon} ${k.name}</b> 구매!`;
+    sfx('jackpot');
+  } else if (d.buyskin && shopPay(PRICE.skin)) {
+    SKINS[d.buyskin] = true; saveSkins(); setActiveSkin(d.buyskin);
+    const sk = SHOP_SKINS.find(x => x.id === d.buyskin);
+    $('boxResult').innerHTML = `<b>🎨 ${sk.name}</b> 구매! 바로 착용했어요`;
+    sfx('jackpot');
+  } else if (d.skin !== undefined) {
+    setActiveSkin(d.skin);
+    $('boxResult').innerHTML = d.skin ? '🎨 착용했어요' : '🎨 해제했어요';
+  }
+  renderShop();
+});
 $('ovBtnG').addEventListener('click', openGift);
 $('giftOpen').addEventListener('click', openGiftCode);
 $('giftClose').addEventListener('click', () => $('gift').classList.add('hidden'));
@@ -5233,6 +5409,7 @@ loadArc();
 loadRaid();   // 🍡 내 레이드 기록(스킨·이용권)
 loadGifts();  // 📦 이미 뜯은 소포 목록
 loadSkins();  // 🎴 한정판 스킨 보관함
+loadShell();  // 🐚 조개돈
 
 // ---------- 🎣 낚시터 & 보물 (기획: 구예준) ----------
 // 진주로 낚시 → 보물 획득, 중복이면 레벨업(최대 15). 효과는 레벨에 비례.
@@ -5296,6 +5473,7 @@ function updateEventUI() {
   show('ovBtnR', raidOn());   // 🍡 최강의 떡장수 — 이벤트 기간에만
   show('ovBtnC', chaosOn());  // 🎪 개판오분전 — 이벤트 기간에만
   show('ovBtnG', !isNewbie()); // 📦 이상한 소포 — 완전 신규에겐 숨김
+  show('ovBtnS', !isNewbie()); // 🛒 상점
   const on = lavaOn();
   const he = $('homeEvent');
   if (he) {
@@ -5992,6 +6170,8 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   ARC, KEYRINGS, startArc, arcOn, renderArc, arcCatch, arcShoot, gachaDraw, useKeyring, renderNoodleBar,
   getArc: () => ({ ...ARC, until: ARC_UNTIL }),
   castDrill, drillCost, POT_EVERY, DRILL_TIME, DRILL_DMG,
+  SHELL_PER_WAVE, BOX_COST, PRICE, SHOP_SKINS, openShop, openBox, renderShop,
+  getShell: () => SHELL, setShell: n => { SHELL = n; saveShell(); }, activeSkin, convertLeftovers,
   GIFT_CODES, hasSkin, getSkins: () => SKINS, openGift, openGiftCode, giveGift, getGifts: () => GIFTS,
   giveUp,
   CH, startChaos, startChaosEvent, chaosOn, CHAOS_ACTS, chaosUpdate,
