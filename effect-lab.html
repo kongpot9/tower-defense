@@ -61,6 +61,13 @@
 <!-- ── 이펙트 ── -->
 <div class="panel" id="panelFx">
   <div class="ctl" style="padding:6px 8px"><label>움직임</label><div class="chips" id="motions"></div></div>
+  <div class="ctl" style="padding:6px 8px"><label>선(진)</label><div class="chips" id="lines"></div></div>
+  <div class="ctl" id="lineOpts"><label>선 색</label><input type="color" id="linecol" value="#7e3ff2">
+    <label style="width:auto">바닥</label><input type="color" id="fillcol" value="#0d0616">
+    <button id="linefill" style="padding:5px 9px;font-size:11px">바닥 채움</button></div>
+  <div class="ctl" id="lineOpts2"><label>선 굵기</label><input type="range" id="linew" min="1" max="9" value="3"><span class="val" id="vlinew"></span></div>
+  <div class="ctl" id="lineOpts3"><label>선 크기</label><input type="range" id="liner" min="30" max="180" value="110"><span class="val" id="vliner"></span></div>
+  <div class="ctl" id="lineOpts4"><label>선 회전</label><input type="range" id="linespin" min="0" max="10" value="2"><span class="val" id="vlinespin"></span></div>
   <div id="basket"></div>
   <div class="cat" id="cats"></div>
   <div class="emos" id="quick"></div>
@@ -135,8 +142,11 @@ let curCat = '불·폭발';
 $('cats').innerHTML = Object.keys(EMOJI).map(c => `<button data-c="${c}">${c}</button>`).join('');
 
 /* ── 움직임 패턴 ── */
-const MOTIONS = ['퍼짐','소용돌이','궤도','비','분수','회오리','파도','돌진','제자리'];
+const MOTIONS = ['퍼짐','소용돌이','궤도','비','분수','회오리','파도','돌진','제자리',
+                 '수렴','8자','지그재그','흔들림','무작위','뱀','튕김'];
+const LINES = ['없음','눈꽃','별','오각진','그물','방사선','나선','육각','십자','이중원'];
 $('motions').innerHTML = MOTIONS.map(m => `<button data-m="${m}">${m}</button>`).join('');
+$('lines').innerHTML = LINES.map(l => `<button data-l="${l}">${l}</button>`).join('');
 
 /* ── 모형 파츠 ── */
 const PARTS = {
@@ -154,7 +164,8 @@ for (const key in PARTS) {
 }
 
 /* ── 이펙트 옵션 ── */
-const fx = { emos:['🔥'], motion:'퍼짐', count:8, size:24, spread:70, spin:6, life:12, grav:0,
+const fx = { line:'없음', linecol:'#7e3ff2', linew:3, liner:110, linespin:2, linefill:true, fillcol:'#0d0616',
+             emos:['🔥'], motion:'퍼짐', count:8, size:24, spread:70, spin:6, life:12, grav:0,
              ring:true, flash:false, rise:false, trail:false, grow:false, fade:true, ringcol:'#ff5252' };
 let mode = 'fx', effects = [], TIME = 0, speed = 1;
 const MAX_PICK = 8;
@@ -171,6 +182,7 @@ function paintCat() {
   $('quick').innerHTML = EMOJI[curCat]
     .map(e => `<button data-e="${e}" class="${fx.emos.includes(e) ? 'on' : ''}">${e}</button>`).join('');
   $('motions').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.m === fx.motion));
+  $('lines').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.l === fx.line));
   $('basket').innerHTML = fx.emos.length
     ? fx.emos.map(e => `<button class="pick" data-e="${e}">${e}</button>`).join('')
       + `<span class="empty">이모지를 눌러 담고, 여기서 눌러 빼요 (최대 ${MAX_PICK})</span>`
@@ -180,14 +192,20 @@ $('cats').onclick = ev => { const c = ev.target.dataset.c; if (c) { curCat = c; 
 $('quick').onclick = ev => { const e = ev.target.dataset.e; if (e) toggleEmo(e); };
 $('basket').onclick = ev => { const e = ev.target.dataset.e; if (e) toggleEmo(e); };
 $('motions').onclick = ev => { const m = ev.target.dataset.m; if (m) { fx.motion = m; paintCat(); sync(); fire(180,168); } };
+$('lines').onclick = ev => { const l = ev.target.dataset.l; if (l) { fx.line = l; paintCat(); sync(); fire(180,168); } };
+$('linefill').onclick = () => { fx.linefill = !fx.linefill; sync(); fire(180,168); };
 $('emo').onchange = () => { const v = $('emo').value.trim(); if (v) { toggleEmo(v); $('emo').value = ''; } };
 
-const fxSliders = ['count','size','spread','spin','life','grav'];
+const fxSliders = ['count','size','spread','spin','life','grav','linew','liner','linespin'];
 const mdSliders = ['mSize','mCount'];
 const fxToggles = ['ring','flash','rise','trail','grow','fade'];
 function sync() {
   for (const k of fxSliders) { fx[k] = +$(k).value; $('v'+k).textContent = $(k).value; }
   fx.ringcol = $('ringcol').value; $('vringcol').textContent = '';
+  fx.linecol = $('linecol').value; fx.fillcol = $('fillcol').value;
+  $('linefill').classList.toggle('on', fx.linefill);
+  const lineOn = fx.line !== '없음';
+  for (const id of ['lineOpts','lineOpts2','lineOpts3','lineOpts4']) $(id).classList.toggle('hide', !lineOn);
   for (const k of fxToggles) $(k).classList.toggle('on', fx[k]);
   for (const k of mdSliders) { md[k] = +$(k).value; $('v'+k).textContent = $(k).value; }
   md.bodyCol = $('bodyCol').value; md.lineCol = $('lineCol').value; md.auraCol = $('auraCol').value;
@@ -198,7 +216,7 @@ function sync() {
 }
 for (const k of fxSliders) $(k).oninput = sync;
 for (const k of mdSliders) $(k).oninput = sync;
-for (const k of ['ringcol','bodyCol','lineCol','auraCol']) $(k).oninput = sync;
+for (const k of ['ringcol','bodyCol','lineCol','auraCol','linecol','fillcol']) $(k).oninput = sync;
 for (const k of fxToggles) $(k).onclick = () => { fx[k] = !fx[k]; sync(); fire(180,168); };
 for (const k of ['aura','drop','bob']) $(k).onclick = () => { md[k] = !md[k]; sync(); fire(180,168); };
 
@@ -225,7 +243,11 @@ $('slow').onclick = e => { speed = speed === 1 ? 0.25 : 1;
 $('copy').onclick = () => {
   const onoff = b => b ? '켬' : '끔';
   const txt = mode === 'fx'
-    ? `✨ 이펙트 설정\n이모지: ${fx.emos.join(' ')}\n움직임: ${fx.motion}\n개수: ${fx.count}\n크기: ${fx.size}\n`
+    ? `✨ 이펙트 설정\n이모지: ${fx.emos.join(' ')}\n움직임: ${fx.motion}\n`
+      + `선(진): ${fx.line}` + (fx.line !== '없음'
+          ? ` · 선색 ${fx.linecol} · 굵기 ${fx.linew} · 크기 ${fx.liner} · 회전 ${fx.linespin} · 바닥 ${fx.linefill ? '채움 ' + fx.fillcol : '없음'}`
+          : '') + `\n`
+      + `개수: ${fx.count}\n크기: ${fx.size}\n`
       + `퍼짐: ${fx.spread}\n회전: ${fx.spin}\n지속: ${fx.life}\n중력: ${fx.grav}\n`
       + `원 테두리: ${fx.ring ? '켬 ' + fx.ringcol : '끔'}\n번쩍임: ${onoff(fx.flash)}\n위로 솟기: ${onoff(fx.rise)}\n`
       + `꼬리: ${onoff(fx.trail)}\n점점 커짐: ${onoff(fx.grow)}\n점점 사라짐: ${onoff(fx.fade)}`
@@ -237,7 +259,7 @@ function render() {
   $('out').textContent = mode === 'fx'
     ? `${fx.emos.join('')} ${fx.count}개 · ${fx.motion} · 크기 ${fx.size} · 퍼짐 ${fx.spread}` +
       (fx.ring ? ' · 원' : '') + (fx.flash ? ' · 번쩍임' : '') + (fx.rise ? ' · 위로' : '') +
-      (fx.trail ? ' · 꼬리' : '') + (fx.grow ? ' · 커짐' : '')
+      (fx.trail ? ' · 꼬리' : '') + (fx.grow ? ' · 커짐' : '') + (fx.line !== '없음' ? ' · 진:' + fx.line : '')
     : `${md.bodyShape} ${md.mCount}기 · 눈 ${md.eyeType} · 손 ${md.handType} · 머리 ${md.headType}` +
       (md.aura ? ' · 오라' : '') + (md.drop ? ' · 강림' : '');
 }
@@ -263,12 +285,86 @@ function partPos(i, n, grow, e) {
     case '돌진':    { return [e.x - R * 1.2 + grow * R * 2.6, e.y + (i / n - 0.5) * R * 0.9]; }
     case '제자리':  { const w = 1 + Math.sin(TIME * 9 + i) * 0.18;
                       return [e.x + Math.cos(base) * R * 0.28 * w, e.y + Math.sin(base) * R * 0.28 * w]; }
+    case '수렴':    { const d2 = R * (1 - grow);                       // 밖에서 안으로 모여든다
+                      return [e.x + Math.cos(base) * d2, e.y + Math.sin(base) * d2]; }
+    case '8자':     { const a = base + TIME * 2;                       // 무한대 모양 궤도
+                      return [e.x + Math.cos(a) * R, e.y + Math.sin(a * 2) * R * 0.5]; }
+    case '지그재그': { const d2 = R * grow, z = (i % 2 ? 1 : -1) * Math.sin(grow * 10) * R * 0.28;
+                      return [e.x + Math.cos(base) * d2 + Math.cos(base + Math.PI / 2) * z,
+                              e.y + Math.sin(base) * d2 + Math.sin(base + Math.PI / 2) * z]; }
+    case '흔들림':  { const ph = Math.sin(TIME * 18 + i * 0.7) * R * 0.3;
+                      return [e.x + Math.cos(base) * R * 0.35 + ph, e.y + Math.sin(base) * R * 0.35]; }
+    case '무작위':  { const a = rnd(i + sd) * Math.PI * 2, sp = 0.45 + rnd(i + sd + 3);
+                      return [e.x + Math.cos(a) * R * grow * sp, e.y + Math.sin(a) * R * grow * sp]; }
+    case '뱀':      { const a = grow * 6 - (i / n) * 1.5;              // 한 줄로 꼬리를 물고 간다
+                      return [e.x + Math.cos(a) * R, e.y + Math.sin(a) * R]; }
+    case '튕김':    { const t2 = grow * 3 + i * 0.12, bnc = Math.abs(Math.sin(t2 * Math.PI));
+                      return [e.x + (i / n - 0.5) * R * 1.8, e.y + R * 0.6 - bnc * R]; }
     default:        return [e.x + Math.cos(base) * R * grow, e.y + Math.sin(base) * R * grow]; // 퍼짐
   }
 }
 
+// 진(陣) — 검사 하이퍼차지의 눈꽃 진 같은 선 연출
+function drawLines(e, grow) {
+  if (fx.line === '없음') return;
+  const R = fx.liner * (0.6 + grow * 0.4);
+  ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(TIME * fx.linespin * 0.2);
+  if (fx.linefill) {
+    ctx.globalAlpha = e.t * 0.4; ctx.fillStyle = fx.fillcol;
+    ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = e.t;
+  ctx.strokeStyle = fx.linecol; ctx.lineWidth = fx.linew;
+  const poly = (n, r, rot) => { ctx.beginPath();
+    for (let i = 0; i <= n; i++) { const a = rot + i * Math.PI * 2 / n;
+      ctx[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r); } ctx.stroke(); };
+  const spokes = n => { for (let i = 0; i < n; i++) { const a = i * Math.PI * 2 / n;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * R, Math.sin(a) * R); ctx.stroke(); } };
+  switch (fx.line) {
+    case '눈꽃':
+      ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, R * 0.72, 0, Math.PI * 2); ctx.stroke();
+      for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * R, Math.sin(a) * R); ctx.stroke();
+        for (const f of [0.45, 0.7]) { const bx = Math.cos(a) * R * f, by = Math.sin(a) * R * f;
+          for (const s2 of [-0.5, 0.5]) { ctx.beginPath(); ctx.moveTo(bx, by);
+            ctx.lineTo(bx + Math.cos(a + s2) * R * 0.16, by + Math.sin(a + s2) * R * 0.16); ctx.stroke(); } } }
+      break;
+    case '별': ctx.beginPath();
+      for (let i = 0; i < 11; i++) { const r = i % 2 ? R * 0.42 : R, a = i * Math.PI / 5 - Math.PI / 2;
+        ctx[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r); } ctx.stroke(); break;
+    case '오각진':
+      poly(5, R, -Math.PI / 2);
+      ctx.beginPath();                                    // 안쪽 오각별 (한 붓 그리기)
+      for (let i = 0; i <= 5; i++) { const a = -Math.PI / 2 + (i * 2) * Math.PI * 2 / 5;
+        ctx[i ? 'lineTo' : 'moveTo'](Math.cos(a) * R * 0.92, Math.sin(a) * R * 0.92); } ctx.stroke();
+      break;
+    case '그물':
+      ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.stroke();
+      for (let i = 0; i < 12; i++) { const a1 = i * Math.PI * 2 / 12, a2 = a1 + Math.PI * 2 * 5 / 12;
+        ctx.beginPath(); ctx.moveTo(Math.cos(a1) * R, Math.sin(a1) * R);
+        ctx.lineTo(Math.cos(a2) * R, Math.sin(a2) * R); ctx.stroke(); }
+      break;
+    case '방사선': spokes(16); break;
+    case '나선':
+      ctx.beginPath();
+      for (let i = 0; i <= 140; i++) { const t2 = i / 140, a = t2 * Math.PI * 6, r = R * t2;
+        ctx[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r); } ctx.stroke();
+      break;
+    case '육각': poly(6, R, 0); poly(6, R * 0.62, Math.PI / 6); spokes(6); break;
+    case '십자':
+      ctx.beginPath(); ctx.arc(0, 0, R * 0.8, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-R, 0); ctx.lineTo(R, 0); ctx.moveTo(0, -R); ctx.lineTo(0, R); ctx.stroke();
+      break;
+    case '이중원':
+      for (const f of [1, 0.74, 0.48]) { ctx.beginPath(); ctx.arc(0, 0, R * f, 0, Math.PI * 2); ctx.stroke(); }
+      break;
+  }
+  ctx.globalAlpha = 1; ctx.restore();
+}
 function drawFx(e) {
   const grow = 1 - e.t;
+  drawLines(e, grow);                                     // 진(陣)을 먼저 깔고 그 위에 알갱이
   const baseA = fx.fade ? e.t : 1;
   const alpha = fx.flash ? Math.abs(Math.sin(TIME * 14)) * baseA : baseA;
   if (fx.ring) {
