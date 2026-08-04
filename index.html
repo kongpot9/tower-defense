@@ -457,6 +457,11 @@
   #overlay #ovBtnG { background:#c98a2f; box-shadow:0 4px 0 #8d5c1c; } /* 📦 이상한 소포 */
   #overlay #ovBtnS { background:#2e7d6b; box-shadow:0 4px 0 #1b4c41; } /* 🛒 상점 */
   #overlay #ovBtnW { background:#6a4a7c; box-shadow:0 4px 0 #3f2b4a; } /* 🏰 나의 왕국 */
+  /* 🧰 자유 배치 모드 — 버튼을 작게 해서 두 줄로도 들어가게 */
+  #overlay.laid button[id^="ovBtn"] { padding:7px 11px !important; font-size:12px !important;
+    min-width:0 !important; width:auto !important; margin-top:0 !important;
+    line-height:1.15; box-shadow:none !important; border-radius:9px; }
+  #overlay.laid #ovBtn { padding:10px 18px !important; font-size:15px !important; }
   #overlay #ovBtnShare { background:#2e7d32; box-shadow:0 4px 0 #1b5e20; } /* 🔗 공유 */
   #shareToast { position:fixed; left:50%; bottom:calc(18px + env(safe-area-inset-bottom));
                 transform:translateX(-50%); z-index:60; background:#12182a; color:#e8f5e9;
@@ -4102,12 +4107,22 @@ function updatePoison(dt) {
   }
 }
 // ---------- 🧰 버튼 배치 (편집기에서 저장한 설정) ----------
+// 🧰 기본 배치 (설계: 아빠 — 버튼 편집기) — 왼쪽 줄 / 가운데 줄, 이벤트 버튼은 아래
+const DEFAULT_LAYOUT = { pos: {
+  ovBtn3:[27,14], ovBtnS:[27,23], ovBtnW:[27,32], ovBtnD:[27,41],
+  ovBtn5:[27,50], ovBtnL:[27,59], ovBtnK:[27,68],
+  ovBtn:[72,14], ovBtn2:[72,23], ovBtnShare:[72,32], ovBtnY:[72,41],
+  ovBtn6:[72,50], ovBtn7:[72,59], ovBtn4:[72,68], ovBtnN:[72,77],
+  ovBtnA:[27,86], ovBtnR:[72,86], ovBtnC:[27,94], ovBtnB:[72,94], ovBtnG:[50,94],
+}, hidden: [] };
 function applyLayout() {
   let cfg = null;
   try { cfg = JSON.parse(localStorage.getItem('ltd_layout') || 'null'); } catch (e) {}
+  if (!cfg || !cfg.pos) cfg = DEFAULT_LAYOUT;   // 저장한 배치가 없으면 기본 배치
   const ov = $('overlay');
   if (!ov) return;
   const all = [...ov.querySelectorAll('button[id^="ovBtn"]'), $('ovBtn')].filter(Boolean);
+  ov.classList.toggle('laid', !!(cfg && cfg.pos));
   if (!cfg || !cfg.pos) {                          // 설정이 없으면 원래 흐름대로 되돌린다
     for (const el of all) {
       el.style.removeProperty('position'); el.style.removeProperty('left');
@@ -6541,7 +6556,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   ARC, KEYRINGS, startArc, arcOn, renderArc, arcCatch, arcShoot, gachaDraw, useKeyring, renderNoodleBar,
   getArc: () => ({ ...ARC, until: ARC_UNTIL }),
   castDrill, drillCost, POT_EVERY, DRILL_TIME, DRILL_DMG,
-  doShare, shareText, GAME_URL, applyLayout,
+  doShare, shareText, GAME_URL, applyLayout, DEFAULT_LAYOUT,
   COLLECT, ELITE_NEED, ELIXIR_TIERS, elixirTier, isElite, eliteCount, openKingdom, renderKingdom, BRICKS,
   getCollect: () => COLLECT, setCollect: c => { COLLECT = { ...COLLECT, ...c }; saveCollect(); },
   BOX_SMALL, BOX_BIG, CHAR_SKINS, charSkinOf, gainBoxes, toggleCharSkin,
