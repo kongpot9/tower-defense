@@ -211,6 +211,15 @@
   #deckPool .gsec { font-size:11px; font-weight:800; margin:6px 0 3px; }
   #deckPool .grow { display:grid; grid-template-columns:repeat(5, 1fr); gap:5px; }
   #deckPool .dcard.on { opacity:.35; }
+  #deckTabs { display:flex; flex-wrap:wrap; gap:5px; justify-content:center; width:100%; max-width:430px; }
+  #deckTabs button { padding:6px 10px; font-size:12px; border-radius:9px; background:#2a3358; color:#dbe6ff; }
+  #deckTabs button.on { background:#3f6ea8; color:#fff; box-shadow:0 0 0 2px #8ab4ff inset; }
+  #deckTabs button.using:after { content:' ✅'; }
+  #deckTabs button.add { background:#243044; color:#8ab4ff; }
+  #deckNameRow { display:flex; gap:6px; width:100%; max-width:430px; }
+  #deckName { flex:1; min-width:0; padding:9px 11px; font-size:15px; border-radius:9px;
+              border:2px solid #3a4566; background:#0f1320; color:#fff; font-family:inherit; }
+  #deckDelBtn { padding:9px 12px; font-size:14px; border-radius:9px; }
   #deckBtns { display:flex; gap:8px; }
   #deckBtns button { padding:8px 16px; font-size:13px; border-radius:9px; }
   /* 🏀 베인오락실 */
@@ -722,6 +731,11 @@
   <h2>🃏 전투덱</h2>
   <p class="sub">소환 상자에 넣을 <b>8마리</b>를 고르세요<br>적게 넣은 등급일수록 원하는 캐릭터가 잘 나옵니다</p>
   <p class="sub" id="deckState"></p>
+  <div id="deckTabs"></div>
+  <div id="deckNameRow">
+    <input id="deckName" maxlength="12" placeholder="덱 이름 (예: 나태지옥덱)">
+    <button id="deckDelBtn" class="gray">🗑</button>
+  </div>
   <div id="deckSlots"></div>
   <div id="deckInfo"></div>
   <div id="deckBtns">
@@ -941,7 +955,8 @@ const GRADES = [
   { name:'전설', color:'#ffd54f' },
 ];
 const GRADE_PROB = [0.54, 0.30, 0.10, 0.045, 0.015]; // 소환 등급 확률
-const DECK_SIZE = 8;    // 🃏 전투덱에 넣는 캐릭터 수
+const DECK_SIZE = 8;
+const DECK_MAX = 5, DECK_NAME_MAX = 12;   // 덱은 최대 5개, 이름은 12자까지    // 🃏 전투덱에 넣는 캐릭터 수
 let DECK = [];          // 저장된 전투덱(type 배열). 비어 있으면 전체 캐릭터에서 소환
 
 // 캐릭터 도감 — img 필드에 그림 파일을 지정하면 이모지 대신 표시됨
@@ -4676,24 +4691,91 @@ $('noticeOk').addEventListener('click', () => {
 // ---------- 🃏 전투덱 (기획: 구예준) ----------
 // 8마리를 골라 소환 상자를 좁힌다. 등급 확률은 그대로, "그 등급이 떴을 때 누가 나오냐"만 바뀐다.
 let deckEdit = [], deckSel = -1;
+let DECKS = [];       // [{name, units:[...]}] 최대 5개
+let deckIdx = 0;      // 지금 편집 중인 칸
+let deckUse = -1;     // 실제로 쓰는 덱 (-1이면 덱 없이 전체)
+const clean = arr => (Array.isArray(arr) ? arr : []).filter(t => UNITS.some(u => u.type === t && !u.disabled));
 function loadDeck() {
   try {
-    const d = JSON.parse(localStorage.getItem('ltd_deck') || '[]');
-    DECK = Array.isArray(d) ? d.filter(t => UNITS.some(u => u.type === t && !u.disabled)) : [];
-  } catch (e) { DECK = []; }
+    const raw = JSON.parse(localStorage.getItem('ltd_decks') || 'null');
+    if (Array.isArray(raw) && raw.length) {
+      DECKS = raw.slice(0, DECK_MAX).map((d, i) => ({
+        name: String(d && d.name || `덱 ${i + 1}`).slice(0, DECK_NAME_MAX),
+        units: clean(d && d.units),
+      }));
+    } else {                                  // 옛 저장(덱 1개)을 첫 칸으로 옮긴다
+      const old = clean(JSON.parse(localStorage.getItem('ltd_deck') || '[]'));
+      DECKS = old.length ? [{ name: '내 덱', units: old }] : [];
+    }
+    deckUse = +(localStorage.getItem('ltd_deck_use') ?? (DECKS.length ? 0 : -1));
+  } catch (e) { DECKS = []; deckUse = -1; }
+  if (deckUse >= DECKS.length) deckUse = DECKS.length ? 0 : -1;
+  deckIdx = Math.max(0, deckUse);
+  DECK = deckUse >= 0 && DECKS[deckUse] ? DECKS[deckUse].units.slice() : [];
 }
-function saveDeck() { try { localStorage.setItem('ltd_deck', JSON.stringify(DECK)); } catch (e) {} }
+function saveDeck() {
+  try {
+    localStorage.setItem('ltd_decks', JSON.stringify(DECKS));
+    localStorage.setItem('ltd_deck_use', String(deckUse));
+    localStorage.setItem('ltd_deck', JSON.stringify(DECK));   // 예전 형식도 같이 (호환)
+  } catch (e) {}
+}
+function deckDefaultName(i) { return `덱 ${i + 1}`; }
+function useDeck(i) {        // i번 덱을 실제로 쓴다
+  deckUse = i;
+  DECK = i >= 0 && DECKS[i] ? DECKS[i].units.slice() : [];
+  saveDeck();
+}
 const noDeckChosen = () => { try { return localStorage.getItem('ltd_nodeck') === '1'; } catch (e) { return false; } };
 function chooseNoDeck() { // 덱을 안 쓰기로 한 사람 — 더 이상 권유하지 않는다
-  DECK = []; saveDeck();
+  deckUse = -1; DECK = []; saveDeck();
   try { localStorage.setItem('ltd_nodeck', '1'); } catch (e) {}
   deckEdit = []; deckSel = -1; renderDeck();
-  $('deckInfo').innerHTML = '<span style="color:#81e88c">전체 24종에서 소환합니다 — 이제 덱 안내를 띄우지 않아요</span>';
+  $('deckInfo').innerHTML = '<span style="color:#81e88c">전체 캐릭터에서 소환합니다 — 이제 덱 안내를 띄우지 않아요</span>';
   updateEventUI();
 }
 const deckCountIn = (list, g) => list.filter(t => (UNITS.find(u => u.type === t) || {}).grade === g).length;
 function deckMissing(list) { // 비어 있는 등급 목록
   return GRADES.map((gr, g) => deckCountIn(list, g) ? null : gr.name).filter(Boolean);
+}
+function renderDeckTabs() {
+  const tabs = DECKS.map((d, i) =>
+    `<button data-i="${i}" class="${i === deckIdx ? 'on' : ''} ${i === deckUse ? 'using' : ''}">${escapeHtml(d.name || deckDefaultName(i))}</button>`).join('');
+  const addBtn = DECKS.length < DECK_MAX
+    ? `<button data-i="new" class="add">＋ 새 덱</button>` : '';
+  const noneBtn = `<button data-i="none" class="${deckUse < 0 ? 'on using' : ''}">🎲 덱 없이</button>`;
+  $('deckTabs').innerHTML = tabs + addBtn + noneBtn;
+  const cur = DECKS[deckIdx];
+  $('deckName').value = cur ? (cur.name || '') : '';
+  $('deckName').placeholder = `덱 이름 (예: 나태지옥덱) — 최대 ${DECK_NAME_MAX}자`;
+  $('deckDelBtn').style.display = DECKS.length > 0 ? 'block' : 'none';
+  $('deckState').innerHTML = deckUse >= 0 && DECKS[deckUse]
+    ? `지금 쓰는 덱: <b style="color:#81e88c">${escapeHtml(DECKS[deckUse].name || deckDefaultName(deckUse))}</b>`
+    : `지금은 <b style="color:#ffd54f">덱 없이 전체 캐릭터</b>에서 소환합니다`;
+}
+function openDeckTab(i) {
+  if (i === 'none') { chooseNoDeck(); renderDeckTabs(); return; }
+  if (i === 'new') {
+    if (DECKS.length >= DECK_MAX) return;
+    DECKS.push({ name: deckDefaultName(DECKS.length), units: [] });
+    deckIdx = DECKS.length - 1;
+  } else deckIdx = i;
+  deckEdit = (DECKS[deckIdx] && DECKS[deckIdx].units.slice()) || [];
+  deckSel = -1;
+  renderDeck();
+}
+function deckDelete() {
+  if (!DECKS.length) return;
+  const nm = DECKS[deckIdx] && DECKS[deckIdx].name;
+  DECKS.splice(deckIdx, 1);
+  if (deckUse === deckIdx) deckUse = DECKS.length ? 0 : -1;
+  else if (deckUse > deckIdx) deckUse--;
+  deckIdx = Math.min(deckIdx, Math.max(0, DECKS.length - 1));
+  DECK = deckUse >= 0 && DECKS[deckUse] ? DECKS[deckUse].units.slice() : [];
+  saveDeck();
+  deckEdit = (DECKS[deckIdx] && DECKS[deckIdx].units.slice()) || [];
+  deckSel = -1; renderDeck();
+  $('deckInfo').innerHTML = `<span style="color:#ff8a80">🗑 「${escapeHtml(nm || '')}」 삭제했어요</span>`;
 }
 function deckCardHtml(type, cls) {
   if (!type) return `<div class="dcard empty ${cls || ''}">＋</div>`;
@@ -4717,6 +4799,7 @@ function renderDeck() {
     if (deckEdit[i]) { deckEdit.splice(i, 1); deckSel = -1; } else deckSel = i;
     renderDeck();
   });
+  renderDeckTabs();
   const miss = deckMissing(deckEdit);
   $('deckInfo').innerHTML = deckEdit.length < DECK_SIZE
     ? `<span style="color:#ffd54f">${deckEdit.length}/${DECK_SIZE}마리 — ${DECK_SIZE - deckEdit.length}마리 더 골라주세요</span>`
@@ -4786,7 +4869,10 @@ function deckRandom() { // 등급마다 1마리 먼저 채우고, 남는 자리�
 }
 function openDeck() {
   loadDeck();
-  deckEdit = DECK.slice(); deckSel = -1;
+  if (!DECKS.length) DECKS = [{ name: deckDefaultName(0), units: [] }];  // 첫 칸은 항상 있게
+  deckIdx = Math.min(Math.max(0, deckUse < 0 ? deckIdx : deckUse), DECKS.length - 1);
+  deckEdit = (DECKS[deckIdx] && DECKS[deckIdx].units.slice()) || [];
+  deckSel = -1;
   $('deck').classList.remove('hidden');
   renderDeck();
 }
@@ -4797,10 +4883,30 @@ $('deckClearBtn').addEventListener('click', () => { deckEdit = []; deckSel = -1;
 $('deckNoneBtn').addEventListener('click', chooseNoDeck);
 $('deckSaveBtn').addEventListener('click', () => {
   if (deckEdit.length !== DECK_SIZE || deckMissing(deckEdit).length) return;
-  DECK = deckEdit.slice(); saveDeck();
+  if (!DECKS[deckIdx]) DECKS[deckIdx] = { name: deckDefaultName(deckIdx), units: [] };
+  const typed = ($('deckName').value || '').trim().slice(0, DECK_NAME_MAX);
+  DECKS[deckIdx].name = typed || deckDefaultName(deckIdx);
+  DECKS[deckIdx].units = deckEdit.slice();
+  useDeck(deckIdx);                       // 저장한 덱을 바로 쓴다
   try { localStorage.removeItem('ltd_nodeck'); } catch (e) {}
-  $('deckInfo').innerHTML = '<span style="color:#81e88c">💾 저장 완료! 다음 게임부터 이 8마리만 나옵니다</span>';
+  renderDeck();
+  $('deckInfo').innerHTML =
+    `<span style="color:#81e88c">💾 <b>「${escapeHtml(DECKS[deckIdx].name)}」</b> 저장 완료!<br>` +
+    `다음 게임부터 이 8마리만 나옵니다 (덱 ${DECKS.length}/${DECK_MAX}개)</span>`;
   sfx('jackpot');
+});
+$('deckTabs').addEventListener('click', ev => {
+  const v = ev.target.dataset.i; if (v === undefined) return;
+  openDeckTab(v === 'new' || v === 'none' ? v : +v);
+});
+$('deckDelBtn').addEventListener('click', deckDelete);
+$('deckName').addEventListener('input', () => {   // 이름만 바꿔도 바로 반영
+  if (!DECKS[deckIdx]) return;
+  DECKS[deckIdx].name = ($('deckName').value || '').trim().slice(0, DECK_NAME_MAX) || deckDefaultName(deckIdx);
+  saveDeck();
+  $('deckTabs').querySelectorAll('button').forEach(btn => {
+    if (+btn.dataset.i === deckIdx) btn.textContent = DECKS[deckIdx].name;
+  });
 });
 $('deckClose').addEventListener('click', () => $('deck').classList.add('hidden'));
 $('ovBtnD').addEventListener('click', openDeck);
@@ -5881,6 +5987,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   startDragon, dragonOn, IMMORTAL_TRIES, IMMORTAL_DMG,
   setDragon: ms => { DRAGON_UNTIL = ms; },
   getDeck: () => DECK.slice(), setDeck: d => { DECK = d.slice(); saveDeck(); },
+  getDecks: () => ({ decks: DECKS, use: deckUse, idx: deckIdx }), openDeckTab, deckDelete, DECK_MAX,
   deckEditState: () => ({ edit: deckEdit.slice(), sel: deckSel }),
   ARC, KEYRINGS, startArc, arcOn, renderArc, arcCatch, arcShoot, gachaDraw, useKeyring, renderNoodleBar,
   getArc: () => ({ ...ARC, until: ARC_UNTIL }),
