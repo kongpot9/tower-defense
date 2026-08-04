@@ -870,12 +870,12 @@
 
 <div id="shop" class="hidden">
   <h2>🛒 상점</h2>
-  <p class="sub">게임이 끝날 때마다 <b>도달 웨이브만큼 🐚조개돈</b>이 쌓여요<br>
-    끝난 이벤트에 남은 재화도 자동으로 조개돈이 됩니다</p>
-  <div id="shopWallet">🐚 0</div>
+  <p class="sub">게임이 끝날 때마다 <b>도달 웨이브만큼 🪙크레딧</b>이 쌓여요<br>
+    끝난 이벤트에 남은 재화도 자동으로 크레딧이 됩니다</p>
+  <div id="shopWallet">🪙 0</div>
   <div id="shopBox">
     <div id="shopBoxIcon">🎁</div>
-    <button id="boxBtn">🎲 상자 열기 (🐚20)</button>
+    <button id="boxBtn">🎲 상자 열기 (🪙20)</button>
     <div id="boxResult"></div>
   </div>
   <div id="shopList"></div>
@@ -1154,10 +1154,10 @@ const GIFT_CODES = [
 ];
 let GIFTS = [];   // 이미 뜯은 코드 (localStorage)
 
-// 🛒 상점 (기획: 구예준) — 화폐는 🐚조개돈. 낚시(진주)와 지갑을 따로 둬서 보물 노가다를 건드리지 않는다
-let SHELL = 0;
-const SHELL_PER_WAVE = 1;                  // 게임이 끝나면 도달 웨이브만큼
-const SHELL_RATE = { won: 20, play: 5, key: 10, frag: 3 };   // 끝난 이벤트 재화 → 조개돈 환전비
+// 🛒 상점 (기획: 구예준) — 화폐는 🪙크레딧. 낚시(진주)와 지갑을 따로 둬서 보물 노가다를 건드리지 않는다
+let CREDIT = 0;
+const CREDIT_PER_WAVE = 1;                  // 게임이 끝나면 도달 웨이브만큼
+const CREDIT_RATE = { won: 20, play: 5, key: 10, frag: 3 };   // 끝난 이벤트 재화 → 크레딧 환전비
 const BOX_COST = 20;                       // 🎲 상자는 싸게 — 상자깡이 되도록
 const PRICE = { noodle: 70, keyring: 150, skin: 400 };
 // 상점 전용 스킨 — 아군 전체에 색 오라가 돈다 (성능 0)
@@ -1169,8 +1169,8 @@ const SHOP_SKINS = [
 ];
 // 🎲 상자 내용물 (진주는 넣지 않는다 — 낚시 경제를 건드리지 않기 위해)
 const BOX_TABLE = [
-  { w: 34, kind: 'shell',   min: 5,  max: 15, label: '🐚 조개돈' },
-  { w: 20, kind: 'shell',   min: 20, max: 45, label: '🐚 조개돈 (많이!)' },
+  { w: 34, kind: 'shell',   min: 5,  max: 15, label: '🪙 크레딧' },
+  { w: 20, kind: 'shell',   min: 20, max: 45, label: '🪙 크레딧 (많이!)' },
   { w: 18, kind: 'won',     min: 80, max: 250, label: '💰 오락실 원' },
   { w: 15, kind: 'noodle',  label: '🍜 누들' },
   { w: 8,  kind: 'keyring', label: '🔑 키링' },
@@ -2483,7 +2483,7 @@ function gameOver() {
   S.over = true;
   sfx('over');
   if (!DEV && !ORGOL && !CH.on) gainPearl(Math.max(1, Math.floor(S.wave / 2))); // 🫧 진주 획득 (낚시 밑천)
-  if (!DEV && !ORGOL && !CH.on && S.wave > 0) gainShell(S.wave * SHELL_PER_WAVE);  // 🐚 조개돈 획득 (상점 밑천)
+  if (!DEV && !ORGOL && !CH.on && S.wave > 0) gainCredit(S.wave * CREDIT_PER_WAVE);  // 🪙 크레딧 획득 (상점 밑천)
   // 🌋 라바 이벤트는 🌑 DARK KAKAO에서도 보상 지급 (개발자 특권)
   if (lavaOn() && !ORGOL && S.wave > 0) { FREEFISH += S.wave; saveTreasure(); }
   if (!DEV && !ORGOL && !CH.on && S.wave > 0) { // ⭐ 전투 경험치 (도달 웨이브만큼)
@@ -3965,34 +3965,34 @@ const activeSkin = () => { try { return localStorage.getItem('ltd_skin_on') || '
 function setActiveSkin(id) { try { localStorage.setItem('ltd_skin_on', id || ''); } catch (e) {} }
 const skinColor = () => { const s2 = SHOP_SKINS.find(x => x.id === activeSkin()); return s2 && SKINS[s2.id] ? s2.color : ''; };
 
-function shopPay(n) { if (SHELL < n) return false; SHELL -= n; saveShell(); return true; }
+function shopPay(n) { if (CREDIT < n) return false; CREDIT -= n; saveCredit(); return true; }
 function renderShop() {
-  $('shopWallet').textContent = `🐚 ${Math.round(SHELL).toLocaleString()}`;
-  $('boxBtn').disabled = SHELL < BOX_COST;
-  $('boxBtn').textContent = `🎲 상자 열기 (🐚${BOX_COST})`;
+  $('shopWallet').textContent = `🪙 ${Math.round(CREDIT).toLocaleString()}`;
+  $('boxBtn').disabled = CREDIT < BOX_COST;
+  $('boxBtn').textContent = `🎲 상자 열기 (🪙${BOX_COST})`;
   const row = (ic, title, desc, btn) =>
     `<div class="sitem"><span class="ic">${ic}</span><span class="tx"><b>${title}</b><br><small>${desc}</small></span>${btn}</div>`;
-  let html = row('🍜', `누들 (랜덤 1개) — 🐚${PRICE.noodle}`,
+  let html = row('🍜', `누들 (랜덤 1개) — 🪙${PRICE.noodle}`,
     '이벤트가 끝나도 살 수 있어요 · 한 판에 종류별 1회',
-    `<button data-buy="noodle" ${SHELL < PRICE.noodle ? 'disabled' : ''}>구매</button>`);
-  html += KEYRINGS.map(k => row(k.icon, `${k.name} — 🐚${PRICE.keyring}`,
+    `<button data-buy="noodle" ${CREDIT < PRICE.noodle ? 'disabled' : ''}>구매</button>`);
+  html += KEYRINGS.map(k => row(k.icon, `${k.name} — 🪙${PRICE.keyring}`,
     `${k.desc} · 보유 ${(ARC.kr[k.id] || 0)}개`,
-    `<button data-kr="${k.id}" ${SHELL < PRICE.keyring ? 'disabled' : ''}>구매</button>`)).join('');
+    `<button data-kr="${k.id}" ${CREDIT < PRICE.keyring ? 'disabled' : ''}>구매</button>`)).join('');
   html += SHOP_SKINS.map(sk => {
     const own = !!SKINS[sk.id], on = activeSkin() === sk.id;
-    return row('🎨', `${sk.name}${own ? '' : ` — 🐚${PRICE.skin}`}`,
+    return row('🎨', `${sk.name}${own ? '' : ` — 🪙${PRICE.skin}`}`,
       own ? '아군 전체에 오라가 돌아요 (성능 변화 없음)' : '아군 전체에 색 오라 · 성능은 그대로',
       own ? `<button data-skin="${on ? '' : sk.id}" class="owned">${on ? '해제' : '착용'}</button>`
-          : `<button data-buyskin="${sk.id}" ${SHELL < PRICE.skin ? 'disabled' : ''}>구매</button>`);
+          : `<button data-buyskin="${sk.id}" ${CREDIT < PRICE.skin ? 'disabled' : ''}>구매</button>`);
   }).join('');
   $('shopList').innerHTML = html;
 }
 function openShop() {
-  loadShell();
+  loadCredit();
   const conv = convertLeftovers();
   $('shop').classList.remove('hidden');
   $('boxResult').innerHTML = conv
-    ? `<span style="color:#81e88c">끝난 이벤트 재화를 🐚${conv} 로 바꿔뒀어요</span>` : '';
+    ? `<span style="color:#81e88c">끝난 이벤트 재화를 🪙${conv} 로 바꿔뒀어요</span>` : '';
   $('shopBoxIcon').textContent = '🎁';
   renderShop();
 }
@@ -4004,7 +4004,7 @@ function openBox() {
   let msg = '';
   if (hit.kind === 'shell') {
     const n = hit.min + Math.floor(Math.random() * (hit.max - hit.min + 1));
-    gainShell(n); msg = `🐚 조개돈 ${n}개`;
+    gainCredit(n); msg = `🪙 크레딧 ${n}개`;
   } else if (hit.kind === 'won') {
     const n = hit.min + Math.floor(Math.random() * (hit.max - hit.min + 1));
     ARC.coin += n; saveArc(); msg = `💰 오락실 ${n}원`;
@@ -4016,9 +4016,9 @@ function openBox() {
   } else if (hit.kind === 'skin') {
     const left = SHOP_SKINS.filter(x => !SKINS[x.id]);
     if (left.length) { const sk = rand(left); SKINS[sk.id] = true; saveSkins(); msg = `🎨 ${sk.name} (스킨!)`; }
-    else { gainShell(120); msg = '🐚 조개돈 120개 (스킨은 이미 다 모았어요)'; }
+    else { gainCredit(120); msg = '🪙 크레딧 120개 (스킨은 이미 다 모았어요)'; }
   } else {
-    gainShell(300); msg = '🎉 대박! 🐚 조개돈 300개';
+    gainCredit(300); msg = '🎉 대박! 🪙 크레딧 300개';
   }
   $('shopBoxIcon').textContent = hit.kind === 'jackpot' ? '🎉' : '📦';
   $('boxResult').innerHTML = `<b>${msg}</b>`;
@@ -4028,22 +4028,23 @@ function openBox() {
 // ---------- 📦 이상한 소포 ----------
 function loadGifts() { try { GIFTS = JSON.parse(localStorage.getItem('ltd_gift') || '[]'); } catch (e) { GIFTS = []; } }
 function loadSkins() { try { SKINS = JSON.parse(localStorage.getItem('ltd_skins') || '{}'); } catch (e) { SKINS = {}; } }
-function loadShell() { SHELL = Math.max(0, +(localStorage.getItem('ltd_shell') || 0)); }
-function saveShell() { try { localStorage.setItem('ltd_shell', String(Math.round(SHELL))); } catch (e) {} }
-function gainShell(n) { SHELL += n; saveShell(); }
-function convertLeftovers() {   // 끝난 이벤트에 남은 재화를 조개돈으로 바꿔준다 (증발 방지)
+// 저장 키는 ltd_shell 그대로 — 이름만 바뀌었으므로 이미 번 잔액을 지키기 위해 유지
+function loadCredit() { CREDIT = Math.max(0, +(localStorage.getItem('ltd_shell') || 0)); }
+function saveCredit() { try { localStorage.setItem('ltd_shell', String(Math.round(CREDIT))); } catch (e) {} }
+function gainCredit(n) { CREDIT += n; saveCredit(); }
+function convertLeftovers() {   // 끝난 이벤트에 남은 재화를 크레딧으로 바꿔준다 (증발 방지)
   let got = 0;
   if (!arcOn()) {
-    if (ARC.coin > 0)  { got += Math.floor(ARC.coin / SHELL_RATE.won);  ARC.coin = 0; }
-    if (ARC.shots > 0) { got += ARC.shots * SHELL_RATE.play;            ARC.shots = 0; }
+    if (ARC.coin > 0)  { got += Math.floor(ARC.coin / CREDIT_RATE.won);  ARC.coin = 0; }
+    if (ARC.shots > 0) { got += ARC.shots * CREDIT_RATE.play;            ARC.shots = 0; }
     if (got) saveArc();
   }
   if (!gobOn()) {
-    if (GOB.key > 0)  { got += GOB.key * SHELL_RATE.key;   GOB.key = 0; }
-    if (GOB.frag > 0) { got += GOB.frag * SHELL_RATE.frag; GOB.frag = 0; }
+    if (GOB.key > 0)  { got += GOB.key * CREDIT_RATE.key;   GOB.key = 0; }
+    if (GOB.frag > 0) { got += GOB.frag * CREDIT_RATE.frag; GOB.frag = 0; }
     if (got) saveGob();
   }
-  if (got > 0) { gainShell(got); return got; }
+  if (got > 0) { gainCredit(got); return got; }
   return 0;
 }
 function saveSkins() { try { localStorage.setItem('ltd_skins', JSON.stringify(SKINS)); } catch (e) {} }
@@ -5409,7 +5410,7 @@ loadArc();
 loadRaid();   // 🍡 내 레이드 기록(스킨·이용권)
 loadGifts();  // 📦 이미 뜯은 소포 목록
 loadSkins();  // 🎴 한정판 스킨 보관함
-loadShell();  // 🐚 조개돈
+loadCredit();  // 🪙 크레딧
 
 // ---------- 🎣 낚시터 & 보물 (기획: 구예준) ----------
 // 진주로 낚시 → 보물 획득, 중복이면 레벨업(최대 15). 효과는 레벨에 비례.
@@ -6170,8 +6171,8 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   ARC, KEYRINGS, startArc, arcOn, renderArc, arcCatch, arcShoot, gachaDraw, useKeyring, renderNoodleBar,
   getArc: () => ({ ...ARC, until: ARC_UNTIL }),
   castDrill, drillCost, POT_EVERY, DRILL_TIME, DRILL_DMG,
-  SHELL_PER_WAVE, BOX_COST, PRICE, SHOP_SKINS, openShop, openBox, renderShop,
-  getShell: () => SHELL, setShell: n => { SHELL = n; saveShell(); }, activeSkin, convertLeftovers,
+  CREDIT_PER_WAVE, BOX_COST, PRICE, SHOP_SKINS, openShop, openBox, renderShop,
+  getCredit: () => CREDIT, setCredit: n => { CREDIT = n; saveCredit(); }, activeSkin, convertLeftovers,
   GIFT_CODES, hasSkin, getSkins: () => SKINS, openGift, openGiftCode, giveGift, getGifts: () => GIFTS,
   giveUp,
   CH, startChaos, startChaosEvent, chaosOn, CHAOS_ACTS, chaosUpdate,
