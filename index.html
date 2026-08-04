@@ -445,7 +445,7 @@
   /* 홈 보조 버튼: 작게 — 개수가 많아 세로가 넘치지 않도록 */
   #overlay #ovBtn2, #overlay #ovBtn3, #overlay #ovBtnK, #overlay #ovBtn4,
   #overlay #ovBtnA, #overlay #ovBtn5, #overlay #ovBtnB, #overlay #ovBtn6,
-  #overlay #ovBtnD, #overlay #ovBtn7, #overlay #ovBtnN, #overlay #ovBtnY, #overlay #ovBtnR, #overlay #ovBtnC, #overlay #ovBtnG, #overlay #ovBtnS, #overlay #ovBtnW {
+  #overlay #ovBtnD, #overlay #ovBtn7, #overlay #ovBtnN, #overlay #ovBtnY, #overlay #ovBtnR, #overlay #ovBtnC, #overlay #ovBtnG, #overlay #ovBtnS, #overlay #ovBtnW, #overlay #ovBtnShare {
     margin-top:0; padding:10px 28px; font-size:15px; min-width:200px;
     background:#3a4566; box-shadow:0 4px 0 #232a42;
   }
@@ -457,6 +457,12 @@
   #overlay #ovBtnG { background:#c98a2f; box-shadow:0 4px 0 #8d5c1c; } /* 📦 이상한 소포 */
   #overlay #ovBtnS { background:#2e7d6b; box-shadow:0 4px 0 #1b4c41; } /* 🛒 상점 */
   #overlay #ovBtnW { background:#6a4a7c; box-shadow:0 4px 0 #3f2b4a; } /* 🏰 나의 왕국 */
+  #overlay #ovBtnShare { background:#2e7d32; box-shadow:0 4px 0 #1b5e20; } /* 🔗 공유 */
+  #shareToast { position:fixed; left:50%; bottom:calc(18px + env(safe-area-inset-bottom));
+                transform:translateX(-50%); z-index:60; background:#12182a; color:#e8f5e9;
+                border:2px solid #2e7d32; border-radius:11px; padding:10px 16px; font-size:13px;
+                font-weight:800; max-width:88vw; text-align:center; }
+  #shareToast.hidden { display:none; }
   @media (max-height: 780px) {
     #overlay h1 { font-size:26px; }
     #overlay .big-emoji img { width:44px; height:44px; }
@@ -464,7 +470,7 @@
     #overlay button { padding:12px 40px; font-size:17px; }
     #overlay #ovBtn2, #overlay #ovBtn3, #overlay #ovBtnK, #overlay #ovBtn4,
     #overlay #ovBtnA, #overlay #ovBtn5, #overlay #ovBtnB, #overlay #ovBtn6,
-    #overlay #ovBtnD, #overlay #ovBtn7, #overlay #ovBtnN, #overlay #ovBtnY, #overlay #ovBtnR, #overlay #ovBtnC, #overlay #ovBtnG, #overlay #ovBtnS, #overlay #ovBtnW { padding:8px 22px; font-size:14px; }
+    #overlay #ovBtnD, #overlay #ovBtn7, #overlay #ovBtnN, #overlay #ovBtnY, #overlay #ovBtnR, #overlay #ovBtnC, #overlay #ovBtnG, #overlay #ovBtnS, #overlay #ovBtnW, #overlay #ovBtnShare { padding:8px 22px; font-size:14px; }
   }
   .lvcard {
     display:inline-flex; align-items:center; gap:3px; padding:1px 7px; margin-left:4px;
@@ -671,6 +677,7 @@
   <button id="ovBtnC" class="hidden">🎪 개판오분전</button>
   <button id="ovBtnS" class="hidden">🛒 상점</button>
   <button id="ovBtnW" class="hidden">🏰 나의 왕국</button>
+  <button id="ovBtnShare" class="hidden">🔗 친구에게 공유</button>
   <button id="ovBtnG" class="hidden">📦 이상한 소포</button>
   <button id="ovBtnY" class="hidden">📺 공식 채널</button>
   <button id="ovBtn4" class="hidden">👥 더블큐</button>
@@ -888,6 +895,8 @@
   <div id="krPageList"></div>
   <button class="close" id="krClose">나가기</button>
 </div>
+
+<div id="shareToast" class="hidden"></div>
 
 <div id="kingdom" class="hidden">
   <h2>🏰 나의 왕국</h2>
@@ -3908,9 +3917,11 @@ function showOverlay(mode) {
   $('ovBtnG').classList.add('hidden');
   $('ovBtnS').classList.add('hidden');
   $('ovBtnW').classList.add('hidden');
+  $('ovBtnShare').classList.add('hidden');
   $('ovBtnK').classList.add('hidden');
   $('ovBtnL').classList.add('hidden');
   $('nickLine').classList.add('hidden');
+  $('ovBtnShare').textContent = '🔗 친구에게 공유';
   if (mode === 'home') { // 첫 화면: 모드 선택
     ov.querySelector('h1').textContent = '🏰 타워 디펜스 777';
     $('ovChars').style.display = '';
@@ -3991,6 +4002,8 @@ function showOverlay(mode) {
     $('ovRecord').textContent = '';
   } else if (mode === 'gameover') {
     ov.querySelector('h1').textContent = '💥 게임 오버!';
+    $('ovBtnShare').classList.remove('hidden');
+    $('ovBtnShare').textContent = `🔗 웨이브 ${S.wave} 자랑하기`;
     $('ovChars').style.display = 'none';
     sel.style.display = 'none';
     if (S.mode === 'story') {
@@ -4085,6 +4098,40 @@ function updatePoison(dt) {
     const p = posAt(e.d);
     S.effects.push({ kind: 'venomtick', x: p.x, y: p.y, t: 1, decay: 3 });
   }
+}
+// ---------- 🔗 공유 ----------
+const GAME_URL = 'https://kongpot9.github.io/tower-defense/';
+function shareText(kind) {
+  const nick = getNick() || '나';
+  if (kind === 'record') {
+    const best = +(localStorage.getItem('ltd_best') || 0);
+    return `🏰 타워 디펜스 777
+${nick} — 웨이브 ${S.wave} 달성! (내 최고 ${best})
+너도 해볼래? 설치 없이 바로 됨
+${GAME_URL}`;
+  }
+  return `🏰 타워 디펜스 777 — 설치 없이 폰으로 바로 하는 타워디펜스!
+캐릭터 33종 · 덱 짜기 · 친구랑 협동까지
+${GAME_URL}`;
+}
+async function doShare(kind) {
+  const text = shareText(kind);
+  try {
+    if (navigator.share) { await navigator.share({ title: '타워 디펜스 777', text }); return 'shared'; }
+  } catch (e) { if (e && e.name === 'AbortError') return 'cancel'; }
+  try { await navigator.clipboard.writeText(text); return 'copied'; } catch (e) {}
+  return 'fail';
+}
+function shareToast(r) {
+  const msg = r === 'copied' ? '📋 복사했어요! 카톡에 붙여넣으면 돼요'
+    : r === 'shared' ? '🔗 공유했어요!'
+    : r === 'cancel' ? '' : '복사가 안 됐어요 — 주소창을 길게 눌러 복사해주세요';
+  if (!msg) return;
+  const el = $('shareToast');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  clearTimeout(el.__t);
+  el.__t = setTimeout(() => el.classList.add('hidden'), 2600);
 }
 // ---------- 🏰 나의 왕국 ----------
 let kingPick = null;   // 지금 손에 든 것 {kind:'doll'|'brick', id}
@@ -5612,6 +5659,7 @@ $('ovBtnR').addEventListener('click', openRaid);
 $('ovBtnC').addEventListener('click', startChaos);
 $('ovBtnS').addEventListener('click', openShop);
 $('ovBtnW').addEventListener('click', openKingdom);
+$('ovBtnShare').addEventListener('click', async () => shareToast(await doShare(ovMode === 'gameover' ? 'record' : 'game')));
 $('kingClose').addEventListener('click', () => $('kingdom').classList.add('hidden'));
 $('kingPick').addEventListener('click', ev => {
   const b2 = ev.target.closest('button'); if (!b2 || b2.disabled) return;
@@ -5764,6 +5812,7 @@ function updateEventUI() {
   show('ovBtnG', !isNewbie()); // 📦 이상한 소포 — 완전 신규에겐 숨김
   show('ovBtnS', !isNewbie()); // 🛒 상점
   show('ovBtnW', !isNewbie()); // 🏰 나의 왕국
+  show('ovBtnShare', true);    // 🔗 공유는 신규에게도 보여준다
   const on = lavaOn();
   const he = $('homeEvent');
   if (he) {
@@ -6460,6 +6509,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   ARC, KEYRINGS, startArc, arcOn, renderArc, arcCatch, arcShoot, gachaDraw, useKeyring, renderNoodleBar,
   getArc: () => ({ ...ARC, until: ARC_UNTIL }),
   castDrill, drillCost, POT_EVERY, DRILL_TIME, DRILL_DMG,
+  doShare, shareText, GAME_URL,
   COLLECT, ELITE_NEED, ELIXIR_TIERS, elixirTier, isElite, eliteCount, openKingdom, renderKingdom, BRICKS,
   getCollect: () => COLLECT, setCollect: c => { COLLECT = { ...COLLECT, ...c }; saveCollect(); },
   BOX_SMALL, BOX_BIG, CHAR_SKINS, charSkinOf, gainBoxes, toggleCharSkin,
