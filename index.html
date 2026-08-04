@@ -976,11 +976,13 @@ const UNITS = [
   { type:'tez',        grade:4, emoji:'👊', name:'테즈',       dmg:211, cd:1.20, range:100, splash:45, atk:'tez', special:'chain', img:'character/legend5.png' },
   { type:'tenhan',     grade:4, emoji:'🪴', name:'텐한',       dmg:400, cd:0.50, range:150, splash:55, atk:'orb', special:'pot', img:'character/legend7.png' },
   { type:'golem',      grade:4, emoji:'🗿', name:'mr.골렘',    dmg:2000, cd:10, range:130, splash:70, atk:'bonk', img:'character/legend8.png' },
+  { type:'sniper',     grade:4, emoji:'🎯', name:'콜드나이퍼', dmg:210, cd:1.00, range:640, atk:'snipe', special:'ammo', img:'character/legend9.png' },
   { type:'penguin',    grade:4, emoji:'🐧', name:'펭귄악사',   dmg:0,   cd:1,    range:130, support:'aura', img:'character/legend4.png' }, // 오라 서포터
   // 신화 추가
   { type:'blader',     grade:3, emoji:'🗡️', name:'블레이더',   dmg:159, cd:0.56, range:290, atk:'dagger', special:'daggers', img:'character/myth6.png' },
   { type:'chad',       grade:3, emoji:'🤖', name:'채드',       dmg:300, cd:0.80, range:180, atk:'missile', special:'battery', img:'character/myth8.png' },
   { type:'toogom',     grade:3, emoji:'🐗', name:'혼의 투곰',   dmg:190, cd:0.30, range:115, atk:'bite', special:'crunch', img:'character/myth9.png' },
+  { type:'gail',       grade:3, emoji:'👊', name:'가일',       dmg:450, cd:1.50, range:120, atk:'punch', special:'steal', img:'character/myth10.png' },
   { type:'bane',       grade:3, emoji:'😈', name:'베인',       dmg:330, cd:2.20, range:110, splash:45, atk:'bane', img:'character/myth5.png' },
   // 영웅 추가
   { type:'indie',      grade:2, emoji:'🤠', name:'인디',       dmg:44,  cd:0.70, range:140, atk:'paper', special:'cheer', img:'character/hero4.png' },
@@ -1043,7 +1045,7 @@ const WBOMB_SLOW = 0.25;      // 이동속도 75% 하락 (0.25배)
 const WBOMB_HP = 0.60;        // 체력 40% 하락 (60%로)                        // 🛟 윌리: 풀장 20초(웨이브 내내) — 적 감속 + 아군 공격력 +10%
 const MULTI_TARGETS = 5;                                                     // 떡장수: 동시 공격 대상 수
 const FIREBALL_CHANCE = 0.25, FIREBALL_MUL = 4; // 원까태인 불꽃공 확률 (피해 4배 + 소범위)
-const PROJ_SPEED = { dagger:760, tube:400, arrow:700, scythe:420, ball:560, fire:480, shell:320, shuriken:650, fan:560, missile:430, drill:620, songpyeon:520, holy:560, paper:540, orb:500 };
+const PROJ_SPEED = { snipe:900, snow:820, venom:780, blast:640, dagger:760, tube:400, arrow:700, scythe:420, ball:560, fire:480, shell:320, shuriken:650, fan:560, missile:430, drill:620, songpyeon:520, holy:560, paper:540, orb:500 };
 const INSTANT_ATK = new Set(['slash', 'bite', 'punch', 'axe', 'breath', 'ronin', 'bane', 'tez', 'bolt', 'bonk']); // 즉발(투사체 없는) 공격
 const INSTANT_DECAY = { tez:1.7, bite:1.6, breath:1.4, axe:1.8, punch:2.2, ronin:1.8, bane:1.5, bolt:1.9, bonk:1.5 };   // 이펙트 지속(작을수록 오래)
 
@@ -1142,6 +1144,12 @@ const CHAD_EVERY = 5, CHAD_SHOTS = 2;          // 5웨이브에 1번만 일하�
 const CRUNCH_CHANCE = 0.015, CRUNCH_TIME = 10, CRUNCH_CUT = 0.5;  // 낮은 확률 · 10초간 적 체력 50% 하락
 // 🔥 텐조: 옆에서 깨우기 (기획: 구예준)
 const WAKE_RANGE = 80;                         // 상하좌우로 맞닿은 칸만 (대각선 제외)
+// 👊 가일: 막타를 뺏길 때마다 돈이 들어온다 (기획: 구예준)
+const GAIL_STEAL_GOLD = 500;
+// 🎯 콜드나이퍼: 탄 3종을 돌아가며 쏜다 (기획: 구예준)
+const SNIPE_STUN = 0.9;                        // ❄️ 폭설탄 — 0.9초 묶기
+const POISON_TIME = 6, POISON_TICK = 0.5, POISON_STEP = 0.03;  // ☠️ 맹독탄 — 갈수록 심해짐
+const BLAST_SPLASH = 95, BLAST_MUL = 2.2;      // 💥 폭파탄 — 길목에 강한 폭발
 // 🪴 텐한 등장 연출 (설정: 아빠 — 만들기 도구)
 const POT_EMOS = ['💧', '🍃', '🌙'];
 const POT_N = 21, POT_SIZE = 24, POT_SPREAD = 70, POT_SPIN = 14, POT_LIFE = 40;
@@ -2161,6 +2169,7 @@ function update(dt) {
               S.effects.push({ kind: 'tez', x: bp.x + (k - 1) * 10 - 5, y: bp.y - k * 8, sx: s.cx, sy: s.cy, r: u.splash, t: 1, decay: 2.5 });
           }
         } else {
+          if (u.special === 'steal') { best.gailHit = true; best.gailKill = (best.hp - D) <= 0; }
           best.hp -= D;
           if (u.slow) best.slowT = Math.max(best.slowT, u.slow);
         }
@@ -2177,6 +2186,13 @@ function update(dt) {
         for (const tgt of targets) {
           const tp = posAt(tgt.d);
           let kind = u.atk || 'orb', dmg = D, splash = u.splash || 0, homing = !!u.homing;
+          let stun = 0, poison = 0, blast = 0;
+          if (u.special === 'ammo') {                 // 🎯 콜드나이퍼: 폭설탄 → 맹독탄 → 폭파탄
+            u.ammo = ((u.ammo || 0) + 1) % 3;
+            if (u.ammo === 0)      { kind = 'snow';  splash = 70; stun = SNIPE_STUN; }
+            else if (u.ammo === 1) { kind = 'venom'; poison = 1; }
+            else                   { kind = 'blast'; splash = BLAST_SPLASH; homing = true; dmg = D * BLAST_MUL; blast = 1; }
+          }
           if (u.special === 'fireball' && Math.random() < FIREBALL_CHANCE) {
             kind = 'fire'; dmg = D * FIREBALL_MUL; splash = 35; // 불꽃공!
           }
@@ -2191,7 +2207,7 @@ function update(dt) {
           for (let k = 0; k < shots; k++) {
             S.projectiles.push({
               x: s.cx + (k - (shots - 1) / 2) * 7, y: s.cy + (k - (shots - 1) / 2) * 5, tgt, tx: tp.x, ty: tp.y,
-              dmg, splash, slow: u.slow || 0, kind,
+              dmg, splash, slow: u.slow || 0, kind, stun, poison, blast,
               spd: (PROJ_SPEED[kind] || 500) * (1 + k * 0.06), // 살짝씩 시차를 둬 연속으로 꽂히게
               color: GRADES[u.grade].color,
               smite: u.special === 'smite',
@@ -2304,7 +2320,13 @@ function update(dt) {
           if (Math.hypot(ep.x - p.tx, ep.y - p.ty) <= p.splash) {
             e.hp -= p.dmg;
             if (p.slow) e.slowT = Math.max(e.slowT, p.slow);
+            if (p.stun) e.frozenT = Math.max(e.frozenT || 0, p.stun);   // ❄️ 폭설탄
+            if (p.poison) startPoison(e, p.dmg);                        // ☠️ 맹독탄
           }
+        }
+        if (p.blast) {   // 💥 폭파탄 — 길목이 통째로 터진다
+          S.effects.push({ kind: 'boom', x: p.tx, y: p.ty, r: p.splash * 1.3, t: 1, fire: true });
+          addText(p.tx, p.ty - 24, '💥 폭파탄!', '#ff8a65', 14);
         }
       } else if (p.tgt.hp > 0) {
         if (p.smite && !p.tgt.boss && Math.random() < SMITE_CHANCE) {
@@ -2316,6 +2338,8 @@ function update(dt) {
           p.tgt.hp -= p.dmg + (p.smite && p.tgt.boss ? p.tgt.maxhp * SMITE_BOSS_PCT : 0);
         }
         if (p.slow) p.tgt.slowT = Math.max(p.tgt.slowT, p.slow);
+        if (p.stun) p.tgt.frozenT = Math.max(p.tgt.frozenT || 0, p.stun);
+        if (p.poison) startPoison(p.tgt, p.dmg);
       }
       S.projectiles.splice(i, 1);
     } else {
@@ -2344,6 +2368,11 @@ function update(dt) {
     if (e.hp <= 0) {
       const reward = S.buffT.gold > 0 ? e.gold * 2 : e.gold; // 우동: 골드 2배
       S.gold += reward;
+      if (e.gailHit && !e.gailKill) {          // 👊 가일: 막타를 뺏겼다 — 대신 돈이 들어온다
+        S.gold += GAIL_STEAL_GOLD;
+        const gp = posAt(e.d);
+        addText(gp.x, gp.y - 30, `👊 막타 뺏김! +${GAIL_STEAL_GOLD}G`, '#ffd76e', 13);
+      }
       const p = posAt(e.d);
       if (reward > 0) addText(p.x, p.y, `+${reward}`, '#ffd76e', e.boss ? 18 : 11);
       if (e.boss) addText(WORLD_W / 2, 260, '👑 보스 처치!', '#ffd76e', 20);
@@ -2361,6 +2390,7 @@ function update(dt) {
     if (S.effects[i].t <= 0) S.effects.splice(i, 1);
   }
   // 로얄 셰프 요리 버프 타이머
+  updatePoison(dt);                    // ☠️ 맹독 진행
   if (S.crunchT > 0) S.crunchT -= dt;   // 🐗 깨물어부수기 지속시간
   for (const k of ['dmg', 'spd', 'gold', 'hyper', 'jura', 'bleed', 'car', 'pool', 'bench', 'wbomb']) if (S.buffT[k] > 0) S.buffT[k] -= dt;
   if (S.buffT.ghost > 0) {
@@ -3310,6 +3340,11 @@ function draw() {
         ctx.restore();
       }
       ctx.globalAlpha = 1; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    } else if (e.kind === 'venomtick') {  // ☠️ 맹독이 퍼지는 표시
+      ctx.globalAlpha = e.t;
+      ctx.font = '15px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('☠️', e.x, e.y - 14 * (1 - e.t));
+      ctx.globalAlpha = 1; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     } else if (e.kind === 'bolt') {    // ⚡ 레일리: 지그재그 번개 + 묶는 고리
       const sx = e.sx != null ? e.sx : e.x, sy = e.sy != null ? e.sy : e.y;
       ctx.strokeStyle = '#80d8ff'; ctx.lineWidth = 3; ctx.globalAlpha = e.t;
@@ -3527,6 +3562,8 @@ function updateInfoPanel() {
       + (u.special === 'cheer' ? ' · 📣15% 주변 공속 UP' : '')
       + (u.special === 'drill' ? ` · 🔩${drillCost()}G로 드릴러 변신(${DRILL_DMG} 피해 · ${DRILL_TIME}초)` : '')
       + (u.special === 'stun' ? ` · ⚡${BOLT_STUN}초 묶기(범위)` : '')
+      + (u.special === 'steal' ? ` · 👊 막타를 뺏길 때마다 +${GAIL_STEAL_GOLD}G` : '')
+      + (u.special === 'ammo' ? ' · 🎯 ❄️폭설탄(묶기) → ☠️맹독탄(점점 심해짐) → 💥폭파탄(유도·광역)' : '')
       + (u.special === 'crunch' ? ` · 🐗 낮은 확률 깨물어부수기(적 체력 ${Math.round(CRUNCH_CUT*100)}% 하락 ${CRUNCH_TIME}초)` : '')
       + (u.special === 'battery' ? (S.wave % CHAD_EVERY === 0
           ? ` · ⚡ 충전 완료! ${CHAD_SHOTS}발 난사 중`
@@ -3819,6 +3856,26 @@ function showOverlay(mode) {
     b1.classList.remove('hidden');
     b2.textContent = '처음으로';
     b2.classList.remove('hidden');
+  }
+}
+// ☠️ 맹독 — 시간이 지날수록 한 번에 들어가는 피해가 커진다
+function startPoison(e, baseDmg) {
+  e.poisonT = POISON_TIME;
+  e.poisonCd = POISON_TICK;
+  e.poisonN = 0;
+  e.poisonD = baseDmg;
+}
+function updatePoison(dt) {
+  for (const e of S.enemies) {
+    if (!e.poisonT || e.poisonT <= 0) continue;
+    e.poisonT -= dt;
+    e.poisonCd -= dt;
+    if (e.poisonCd > 0) continue;
+    e.poisonCd = POISON_TICK;
+    e.poisonN++;
+    e.hp -= e.poisonD * POISON_STEP * e.poisonN;   // 1회차보다 12회차가 12배 아프다
+    const p = posAt(e.d);
+    S.effects.push({ kind: 'venomtick', x: p.x, y: p.y, t: 1, decay: 3 });
   }
 }
 // ---------- 📦 이상한 소포 ----------
@@ -4195,7 +4252,7 @@ const HOLLY_TIER = { // 현 메타 티어 (일반 모드 기준)
   reddragon:'S', dosa:'B', angeldog:'S',
   catmachine:'A', lumberjack:'A', jurasaurus:'A', farmer:'A',
   deathpierrot:'B', darkrider:'B', miner:'B', tankboy:'B', ronin:'B',
-  wonkkataein:'C', ricecake:'C', swordsman:'C', noesi:'C', tenhan:'A', railey:'B', tenjo:'B', chad:'B', toogom:'S', golem:'A',
+  wonkkataein:'C', ricecake:'C', swordsman:'C', noesi:'C', tenhan:'A', railey:'B', tenjo:'B', chad:'B', toogom:'S', golem:'A', gail:'A', sniper:'S',
   archer:'S', royalchef:'A',
   penguin:'S', bane:'A', indie:'B', jeff:'B',
   tez:'A', blader:'A', willy:'B',
@@ -4220,6 +4277,8 @@ const HOLLY_EVAL = {
   chad: '5웨이브에 1번 출근하는 로봇 — 출근하면 2발 난사',
   toogom: '생김새와 달리 초당 연타 + 깨물어부수기 대박',
   golem: '10초에 1번, 대신 한 방이 2000 광역',
+  gail: '때리면 세고, 막타를 뺏겨도 돈이 된다 — 유일한 돈 버는 캐릭터',
+  sniper: '맵 전체가 사거리 — 묶고 중독시키고 터뜨리는 만능 저격수',
   ronin: '만능 이류 — 하지만 발도술은 진짜',
   angeldog: '이론상 최강, 실전도 최강(후반) — 즉사는 모든 스케일링을 무시',
   reddragon: '전개덱의 심장 — 일륜도 빙결+브레스가 현 메타 최강 콤보',
@@ -4253,6 +4312,8 @@ const HOLLY_USE = { // 사용처
   chad: '텐조와 세트로 쓰거나, 5의 배수 보스 웨이브 전담',
   toogom: '트랙 바로 옆 근접 자리 — 깨물어부수기는 보스전 보험',
   golem: '보스·러시 구간 광역 — 평소엔 조용하다 한 번에 터짐',
+  gail: '빠른 딜러(다크라이더·원까태인)와 짝지어 막타를 넘겨야 돈이 돈다',
+  sniper: '아무 칸이나 OK — 사거리 640이라 자리를 안 가리는 유일한 캐릭터',
   ronin: '중후반 트랙 옆 단일딜 + 발도술 광역 보험',
   angeldog: '웨이브 25+ 필수 · 스토리 2~3장 코어 · 운영덱은 3~4마리 스택',
   reddragon: '아무 칸(전맵 사거리) — 물량 청소, 일륜도 빙결 콤보의 완성',
@@ -5139,7 +5200,7 @@ function updateEventUI() {
   if (db) {
     const need = !DECK.length && !isNewbie() && !noDeckChosen();
     db.innerHTML = need
-      ? `🃏 <b>캐릭터가 31종으로 늘어서 원하는 캐릭터가 잘 안 나와요!</b><br>
+      ? `🃏 <b>캐릭터가 33종으로 늘어서 원하는 캐릭터가 잘 안 나와요!</b><br>
          <b>[🃏 전투덱]</b>에서 8마리를 고르면 <b style="color:#ffd54f">최대 6배</b> 자주 나옵니다`
       : '';
     db.classList.toggle('hidden', !need);
