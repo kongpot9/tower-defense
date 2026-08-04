@@ -1409,6 +1409,21 @@ const KR_ATK = 1.2, KR_BOSS_HP = 0.7, KR_SPD = 1.3; // 검사: 공격력 ×1.2 /
 
 // 그림 파일 미리 불러오기 (img 지정된 캐릭터용)
 const IMAGES = {};
+// 🎨 이펙트 그림 (예준이 작품) — effect/ 폴더의 그림을 알갱이로 쓸 때
+const FX_IMAGES = {};
+function fxImg(name) {            // fxImg('불꽃') → effect/불꽃.png (한 번만 불러오고 재사용)
+  if (!FX_IMAGES[name]) { const im = new Image(); im.src = `effect/${name}.png`; FX_IMAGES[name] = im; }
+  return FX_IMAGES[name];
+}
+function drawFxPiece(piece, x, y, size) {   // 이모지든 그림이든 같은 방식으로 그린다
+  if (piece && piece[0] === '@') {          // '@이름' 이면 effect/이름.png
+    const im = fxImg(piece.slice(1));
+    if (im.complete && im.naturalWidth) { ctx.drawImage(im, x - size / 2, y - size / 2, size, size); return; }
+    return;                                  // 아직 안 불러와졌으면 이번 프레임은 건너뜀
+  }
+  ctx.font = `${size}px sans-serif`;
+  ctx.fillText(piece, x, y);
+}
 for (const u of UNITS) {
   if (u.img) { const im = new Image(); im.src = u.img; IMAGES[u.type] = im; }
   if (u.special === 'drill') { const dm = new Image(); dm.src = 'character/myth7.png'; IMAGES['noesi_drill'] = dm; } // 🔩 변신 모습

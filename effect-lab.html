@@ -39,6 +39,15 @@
                   border:0; color:#fff; position:relative; }
   #basket .pick:after { content:'✕'; font-size:9px; color:#ff8a80; margin-left:3px; vertical-align:top; }
   #basket .empty { font-size:12px; color:#b39ddb; }
+  /* 예준이가 그린 이펙트 그림 */
+  #pics { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+  #pics .pic { position:relative; background:#12182a; border:2px solid #3a4566; border-radius:8px;
+               padding:2px; cursor:pointer; line-height:0; }
+  #pics .pic.on { border-color:#ffd54f; }
+  #pics img { width:40px; height:40px; object-fit:contain;
+              background:repeating-conic-gradient(#2a3358 0 25%,#1a2136 0 50%) 0 0/10px 10px; border-radius:6px; }
+  #pics .nm { font-size:9px; color:#9fb0d8; text-align:center; max-width:44px; overflow:hidden;
+              white-space:nowrap; text-overflow:ellipsis; line-height:1.3; }
   .row { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; }
   button { background:#3f6ea8; color:#fff; border:0; border-radius:9px;
            padding:9px 14px; font-size:13px; font-weight:800; cursor:pointer; }
@@ -68,6 +77,13 @@
   <div class="ctl" id="lineOpts2"><label>선 굵기</label><input type="range" id="linew" min="1" max="9" value="3"><span class="val" id="vlinew"></span></div>
   <div class="ctl" id="lineOpts3"><label>선 크기</label><input type="range" id="liner" min="30" max="180" value="110"><span class="val" id="vliner"></span></div>
   <div class="ctl" id="lineOpts4"><label>선 회전</label><input type="range" id="linespin" min="0" max="10" value="2"><span class="val" id="vlinespin"></span></div>
+  <div class="ctl" style="padding:6px 8px">
+    <label>그림</label>
+    <input type="file" id="picFile" accept="image/*" multiple style="display:none">
+    <button id="picBtn" style="padding:6px 10px;font-size:12px">📷 그림 넣기</button>
+    <button id="picBg" style="padding:6px 10px;font-size:12px">🩹 흰 배경 지우기</button>
+  </div>
+  <div id="pics"></div>
   <div id="basket"></div>
   <div class="cat" id="cats"></div>
   <div class="emos" id="quick"></div>
@@ -164,8 +180,10 @@ for (const key in PARTS) {
 }
 
 /* ── 이펙트 옵션 ── */
+let PICS = [];      // 예준이가 그린 이펙트 그림 (128x128로 줄여 보관)
+let picBg = true;   // 흰 배경을 지울지
 const fx = { line:'없음', linecol:'#7e3ff2', linew:3, liner:110, linespin:2, linefill:true, fillcol:'#0d0616',
-             emos:['🔥'], motion:'퍼짐', count:8, size:24, spread:70, spin:6, life:12, grav:0,
+             emos:['🔥'], pics:[], motion:'퍼짐', count:8, size:24, spread:70, spin:6, life:12, grav:0,
              ring:true, flash:false, rise:false, trail:false, grow:false, fade:true, ringcol:'#ff5252' };
 let mode = 'fx', effects = [], TIME = 0, speed = 1;
 const MAX_PICK = 8;
@@ -175,7 +193,7 @@ function toggleEmo(e) {
   const i = fx.emos.indexOf(e);
   if (i >= 0) { if (fx.emos.length > 1) fx.emos.splice(i, 1); }
   else if (fx.emos.length < MAX_PICK) fx.emos.push(e);
-  paintCat(); sync(); fire(180, 168);
+  loadPics(); paintPics(); paintCat(); sync(); fire(180, 168);
 }
 function paintCat() {
   $('cats').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.c === curCat));
@@ -243,7 +261,9 @@ $('slow').onclick = e => { speed = speed === 1 ? 0.25 : 1;
 $('copy').onclick = () => {
   const onoff = b => b ? '켬' : '끔';
   const txt = mode === 'fx'
-    ? `✨ 이펙트 설정\n이모지: ${fx.emos.join(' ')}\n움직임: ${fx.motion}\n`
+    ? `✨ 이펙트 설정\n이모지: ${fx.emos.join(' ') || '(없음)'}\n`
+      + (fx.pics.length ? `그림: ${fx.pics.map(i => PICS[i] && PICS[i].name).filter(Boolean).join(', ')} (예준이 그림 — 파일도 함께 보내주세요)\n` : '')
+      + `움직임: ${fx.motion}\n`
       + `선(진): ${fx.line}` + (fx.line !== '없음'
           ? ` · 선색 ${fx.linecol} · 굵기 ${fx.linew} · 크기 ${fx.liner} · 회전 ${fx.linespin} · 바닥 ${fx.linefill ? '채움 ' + fx.fillcol : '없음'}`
           : '') + `\n`
@@ -257,12 +277,73 @@ $('copy').onclick = () => {
 };
 function render() {
   $('out').textContent = mode === 'fx'
-    ? `${fx.emos.join('')} ${fx.count}개 · ${fx.motion} · 크기 ${fx.size} · 퍼짐 ${fx.spread}` +
+    ? `${fx.emos.join('')}${fx.pics.length ? '🖼️×' + fx.pics.length : ''} ${fx.count}개 · ${fx.motion} · 크기 ${fx.size} · 퍼짐 ${fx.spread}` +
       (fx.ring ? ' · 원' : '') + (fx.flash ? ' · 번쩍임' : '') + (fx.rise ? ' · 위로' : '') +
       (fx.trail ? ' · 꼬리' : '') + (fx.grow ? ' · 커짐' : '') + (fx.line !== '없음' ? ' · 진:' + fx.line : '')
     : `${md.bodyShape} ${md.mCount}기 · 눈 ${md.eyeType} · 손 ${md.handType} · 머리 ${md.headType}` +
       (md.aura ? ' · 오라' : '') + (md.drop ? ' · 강림' : '');
 }
+
+/* ── 그림 불러오기 ── */
+const PIC_SIZE = 128;
+function shrinkPic(img) {          // 128x128로 줄이고, 원하면 흰 배경을 투명하게
+  const c = document.createElement('canvas'); c.width = c.height = PIC_SIZE;
+  const x = c.getContext('2d');
+  const sc = Math.min(PIC_SIZE / img.width, PIC_SIZE / img.height);
+  const w = img.width * sc, h = img.height * sc;
+  x.drawImage(img, (PIC_SIZE - w) / 2, (PIC_SIZE - h) / 2, w, h);
+  if (picBg) {
+    const d = x.getImageData(0, 0, PIC_SIZE, PIC_SIZE), p2 = d.data;
+    for (let i = 0; i < p2.length; i += 4) {
+      const r = p2[i], g2 = p2[i+1], b2 = p2[i+2];
+      if (r > 205 && g2 > 205 && b2 > 205 && Math.max(r,g2,b2) - Math.min(r,g2,b2) < 30) p2[i+3] = 0;
+    }
+    x.putImageData(d, 0, 0);
+  }
+  return c.toDataURL('image/png');
+}
+function addPic(file) {
+  const fr = new FileReader();
+  fr.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const url = shrinkPic(img);
+      const el = new Image(); el.src = url;
+      PICS.push({ name: file.name.replace(/\.[^.]+$/, ''), url, el });
+      savePics(); paintPics(); sync();
+    };
+    img.src = fr.result;
+  };
+  fr.readAsDataURL(file);
+}
+function savePics() {              // 용량이 크면 저장을 건너뛴다 (미리보기는 그대로 됨)
+  try { localStorage.setItem('lab_pics', JSON.stringify(PICS.map(p => ({ name: p.name, url: p.url })))); }
+  catch (e) {}
+}
+function loadPics() {
+  try {
+    const arr = JSON.parse(localStorage.getItem('lab_pics') || '[]');
+    PICS = arr.map(p => { const el = new Image(); el.src = p.url; return { ...p, el }; });
+  } catch (e) { PICS = []; }
+}
+function picKey(i) { return '#' + i; }
+function paintPics() {
+  $('pics').innerHTML = PICS.map((p, i) =>
+    `<div class="pic ${fx.pics.includes(i) ? 'on' : ''}" data-i="${i}">
+       <img src="${p.url}"><div class="nm">${p.name}</div></div>`).join('')
+    + (PICS.length ? '' : '<span style="font-size:11px;color:#7d8ab0">예준이가 그린 이펙트를 넣어보세요</span>');
+  $('picBg').classList.toggle('on', picBg);
+}
+$('picBtn').onclick = () => $('picFile').click();
+$('picFile').onchange = ev => { for (const f of ev.target.files) addPic(f); ev.target.value = ''; };
+$('picBg').onclick = () => { picBg = !picBg; paintPics(); };
+$('pics').onclick = ev => {
+  const el = ev.target.closest('.pic'); if (!el) return;
+  const i = +el.dataset.i;
+  const at = fx.pics.indexOf(i);
+  if (at >= 0) fx.pics.splice(at, 1); else fx.pics.push(i);
+  paintPics(); sync(); fire(180, 168);
+};
 
 /* ── 그리기 ── */
 const rnd = n => { const s = Math.sin(n * 127.1) * 43758.5453; return s - Math.floor(s); };
@@ -375,16 +456,24 @@ function drawFx(e) {
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   const sizeNow = fx.size * (fx.grow ? 0.45 + grow * 1.1 : 1);
   const steps = fx.trail ? 4 : 1;                        // 꼬리: 조금 전 위치를 흐리게 겹쳐 그린다
+  const items = [...fx.emos, ...fx.pics.map(picKey)];     // 이모지와 그림을 섞어 쓴다
+  if (!items.length) items.push('🔥');
   for (let i = 0; i < fx.count; i++) {
-    const emo = fx.emos[i % fx.emos.length] || '🔥';
+    const emo = items[i % items.length];
     for (let s = steps - 1; s >= 0; s--) {
       const g2 = Math.max(0, grow - s * 0.06);
       const [x, y0] = partPos(i, fx.count, g2, e);
       const y = y0 - (fx.rise ? g2 * 60 : 0) + (fx.grav / 100) * 260 * g2 * g2;
       ctx.save(); ctx.translate(x, y); ctx.rotate(TIME * fx.spin + (i / fx.count) * Math.PI * 2);
       ctx.globalAlpha = alpha * (s === 0 ? 1 : 0.22);
-      ctx.font = `${sizeNow * (s === 0 ? 1 : 0.8)}px sans-serif`;
-      ctx.fillText(emo, 0, 0);
+      const sz2 = sizeNow * (s === 0 ? 1 : 0.8);
+      if (emo[0] === '#') {                               // 그림 알갱이
+        const pic = PICS[+emo.slice(1)];
+        if (pic && pic.el.complete && pic.el.naturalWidth) ctx.drawImage(pic.el, -sz2 / 2, -sz2 / 2, sz2, sz2);
+      } else {
+        ctx.font = `${sz2}px sans-serif`;
+        ctx.fillText(emo, 0, 0);
+      }
       ctx.restore();
     }
   }
@@ -479,6 +568,6 @@ function frame(now) {
   }
   requestAnimationFrame(frame);
 }
-paintCat(); sync(); fire(180, 168);
+loadPics(); paintPics(); paintCat(); sync(); fire(180, 168);
 requestAnimationFrame(frame);
 </script>
