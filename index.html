@@ -648,6 +648,7 @@
     <button class="devbtn" id="devDragon">🐲불멸</button>
     <button class="devbtn" id="devRaid">🍡레이드</button>
     <button class="devbtn" id="devChaos">🎪개판</button>
+    <button class="devbtn" id="devLayout">🧰버튼</button>
     <button class="devbtn" id="devLab">🎨만들기</button>
   </div>
   <div id="noodleBar" class="hidden"></div>
@@ -4078,6 +4079,7 @@ function showOverlay(mode) {
     b2.textContent = '처음으로';
     b2.classList.remove('hidden');
   }
+  applyLayout();   // 🧰 저장된 버튼 배치는 항상 마지막에
 }
 // ☠️ 맹독 — 시간이 지날수록 한 번에 들어가는 피해가 커진다
 function startPoison(e, baseDmg) {
@@ -4097,6 +4099,19 @@ function updatePoison(dt) {
     e.hp -= e.poisonD * POISON_STEP * e.poisonN;   // 1회차보다 12회차가 12배 아프다
     const p = posAt(e.d);
     S.effects.push({ kind: 'venomtick', x: p.x, y: p.y, t: 1, decay: 3 });
+  }
+}
+// ---------- 🧰 버튼 배치 (편집기에서 저장한 설정) ----------
+function applyLayout() {
+  let cfg = null;
+  try { cfg = JSON.parse(localStorage.getItem('ltd_layout') || 'null'); } catch (e) {}
+  const ov = $('overlay');
+  if (!ov) return;
+  if (cfg && Array.isArray(cfg.order)) {          // 순서 재배치
+    for (const id of cfg.order) { const el = $(id); if (el && el.parentNode === ov) ov.appendChild(el); }
+  }
+  if (cfg && Array.isArray(cfg.hidden)) {         // 숨기라고 한 것만 추가로 숨긴다
+    for (const id of cfg.hidden) { if (id === 'ovBtn') continue; const el = $(id); if (el) el.classList.add('hidden'); }
   }
 }
 // ---------- 🔗 공유 ----------
@@ -5721,6 +5736,7 @@ $('giftOpen').addEventListener('click', openGiftCode);
 $('giftClose').addEventListener('click', () => $('gift').classList.add('hidden'));
 $('giftInput').addEventListener('keydown', ev => { if (ev.key === 'Enter') openGiftCode(); });
 $('devChaos').addEventListener('click', () => { if (DEV) startChaosEvent(); });
+$('devLayout').addEventListener('click', () => { if (DEV) location.href = 'layout-lab.html'; });
 $('raidClose').addEventListener('click', closeRaid);
 $('raidSolo').addEventListener('click', () => { RD.code = null; RD.mates = {}; closeRaid(); startRaid(); });
 $('raidMake').addEventListener('click', async () => {
@@ -5813,6 +5829,7 @@ function updateEventUI() {
   show('ovBtnS', !isNewbie()); // 🛒 상점
   show('ovBtnW', !isNewbie()); // 🏰 나의 왕국
   show('ovBtnShare', true);    // 🔗 공유는 신규에게도 보여준다
+  applyLayout();               // 🧰 저장된 버튼 배치 반영
   const on = lavaOn();
   const he = $('homeEvent');
   if (he) {
@@ -6509,7 +6526,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   ARC, KEYRINGS, startArc, arcOn, renderArc, arcCatch, arcShoot, gachaDraw, useKeyring, renderNoodleBar,
   getArc: () => ({ ...ARC, until: ARC_UNTIL }),
   castDrill, drillCost, POT_EVERY, DRILL_TIME, DRILL_DMG,
-  doShare, shareText, GAME_URL,
+  doShare, shareText, GAME_URL, applyLayout,
   COLLECT, ELITE_NEED, ELIXIR_TIERS, elixirTier, isElite, eliteCount, openKingdom, renderKingdom, BRICKS,
   getCollect: () => COLLECT, setCollect: c => { COLLECT = { ...COLLECT, ...c }; saveCollect(); },
   BOX_SMALL, BOX_BIG, CHAR_SKINS, charSkinOf, gainBoxes, toggleCharSkin,
