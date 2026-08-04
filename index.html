@@ -725,6 +725,7 @@
   <div id="deckSlots"></div>
   <div id="deckInfo"></div>
   <div id="deckBtns">
+    <button id="deckStarterBtn" style="background:#4a7c59;box-shadow:0 3px 0 #2e5038">🌱 입문 추천</button>
     <button id="deckSuggestBtn">⭐ 내 덱 추천</button>
     <button id="deckRandBtn">🎲 랜덤 편성</button>
     <button id="deckClearBtn" class="gray">↺ 비우기</button>
@@ -4681,6 +4682,24 @@ function renderDeck() {
     renderDeck();
   });
 }
+// 🌱 입문 추천덱 — 기록이 없는 신규 유저용 (내 덱 추천은 기록이 있어야 작동한다)
+// 핵심: 일반·희귀를 1종씩만 넣어 ⚡하이퍼차지 보유자를 거의 확정으로 뽑고, 합성도 잘 굴러가게 한다
+const STARTER_DECK = ['farmer', 'wonkkataein', 'lumberjack', 'deathpierrot', 'darkrider', 'angeldog', 'reddragon'];
+function deckStarter() {
+  const pick = STARTER_DECK.filter(t => UNITS.some(u => u.type === t && !u.disabled));
+  // 등급이 비면 채우고, 8칸이 안 되면 남는 등급에서 보충 (캐릭터가 바뀌어도 안전하게)
+  for (let g = 0; g < GRADES.length; g++)
+    if (!pick.some(t => (UNITS.find(u => u.type === t) || {}).grade === g)) {
+      const c = unitsOfGrade(g)[0]; if (c) pick.push(c.type);
+    }
+  const rest = UNITS.filter(u => !u.disabled && !pick.includes(u.type) && u.grade === 2);
+  while (pick.length < DECK_SIZE && rest.length) pick.push(rest.shift().type);
+  while (pick.length > DECK_SIZE) pick.pop();
+  deckEdit = pick; deckSel = -1; renderDeck();
+  $('deckInfo').innerHTML =
+    '<span style="color:#81e88c">🌱 <b>입문 추천덱</b>으로 짰어요 — 일반·희귀를 <b>1종씩만</b> 넣어서<br>' +
+    '⚡하이퍼차지가 잘 나오고 <b>합성도 잘 굴러갑니다.</b> 익숙해지면 바꿔보세요!</span>';
+}
 function deckSuggest() { // 내가 많이 쓴 캐릭터로 덱을 짜준다 (등급마다 최다 픽 1명 + 나머지 자유)
   let use = {};
   try { use = JSON.parse(localStorage.getItem('ltd_use') || '{}'); } catch (e) {}
@@ -4710,6 +4729,7 @@ function openDeck() {
   $('deck').classList.remove('hidden');
   renderDeck();
 }
+$('deckStarterBtn').addEventListener('click', deckStarter);
 $('deckSuggestBtn').addEventListener('click', deckSuggest);
 $('deckRandBtn').addEventListener('click', deckRandom);
 $('deckClearBtn').addEventListener('click', () => { deckEdit = []; deckSel = -1; renderDeck(); });
@@ -5796,7 +5816,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   hasBadWord, blockUser, isBlocked, startChatPoll, openChat, closeChat,
   getBlocked: () => BLOCKED.slice(), clearBlocked: () => { BLOCKED = []; localStorage.removeItem('ltd_block'); },
   sendChatVideo, buildChatVideo, pruneChatVideos, VID_MAX_BYTES, VID_KEEP,
-  poolOfGrade, openDeck, renderDeck, deckRandom, deckSuggest, chooseNoDeck, noDeckChosen, DECK_SIZE,
+  poolOfGrade, openDeck, renderDeck, deckRandom, deckSuggest, deckStarter, STARTER_DECK, chooseNoDeck, noDeckChosen, DECK_SIZE,
   startDragon, dragonOn, IMMORTAL_TRIES, IMMORTAL_DMG,
   setDragon: ms => { DRAGON_UNTIL = ms; },
   getDeck: () => DECK.slice(), setDeck: d => { DECK = d.slice(); saveDeck(); },
