@@ -1094,8 +1094,17 @@ const GIFT_CODES = [
   { code: '워터밤',     name: '🛟 물에 젖은 소포', msg: '왜인지 흠뻑 젖어 있다',              give: { pearl: 20, keyring: 'indie' } },
   { code: '하이',       name: '🏆 112웨이브 소포', msg: '역대 최초 3자리 기록을 기념해',       give: { pearl: 112 } },
   { code: '보거호이',   name: '❓ 차장님의 소포',  msg: '아무도 만나고 싶어하지 않는 그분이 보냈다', give: { pearl: 1, xp: 7 } },
+  { code: 'NOGAURD DRG', name: '🐯 봉인된 소포', msg: '소포가 으르렁거린다...', give: { skin: 'hoyong' } },
+  { code: 'NOGUARD DRG', name: '🐯 봉인된 소포', msg: '소포가 으르렁거린다...', give: { skin: 'hoyong' } }, // 철자 오타 대비 별칭
 ];
 let GIFTS = [];   // 이미 뜯은 코드 (localStorage)
+// 🎴 한정판 스킨 보관함 — 코드·이벤트로 얻는 수집품
+let SKINS = {};
+const hasSkin = id => !!SKINS[id];
+const SKIN_NAMES = { hoyong: '패왕호룡' };   // 스킨을 끼면 이름도 바뀐다
+// 🐯 패왕호룡 등장씬 (설정: 아빠 — 만들기 도구)
+const HOY_EMOS = ['🌙', '🪽'];
+const HOY_N = 32, HOY_SIZE = 24, HOY_SPREAD = 70, HOY_SPIN = 14, HOY_RISE = 60, HOY_LIFE = 40;
 
 // 🎪 개판오분전 (기획: 구예준) — 말 그대로 막장. 기록은 남지 않는다
 const CHAOS_DURATION = 10 * 864e5 + 7 * 36e5 + 7 * 6e4 + 7e3;  // 10일 7시간 7분 7초
@@ -1781,6 +1790,12 @@ function stageClear() { // 스테이지 클리어! 다음 스테이지 잠금 �
 }
 
 // ---------- 소환 / 합성 / 판매 ----------
+function hoyongEnter(sl) { // 🐯 패왕호룡이 판에 나타나는 순간
+  if (!sl || !sl.unit || sl.unit.type !== 'reddragon' || !hasSkin('hoyong')) return;
+  S.effects.push({ kind: 'hoyong', x: sl.cx, y: sl.cy, t: 1, decay: 30 / HOY_LIFE });
+  addText(sl.cx, sl.cy - 34, `🐯 ${SKIN_NAMES.hoyong}!`, '#ffca28', 17);
+  sfx('jackpot');
+}
 function summon() {
   if (!S.running || S.over) return;
   if (S.paused) { addText(WORLD_W/2, 460, '일시정지 중이에요!', '#ffd76e', 14); return; }
@@ -1793,6 +1808,7 @@ function summon() {
   const proto = rand(poolOfGrade(g));
   const slot = rand(empty);
   slot.unit = { ...proto, cdT: 0, popT: 0.35, moveT: 0 };
+  hoyongEnter(slot);
   trackPick(proto.type);
   addText(slot.cx, slot.cy - 26, GRADES[g].name + '!', GRADES[g].color, g >= 2 ? 18 : 13);
   sfx(g >= 2 ? 'jackpot' : 'summon');
@@ -1831,6 +1847,7 @@ function tryMerge(target) {
   const proto = rand(poolOfGrade(ng));
   a.unit = null;
   b.unit = { ...proto, cdT: 0, popT: 0.5, moveT: 0 };
+  hoyongEnter(b);
   S.merges = (S.merges || 0) + 1; // 🎟️ 미션 집계
   trackPick(proto.type);
   addText(b.cx, b.cy - 26, jackpot ? '🎉 대박!! 2단계 점프!' : '✨ 합성!', jackpot ? '#ff6bd6' : '#9fe8ff', jackpot ? 17 : 14);
@@ -2732,6 +2749,18 @@ function draw() {
       ctx.font = '15px sans-serif'; ctx.fillText('🕳️', sl.cx, sl.cy + 2);
       continue;
     }
+    // 🐯 한정판 패왕호룡 — NOGAURD DRG 코드로만 얻는 드래곤 (모션·그림은 예준이 작업 예정)
+    if (u.type === 'reddragon' && hasSkin('hoyong')) {
+      const puls = 0.5 + Math.abs(Math.sin(S.time * 2.5)) * 0.5;
+      ctx.strokeStyle = `rgba(255,193,7,${puls})`; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(sl.cx, sl.cy, 28, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = `rgba(20,20,20,${puls})`; ctx.lineWidth = 3;   // 호랑이 줄무늬
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + S.time * 0.8;
+        ctx.beginPath(); ctx.arc(sl.cx, sl.cy, 28, a, a + 0.28); ctx.stroke();
+      }
+      ctx.globalAlpha = locked ? 0.55 : u.ghost ? 0.5 : 1;
+    }
     // 🛟 한정판 윌리 스킨 — 떡장수를 잡은 사람만 보이는 황금 테두리 (그림은 예준이 작업 예정)
     const limited = u.special === 'pool' && raidSkinOn();
     if (limited) {
@@ -2752,6 +2781,7 @@ function draw() {
     }
     ctx.globalAlpha = 1;
     if (limited) { ctx.font = '13px sans-serif'; ctx.fillText('✨', sl.cx + 17, sl.cy + 17); }
+    if (u.type === 'reddragon' && hasSkin('hoyong')) { ctx.font = '14px sans-serif'; ctx.fillText('🐯', sl.cx + 17, sl.cy + 17); }
     if (u.cheerT > 0) { // 🤠 응원 버프 받는 중
       ctx.font = '13px sans-serif';
       ctx.fillText('📣', sl.cx + 17, sl.cy - 17);
@@ -3279,6 +3309,23 @@ function draw() {
         ctx.restore();
       }
       ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    } else if (e.kind === 'hoyong') {  // 🐯 패왕호룡 등장씬 — 🌙🪽이 궤도로 돌며 솟는다 (연출: 아빠)
+      const grow = 1 - e.t;
+      const alpha = Math.abs(Math.sin(S.time * 14));            // 번쩍임 (점점 사라짐은 끔)
+      const sz = HOY_SIZE * (0.45 + grow * 1.1);                // 점점 커짐
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      for (let i = 0; i < HOY_N; i++) {
+        const ang = (i / HOY_N) * Math.PI * 2 + S.time * 2.2;   // 궤도 — 반지름 유지
+        const x = e.x + Math.cos(ang) * HOY_SPREAD;
+        const y = e.y + Math.sin(ang) * HOY_SPREAD - grow * HOY_RISE;   // 위로 솟기
+        ctx.save(); ctx.translate(x, y);
+        ctx.rotate(S.time * HOY_SPIN + (i / HOY_N) * Math.PI * 2);
+        ctx.globalAlpha = alpha;
+        ctx.font = `${sz}px sans-serif`;
+        ctx.fillText(HOY_EMOS[i % HOY_EMOS.length], 0, 0);
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     } else if (e.kind === 'pot') {     // 🪴 텐한 등장 — 💧🍃🌙이 궤도로 돈다 (연출: 아빠)
       const grow = 1 - e.t;
       ctx.font = `${POT_SIZE}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -3448,7 +3495,8 @@ function updateInfoPanel() {
           : ` · 💼근무 모드(공격 ${JEFF_WORK_DMG} · 속도 ${JEFF_WORK_CD}s) · ${JEFF_PARTY_EVERY}웨이브마다 파티!`) : '')
       + ((u.atk === 'slash' || u.atk === 'bite' || u.atk === 'axe' || u.atk === 'ronin') ? ' · 근접' : '')
       + (u.hyper ? ` · ⚡${u.hyper}` : '');
-    const head = `<span class="emoji">${u.emoji}</span> <b style="color:${GRADES[u.grade].color}">[${GRADES[u.grade].name}] ${u.name}</b>&nbsp; `;
+    const skinName = (u.type === 'reddragon' && hasSkin('hoyong')) ? `🐯 ${SKIN_NAMES.hoyong}` : u.name;
+    const head = `<span class="emoji">${u.emoji}</span> <b style="color:${GRADES[u.grade].color}">[${GRADES[u.grade].name}] ${skinName}</b>&nbsp; `;
     hint.innerHTML = u.support === 'wake' ? head + `싸우지 않는 대신, 상하좌우로 <b>맞닿은 칸</b>의 쉬는 아군(🪴텐한·🤖채드)을 <b>항상 깨워둡니다</b> 🔥`
       : u.support === 'chef' ? head + '30초마다 5가지 요리 중 하나를 랜덤 서빙! 🍳'
       : u.support === 'aura' ? head + `연주 범위 ${u.range} — 아군 공격력 +25%·공속 +20%, 적 이동 -35% 🎵`
@@ -3730,6 +3778,8 @@ function showOverlay(mode) {
 }
 // ---------- 📦 이상한 소포 ----------
 function loadGifts() { try { GIFTS = JSON.parse(localStorage.getItem('ltd_gift') || '[]'); } catch (e) { GIFTS = []; } }
+function loadSkins() { try { SKINS = JSON.parse(localStorage.getItem('ltd_skins') || '{}'); } catch (e) { SKINS = {}; } }
+function saveSkins() { try { localStorage.setItem('ltd_skins', JSON.stringify(SKINS)); } catch (e) {} }
 function saveGifts() { try { localStorage.setItem('ltd_gift', JSON.stringify(GIFTS)); } catch (e) {} }
 const normCode = c => String(c || '').trim().replace(/\s+/g, '').toLowerCase();
 
@@ -3745,6 +3795,10 @@ function giveGift(give) { // 보상 지급 — 준 것들을 사람이 읽는 �
   if (give.keyring) {
     const kr = KEYRINGS.find(k => k.id === give.keyring);
     if (kr) { ARC.kr[kr.id] = (ARC.kr[kr.id] || 0) + 1; ARC.unlocked = true; saveArc(); got.push(`${kr.icon} ${kr.name}`); }
+  }
+  if (give.skin) {
+    SKINS[give.skin] = true; saveSkins();
+    got.push(`🎴 한정판 「${SKIN_NAMES[give.skin] || give.skin}」`);
   }
   if (give.xp) { const up = gainXp(give.xp); got.push(`⭐ 경험치 ${give.xp}` + (up && up.to > up.from ? ` (Lv.${up.to} 달성!)` : '')); }
   return got;
@@ -4947,6 +5001,7 @@ $('ovBtnK').addEventListener('click', () => { $('keyring').classList.remove('hid
 loadArc();
 loadRaid();   // 🍡 내 레이드 기록(스킨·이용권)
 loadGifts();  // 📦 이미 뜯은 소포 목록
+loadSkins();  // 🎴 한정판 스킨 보관함
 
 // ---------- 🎣 낚시터 & 보물 (기획: 구예준) ----------
 // 진주로 낚시 → 보물 획득, 중복이면 레벨업(최대 15). 효과는 레벨에 비례.
@@ -5705,7 +5760,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   ARC, KEYRINGS, startArc, arcOn, renderArc, arcCatch, arcShoot, gachaDraw, useKeyring, renderNoodleBar,
   getArc: () => ({ ...ARC, until: ARC_UNTIL }),
   castDrill, drillCost, POT_EVERY, DRILL_TIME, DRILL_DMG,
-  GIFT_CODES, openGift, openGiftCode, giveGift, getGifts: () => GIFTS,
+  GIFT_CODES, hasSkin, getSkins: () => SKINS, openGift, openGiftCode, giveGift, getGifts: () => GIFTS,
   CH, startChaos, startChaosEvent, chaosOn, CHAOS_ACTS, chaosUpdate,
   setChaos: (until) => { CHAOS_UNTIL = until; updateEventUI(); },
   RD, RAID, startRaid, raidUpdate, raidWin, raidFail, mkRaidBoss, openRaid, raidBarrierMul,
