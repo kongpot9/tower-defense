@@ -800,7 +800,7 @@
 
 <div id="nickModal" class="hidden">
   <div id="nickBox">
-    <h2>👤 닉네임 정하기</h2>
+    <h2 id="nickTitle">👤 닉네임 정하기</h2>
     <p>랭킹판에 올라갈 이름이에요! (최대 8글자)</p>
     <input id="nickInput" maxlength="8" placeholder="예: 예준짱">
     <div class="row">
@@ -2943,6 +2943,14 @@ function gameOver() {
     }
   }
   showOverlay('gameover');
+  // 👤 닉네임은 여기서 처음 물어본다 — 이제 올릴 기록이 생겼으니 물어볼 이유가 있다
+  if (!getNick() && !DEV && !ORGOL && !CH.on && S.wave > 0) {
+    setTimeout(() => {
+      if (getNick()) return;
+      $('nickTitle') && ($('nickTitle').textContent = `🏆 웨이브 ${S.wave} 달성! 랭킹에 올릴 이름을 정해주세요`);
+      openNickModal();
+    }, 900);
+  }
 }
 
 // ---------- ⭐ 전투 레벨 (기획: 구예준) ----------
@@ -4394,10 +4402,13 @@ function showOverlay(mode) {
     maybeShowNotice(); // 📢 새 공지가 있으면 자동으로 띄운다
     startChatBadge(); // 🔴 안 읽은 채팅 수
     showCeleb();      // 🎉 3자리 달성자 축하
-    if (isNewbie()) { // 입문 유저: 한 판 끝낼 때까지 고급 기능을 숨겨 화면을 비운다
-      for (const id of ['ovBtnK', 'ovBtnL', 'ovBtnD', 'ovBtnA', 'ovBtnB', 'ovBtn7', 'ovBtnN', 'ovBtnY'])
-        $(id).classList.add('hidden');
-    }
+    if (isNewbie()) { // 입문 유저: 한 판 끝낼 때까지 [시작하기] 말고 전부 숨긴다
+      for (const el of ov.querySelectorAll('button[id^="ovBtn"]'))
+        if (el.id !== 'ovBtn') el.classList.add('hidden');
+      $('deckBanner').classList.add('hidden');
+      $('homeEvent').classList.add('hidden');
+      $('ovBtn').textContent = '🎮 바로 시작하기';
+    } else if ($('ovBtn').textContent === '🎮 바로 시작하기') $('ovBtn').textContent = '시작하기';
   } else if (mode === 'rank') { // 🏆 랭킹
     ov.querySelector('h1').textContent = '🏆 랭킹';
     $('ovChars').style.display = 'none';
@@ -5648,6 +5659,32 @@ function showNotice() {
   $('notice').classList.remove('hidden');
 }
 // 아직 한 판도 못 끝낸 사람 = 입문 유저 (패치 노트·고급 기능을 숨긴다)
+// 🚀 첫 방문 — 한 판도 안 해봤고 닉네임도 없는 사람 (비밀 서버는 제외)
+function isBrandNew() {
+  if (DEV || ORGOL || HOLLY_IN || ORGOL_IN) return false;
+  try { return !localStorage.getItem('ltd_best') && !getNick() && !localStorage.getItem('ltd_first'); }
+  catch (e) { return false; }
+}
+function startFirstRun() {          // 홈을 건너뛰고 바로 판에 들어간다
+  try { localStorage.setItem('ltd_first', '1'); } catch (e) {}
+  startClassic();
+  coachFirstRun();
+}
+// 👉 첫 판 코치 — 뭘 눌러야 하는지 판 위에 직접 알려준다
+const COACH = [
+  { at: 0.6, y: 250, t: '🏰 타워 디펜스 777에 온 걸 환영해요!', c: '#ffd54f', s: 17 },
+  { at: 2.4, y: 250, t: '아래 🎲 소환 버튼을 눌러 캐릭터를 뽑으세요', c: '#8ecbff', s: 15 },
+  { at: 6.0, y: 250, t: '같은 캐릭터 2마리를 겹치면 ✨합성 — 더 센 캐릭터가 나와요', c: '#81e88c', s: 14 },
+  { at: 10.0, y: 250, t: '캐릭터를 눌러 트랙 가까운 칸으로 옮겨보세요', c: '#ce93d8', s: 14 },
+  { at: 15.0, y: 250, t: '적이 너무 많이 쌓이면 지니까 계속 소환하세요!', c: '#ffab91', s: 14 },
+];
+let coachT = null;
+function coachFirstRun() {
+  if (coachT) coachT.forEach(clearTimeout);
+  coachT = COACH.map(c => setTimeout(() => {
+    if (S.running && !S.over) addText(WORLD_W / 2, c.y, c.t, c.c, c.s);
+  }, c.at * 1000));
+}
 function isNewbie() {
   try { return !localStorage.getItem('ltd_best') && LV <= 1 && XP === 0; } catch (e) { return false; }
 }
@@ -7217,8 +7254,11 @@ function frame(t) {
 
 resize();
 showOverlay('home');
-if (!getNick()) openNickModal(); // 첫 방문이면 닉네임부터!
-else startPresence();            // 닉네임이 있으면 접속 신호 시작
+// 🚀 완전 신규는 홈 화면도, 닉네임도 건너뛰고 곧바로 판에 들어간다.
+// 처음 온 사람에게 버튼 17개와 닉네임 입력창부터 들이밀면 그대로 나가버린다.
+if (isBrandNew()) startFirstRun();
+else if (!getNick()) openNickModal(); // 닉네임은 한 판 해본 뒤에 물어본다
+else startPresence();                 // 닉네임이 있으면 접속 신호 시작
 if (HOLLY_IN) openHolly();                                  // 🍓 새로고침 10번의 주인공
 else if (ORGOL_IN) {                                        // 🎼 다크 카카오 문 너머
   $('orgol').classList.remove('hidden');
