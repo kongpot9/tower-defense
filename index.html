@@ -68,6 +68,9 @@
   #hyperBtn + #sellBtn { margin-left:8px; }
   #drillBtn { display:none; background:#c1440e; box-shadow:0 3px 0 #7d2b09; color:#fff;
               padding:7px 13px; font-size:13px; font-weight:800; border-radius:9px; margin-left:8px; }
+  #pressBtn { display:none; background:#546e7a; box-shadow:0 3px 0 #33454d; color:#fff;
+              padding:7px 13px; font-size:13px; font-weight:800; border-radius:9px; margin-left:8px; }
+  #pressBtn:disabled { filter:grayscale(1); opacity:.55; }
   #drillBtn:disabled { filter:grayscale(1); opacity:.55; }
   #giftBtn { padding:7px 12px; background:#d81b60; box-shadow:0 3px 0 #880e4f; display:none; margin-left:8px; font-size:14px; }
   @keyframes hyperpulse { from { filter:brightness(1); } to { filter:brightness(1.35); } }
@@ -669,7 +672,7 @@
 <canvas id="game"></canvas>
 
 <div id="bottombar">
-  <div id="unitinfo"><span id="uiHint">캐릭터를 누른 뒤: 같은 캐릭터=합성 🎲 · 빈 칸=이동 · 다른 캐릭터=교체</span><button id="hyperBtn">⚡ 하이퍼차지 발동!</button><button id="drillBtn">🔩 드릴러 변신</button><button id="sellBtn">판매</button><button id="giftBtn">💝50G</button></div>
+  <div id="unitinfo"><span id="uiHint">캐릭터를 누른 뒤: 같은 캐릭터=합성 🎲 · 빈 칸=이동 · 다른 캐릭터=교체</span><button id="hyperBtn">⚡ 하이퍼차지 발동!</button><button id="drillBtn">🔩 드릴러 변신</button><button id="pressBtn">🗜️ 프레스 강화</button><button id="sellBtn">판매</button><button id="giftBtn">💝50G</button></div>
   <div id="devbar">
     <span id="devTag">🌑 DARK KAKAO</span>
     <button class="devbtn" id="devGold">💰+1만</button>
@@ -1135,6 +1138,7 @@ const UNITS = [
   { type:'blader',     grade:3, emoji:'🗡️', name:'블레이더',   dmg:159, cd:0.56, range:290, atk:'dagger', special:'daggers', img:'character/myth6.png' },
   { type:'chad',       grade:3, emoji:'🤖', name:'채드',       dmg:300, cd:0.80, range:180, atk:'missile', special:'battery', img:'character/myth8.png' },
   { type:'toogom',     grade:3, emoji:'🐗', name:'혼의 투곰',   dmg:190, cd:0.30, range:115, atk:'bite', special:'crunch', img:'character/myth9.png' },
+  { type:'press',      grade:3, emoji:'🗜️', name:'프레스',     dmg:90,  cd:4.00, range:150, atk:'shell', special:'press', cave:'2026-08-05' },
   { type:'gail',       grade:3, emoji:'👊', name:'가일',       dmg:450, cd:1.50, range:120, atk:'punch', special:'steal', cave:'2026-08-05', img:'character/myth10.png' },
   { type:'bane',       grade:3, emoji:'😈', name:'베인',       dmg:330, cd:2.20, range:110, splash:45, atk:'bane', img:'character/myth5.png' },
   // 영웅 추가
@@ -1395,6 +1399,15 @@ const CHAD_EVERY = 5, CHAD_SHOTS = 2;          // 5웨이브에 1번만 일하�
 const CRUNCH_CHANCE = 0.015, CRUNCH_TIME = 10, CRUNCH_CUT = 0.5;  // 낮은 확률 · 10초간 적 체력 50% 하락
 // 🔥 텐조: 옆에서 깨우기 (기획: 구예준)
 const WAKE_RANGE = 80;                         // 상하좌우로 맞닿은 칸만 (대각선 제외)
+// 🗜️ 프레스: 돈을 부어 5단계까지 올리는 캐릭터 (기획: 구예준)
+// 1단계는 공격력 90에 공속 4초짜리 깡통. 5단계에서 공격이 3분할된다.
+const PRESS_STAGES = [
+  { dmg: 90,  cd: 4.0, cost: 100, desc: '깡통' },
+  { dmg: 90,  cd: 1.0, cost: 200, desc: '공속 3초 단축' },
+  { dmg: 230, cd: 1.0, cost: 400, desc: '공격력 230' },
+  { dmg: 300, cd: 0.7, cost: 800, desc: '공격력 300 · 공속 0.7' },
+  { dmg: 300, cd: 0.5, cost: 0,   desc: '공속 0.5 · 공격 3분할', split: 3 },
+];
 // 👊 가일: 막타를 뺏길 때마다 돈이 들어온다 (기획: 구예준)
 const GAIL_STEAL_GOLD = 500;
 // 🎯 콜드나이퍼: 탄 3종을 돌아가며 쏜다 (기획: 구예준)
@@ -2334,7 +2347,9 @@ function update(dt) {
     }
     const inRange = e => { const p = posAt(e.d); const dx = p.x - s.cx, dy = p.y - s.cy; return dx * dx + dy * dy <= u.range * u.range; };
     let targets;
-    if (u.special === 'multi4') { // 떡장수: 보스는 무시하고 여러 명 동시 공격
+    if (u.special === 'press' && PRESS_STAGES[pressStage(u) - 1].split) {  // 🗜️ 5단계: 3명에게 나눠서
+      targets = S.enemies.filter(inRange).sort((a, b) => b.trav - a.trav).slice(0, PRESS_STAGES[pressStage(u) - 1].split);
+    } else if (u.special === 'multi4') { // 떡장수: 보스는 무시하고 여러 명 동시 공격
       targets = S.enemies.filter(e => !e.boss && inRange(e)).sort((a, b) => b.trav - a.trav).slice(0, MULTI_TARGETS);
     } else {
       let best = null;
@@ -2461,7 +2476,8 @@ function update(dt) {
           // 🗡️ 블레이더: 한 번에 단검 2~3자루, 각각 공격력의 40%
           const shots = u.special === 'daggers'
             ? BLADER_MIN + Math.floor(Math.random() * (BLADER_MAX - BLADER_MIN + 1))
-            : u.special === 'battery' ? CHAD_SHOTS : 1;   // 🤖 채드: 300 데미지를 2번 난사
+            : u.special === 'battery' ? CHAD_SHOTS
+            : 1;   // 🤖 채드: 2번 난사 (🗜️ 프레스 3분할은 '대상 3명'으로 처리한다)
           if (shots > 1 && u.special === 'daggers') dmg = D * BLADER_FRAC * (1 + (u.bladeStack || 0) * BLADE_STACK);
           for (let k = 0; k < shots; k++) {
             S.projectiles.push({
@@ -3805,6 +3821,23 @@ function updateTopbar() {
 }
 function upgradeCost() { return 100 + S.atkLv * 30; }
 function drillCost() { return DRILL_COST + (S.drillUses || 0) * DRILL_COST_INC; } // 🔩 쓸수록 +50
+const pressStage = u => Math.min(PRESS_STAGES.length, u.stage || 1);
+const pressCost = u => PRESS_STAGES[pressStage(u) - 1].cost;   // 0이면 최종 단계
+function pressUp() { // 🗜️ 프레스 강화
+  const sl = S.selected;
+  if (!sl || !sl.unit || sl.unit.special !== 'press') return;
+  const u = sl.unit, st = pressStage(u), cost = pressCost(u);
+  if (!cost) return;                                  // 이미 5단계
+  if (S.gold < cost) { addText(WORLD_W / 2, 460, `골드가 부족해요! (${cost}G 필요)`, '#ff8a8a', 14); sfx('error'); return; }
+  S.gold -= cost;
+  u.stage = st + 1;
+  const ns = PRESS_STAGES[u.stage - 1];
+  u.dmg = ns.dmg; u.cd = ns.cd; u.cdT = 0;
+  addText(sl.cx, sl.cy - 26, `🗜️ ${u.stage}단계!`, '#ffd54f', 17);
+  addText(WORLD_W / 2, 250, `🗜️ 프레스 ${u.stage}단계 — ${ns.desc}`, '#ffd54f', 15);
+  sfx('jackpot');
+  updateInfoPanel(); updateButtons();
+}
 function castDrill() { // 노에시 → 드릴러 노에시
   const sl = S.selected;
   if (!sl || !sl.unit || sl.unit.special !== 'drill' || sl.unit.away) return;
@@ -3832,6 +3865,16 @@ function updateInfoPanel() {
   if (S.selected && S.selected.unit) {
     const u = S.selected.unit;
     hyp.style.display = (u.hyper && (S.hyperCharges > 0 || ORGOL || CH.on)) ? 'block' : 'none';
+    const prs = $('pressBtn');   // 🗜️ 프레스 강화 버튼
+    if (prs) {
+      const on = u.special === 'press';
+      prs.style.display = on ? 'block' : 'none';
+      if (on) {
+        const c = pressCost(u);
+        prs.textContent = c ? `🗜️ ${pressStage(u)}→${pressStage(u) + 1}단계 ${c}G` : '🗜️ 5단계 완성!';
+        prs.disabled = !c || S.gold < c;
+      }
+    }
     if (drl) { // 🔩 노에시 변신 버튼
       const on = u.special === 'drill' && !u.away;
       drl.style.display = on ? 'block' : 'none';
@@ -3850,6 +3893,7 @@ function updateInfoPanel() {
       + (u.special === 'drill' ? ` · 🔩${drillCost()}G로 드릴러 변신(${DRILL_DMG} 피해 · ${DRILL_TIME}초)` : '')
       + (u.special === 'stun' ? ` · ⚡${BOLT_STUN}초 묶기(범위) · 풀린 뒤 ${STUN_IMMUNE}초는 다시 안 묶임` : '')
       + (u.special === 'steal' ? ` · 👊 막타를 뺏길 때마다 +${GAIL_STEAL_GOLD}G` : '')
+      + (u.special === 'press' ? ` · 🗜️ ${pressStage(u)}/5단계 — ${PRESS_STAGES[pressStage(u) - 1].desc}` : '')
       + (u.special === 'ammo' ? ' · 🎯 ❄️폭설탄(묶기) → ☠️맹독탄(점점 심해짐) → 💥폭파탄(유도·광역)' : '')
       + (u.special === 'crunch' ? ` · 🐗 낮은 확률 깨물어부수기(적 체력 ${Math.round(CRUNCH_CUT*100)}% 하락 ${CRUNCH_TIME}초)` : '')
       + (u.special === 'battery' ? (S.wave % CHAD_EVERY === 0
@@ -3879,6 +3923,7 @@ function updateInfoPanel() {
     sell.style.display = 'none';
     hyp.style.display = 'none';
     if (drl) drl.style.display = 'none';
+    if ($('pressBtn')) $('pressBtn').style.display = 'none';
   }
 }
 
@@ -3959,6 +4004,7 @@ $('pauseBtn').addEventListener('click', () => {
 $('sellBtn').addEventListener('click', sellSelected);
 $('hyperBtn').addEventListener('click', () => castHyper()); // 이벤트 객체가 인자로 들어가지 않게!
 $('drillBtn').addEventListener('click', () => castDrill()); // 🔩 노에시 변신
+$('pressBtn').addEventListener('click', () => pressUp());   // 🗜️ 프레스 강화
 $('giveupBtn').addEventListener('click', giveUp); // 🏳️ 항복 (망한 판 탈출용)
 $('speedBtn').addEventListener('click', () => {
   S.speed = S.speed === 1 ? 2 : 1;
