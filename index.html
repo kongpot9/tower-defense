@@ -1132,7 +1132,7 @@ const UNITS = [
   { type:'archer',     grade:0, emoji:'🏹', name:'궁수',  dmg:5,  cd:0.85, range:204, atk:'arrow',  hyper:'피의 석궁', img:'character/normal2.png' },
   { type:'farmer',     grade:0, emoji:'🌾', name:'농부',  dmg:7,  cd:0.80, range:130, atk:'scythe', hyper:'얼어버리는 일륜도', img:'character/normal3.png' },
   // 희귀
-  { type:'jurasaurus', grade:1, emoji:'🦕', name:'쥬라사우르스', dmg:32, cd:0.45, range:100, atk:'bite', hyper:'하이퍼 사우르스', img:'character/rare1.png' },
+  { type:'jurasaurus', grade:1, emoji:'🦕', name:'쥬라사우르스', dmg:32, cd:0.15, range:100, atk:'bite', hyper:'하이퍼 사우르스', img:'character/rare1.png' },
   { type:'wonkkataein',grade:1, emoji:'⚾', name:'원까태인', hyper:'벤치클리어링', dmg:22, cd:0.30, range:175, atk:'ball', special:'fireball', img:'character/rare2.png' },
   { type:'noesi',      grade:1, emoji:'🧒', name:'노에시',     dmg:12,  cd:1.00, range:105, atk:'drill', special:'drill', img:'character/rare4.png' },
   { type:'tenjo',      grade:1, emoji:'🔥', name:'텐조',       dmg:0,   cd:1,   range:0, support:'wake', img:'character/rare5.png' },
@@ -1148,18 +1148,18 @@ const UNITS = [
   { type:'angeldog', grade:3, emoji:'😇', name:'천사 도베르만', dmg:35,  cd:0.60, range:160, atk:'holy',      special:'smite',  img:'character/myth4.png' },
   // 전설 — 아들 그림! (신화 등장에 맞춰 전반 상향)
   { type:'reddragon',  grade:4, emoji:'🐉', name:'레드드래곤', dmg:323, cd:1.70, range:320, splash:70, atk:'breath',  img:'character/legend1.png' },
-  { type:'dosa',       grade:4, emoji:'🧙', name:'도사',       dmg:129, cd:0.80, range:180, atk:'fan', homing:true, img:'character/legend2.png' },
+  { type:'dosa',       grade:4, emoji:'🧙', name:'도사',       dmg:152, cd:0.80, range:180, atk:'fan', homing:true, img:'character/legend2.png' },
   { type:'catmachine', grade:4, emoji:'🐱', name:'캣머신',     dmg:170, cd:0.50, range:110, splash:30, atk:'missile', img:'character/legend3.png' },
   { type:'royalchef',  grade:4, emoji:'👨‍🍳', name:'로얄 셰프', dmg:0,   cd:30,   range:0,   support:'chef', img:'character/legend6.png' }, // 🍳 2026-08-02 굴에서 나온 날
   { type:'tez',        grade:4, emoji:'👊', name:'테즈',       dmg:211, cd:1.20, range:100, splash:45, atk:'tez', special:'chain', img:'character/legend5.png' },
   { type:'tenhan',     grade:4, emoji:'🪴', name:'텐한',       dmg:400, cd:0.50, range:150, splash:55, atk:'orb', special:'pot', img:'character/legend7.png' },
-  { type:'golem',      grade:4, emoji:'🗿', name:'mr.골렘',    dmg:2000, cd:10, range:130, splash:70, atk:'bonk', img:'character/legend8.png' },
+  { type:'golem',      grade:4, emoji:'🗿', name:'mr.골렘',    dmg:1500, cd:4, range:130, splash:70, atk:'bonk', img:'character/legend8.png' },
   { type:'sniper',     grade:4, emoji:'🎯', name:'콜드나이퍼', dmg:210, cd:1.00, range:640, atk:'snipe', special:'ammo', cave:'2026-08-05', img:'character/legend9.png' },
-  { type:'penguin',    grade:4, emoji:'🐧', name:'펭귄악사',   dmg:0,   cd:1,    range:130, support:'aura', img:'character/legend4.png' }, // 오라 서포터
+  { type:'penguin',    grade:4, emoji:'🐧', name:'펭귄악사',   dmg:0,   cd:1,    range:160, support:'aura', img:'character/legend4.png' }, // 오라 서포터 (2026-08-05 연주 반경 130 → 160)
   // 신화 추가
   { type:'blader',     grade:3, emoji:'🗡️', name:'블레이더',   dmg:159, cd:0.56, range:290, atk:'dagger', special:'daggers', img:'character/myth6.png' },
   { type:'chad',       grade:3, emoji:'🤖', name:'채드',       dmg:300, cd:0.80, range:180, atk:'missile', special:'battery', img:'character/myth8.png' },
-  { type:'toogom',     grade:3, emoji:'🐗', name:'혼의 투곰',   dmg:190, cd:0.30, range:115, atk:'bite', special:'crunch', img:'character/myth9.png' },
+  { type:'toogom',     grade:3, emoji:'🐗', name:'혼의 투곰',   dmg:190, cd:0.60, range:115, atk:'bite', special:'crunch', img:'character/myth9.png' },
   { type:'press',      grade:3, emoji:'🗜️', name:'프레스',     dmg:90,  cd:4.00, range:150, atk:'shell', special:'press', cave:'2026-08-05', img:'character/press.png' },
   { type:'swallow',    grade:3, emoji:'🥤', name:'스왈로제트', dmg:10,  cd:0.80, range:160, splash:40, atk:'straw', special:'charge', cave:'2026-08-05', img:'character/swallow.png' },
   { type:'gail',       grade:3, emoji:'👊', name:'가일',       dmg:450, cd:1.50, range:120, atk:'punch', special:'steal', cave:'2026-08-05', img:'character/myth10.png' },
@@ -1194,7 +1194,8 @@ const CAT_HOMING_CHANCE = 0.25, CAT_HOMING_SPLASH = 50;      // 🐱 캣머신: 
 // 🕴️ 제프(회사원): 평소엔 근무 모드(약하지만 빠름), 5웨이브마다 파티 모드!
 const JEFF_PARTY_EVERY = 5, JEFF_WORK_DMG = 30, JEFF_WORK_CD = 0.35;
 const JEFF_PARTY_BONUS = 30, JEFF_TEAM_BUFF = 1.1, JEFF_WARMUP = 0.6; // 파티 준비 0.6초 후 자기 강화 + 팀 강화 동시 발동
-const BLEED_MUL = 3;       // 피의 석궁: 적 방어력 3배 하락 = 받는 피해 3배 (2026-07-31 너프: 5 → 3)
+const BLEED_MUL = 2;       // 피의 석궁: 적 방어력 하락 = 받는 피해 배수 (2026-07-31 5→3, 2026-08-05 대청소 3→2)
+const BLOOD_GAP = 4;       // 피의 석궁 집결 간격 — 2026-08-05 대청소: 6 → 4 (33% 하락)
 const FOODS = [
   { id:'pancake', emoji:'🥞', name:'팬케이크', msg:'공격력 30% UP!' },
   { id:'cupcake', emoji:'🧁', name:'컵케이크', msg:'공격속도 50% UP!' },
@@ -1209,12 +1210,12 @@ const BALDO_CHANCE = 0.25, BALDO_RADIUS = 90;
 const BALDO_BLADES = 14, BALDO_EMO_SIZE = 24, BALDO_SPREAD = 70, BALDO_SPIN = 6, BALDO_RISE = 60;                                // 낭인: 발도술 광역
 // 🪽 즉사 승천 연출 (설정: 아빠)
 const SMITE_WINGS = 7, SMITE_EMO_SIZE = 24, SMITE_SPREAD = 70, SMITE_SPIN = 6, SMITE_RISE = 60, SMITE_GRAV = 20;
-const SMITE_CHANCE = 0.02, SMITE_BOSS_PCT = 0.03;                            // 천사 도베르만: 즉사 (보스는 최대체력 3% 추가)
+const SMITE_CHANCE = 0.06, SMITE_BOSS_PCT = 0.03;                            // 천사 도베르만: 즉사 (2026-08-05 대청소 2% → 6%, 보스는 최대체력 3% 추가)
 // ⚾ 원까태인 하이퍼차지 「벤치클리어링」 — 팀 동료들이 덕아웃에서 뛰쳐나온다 (기획: 구예준)
-const BENCH_MUL = 5, BENCH_TIME = 45, BENCH_MATES = 5;
+const BENCH_MUL = 5, BENCH_TIME = 50, BENCH_MATES = 5;   // 2026-08-05 대청소: 지속 45 → 50초
 // ⚔️ 검사 하이퍼차지 「영혼 사냥시간」 — 암흑의 기사들이 적진에 강림 (기획: 구예준)
-const SOUL_KNIGHTS = 3, SOUL_DMG = 936, SOUL_CD = 1.2, SOUL_TIME = 30, SOUL_RANGE = 150, SOUL_FALL = 0.55;
-const SOUL_SPLASH = 62;   // 2026-08-03 리워크: 범위공격 · 공격력 +56%(600→936) · 공속 0.3초 단축(1.5→1.2)
+const SOUL_KNIGHTS = 3, SOUL_DMG = 450, SOUL_CD = 0.2, SOUL_TIME = 30, SOUL_RANGE = 150, SOUL_FALL = 0.55;
+const SOUL_SPLASH = 130;  // 2026-08-03 리워크(600→936) → 2026-08-05 대청소: 936→450 · 공속 1.2→0.2초 · 초범위 62→130
 const TEZ_CHAIN_CHANCE = 0.4, TEZ_CHAIN_HITS = 2;                            // 👊 테즈: 40% 확률로 연쇄펀치(추가 2연타)
 const BLADER_MIN = 2, BLADER_MAX = 3, BLADER_FRAC = 0.4;                     // 🗡️ 블레이더: 단검 2~3개, 각 공격력의 40%
 // ⚔️ 블레이더 리워크 (기획: 구예준) — 근접하면 검사가 되어 발도술, 원거리는 던질수록 강해진다
@@ -1433,8 +1434,11 @@ const caveDays = u => u.cave ? Math.max(0, (Date.now() - Date.parse(u.cave)) / 8
 
 // 🔩 노에시 → 드릴러 노에시 변신 (기획: 구예준)
 const DRILL_COST = 250, DRILL_COST_INC = 50;   // 변신 비용 250골드, 쓸수록 +50
-const DRILL_DMG = 280, DRILL_TIME = 20;        // 드릴 피해 280, 20초 뒤 노에시로 복귀
-const DRILL_SPEED = 105;                       // 길목을 누비는 속도
+const DRILL_DMG = 320, DRILL_TIME = 20;        // 드릴 피해 (2026-08-05 대청소: 280 → 320), 20초 뒤 노에시로 복귀
+const DRILL_SPEED = 139;                       // 길목을 누비는 속도 (2026-08-05 대청소: 105 → 139, +32%)
+// 🔥 드릴이 지나간 길목에 불이 남는다 (2026-08-05 대청소, 기획: 구예준)
+const FIRE_DMG = 200, FIRE_TICKS = 3, FIRE_TICK = 1.0;  // 200 피해 × 3번 도트
+const FIRE_GAP = 26, FIRE_LIFE = 6, FIRE_R = 26;        // 26마다 하나씩 · 6초 유지 · 반경 26
 const DRILL_RADIUS = 27;                       // 밟히는 판정 반경
 const DRILL_HIT_CD = 0.5;                      // 같은 적을 다시 밟기까지의 간격
 // 🔩 드릴러 변신 연출 (설정: 아빠 — 만들기 도구)
@@ -1918,7 +1922,7 @@ const S = {
 function resetGame() {
   S.over = false; S.wave = 0; S.gold = 80; S.summonCost = SUMMON_BASE;
   S.roundT = 0; S.toSpawn = 0;
-  S.enemies = []; S.projectiles = []; S.texts = []; S.effects = []; S.bombs = []; S.knights = []; S.mates = []; S.drills = [];
+  S.enemies = []; S.projectiles = []; S.texts = []; S.effects = []; S.bombs = []; S.knights = []; S.mates = []; S.drills = []; S.fires = [];
   S.drillUses = 0;   // 🔩 이번 판에 변신한 횟수 (쓸수록 비용 +50)
   S.buffT = { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0, jura: 0, bleed: 0, car: 0, pool: 0, bench: 0, wbomb: 0 };
   S.atkLv = 0;
@@ -2312,7 +2316,7 @@ function castHyper(slot) { // ⚡ 하이퍼차지 발동! (캐릭터마다 다�
       const dist = Math.hypot(p.x - sl.cx, p.y - sl.cy);
       if (dist < best) { best = dist; near = d; }
     }
-    S.enemies.forEach((e, i) => { e.d = near + (i - S.enemies.length / 2) * 6; }); // 궁수 앞에 집결
+    S.enemies.forEach((e, i) => { e.d = near + (i - S.enemies.length / 2) * BLOOD_GAP; }); // 궁수 앞에 집결
     S.effects.push({ kind: 'bloodbow', x: sl.cx, y: sl.cy, r: Math.max(60, best), t: 1, decay: 1.2 });
     addText(WORLD_W / 2, 262, `적 전원 집결 + 방어력 ${BLEED_MUL}배 하락! (10초)`, '#ff9e9e', 14);
     addText(sl.cx, sl.cy - 30, '🏹🩸', '#fff', 24);
@@ -2596,9 +2600,15 @@ function update(dt) {
       dr.t -= dt;
       dr.d += DRILL_SPEED * dt;
       const dp = posAt(dr.d);
-      const dmg = Math.round(DRILL_DMG * Math.pow(1.1, S.atkLv) * ALLY_ATK_MUL
+      const mul = Math.pow(1.1, S.atkLv) * ALLY_ATK_MUL
         * (S.buffT.bleed > 0 ? BLEED_MUL : 1) * (S.buffT.pool > 0 ? POOL_ATK : 1)
-        * (S.buffT.dmg > 0 ? 1.3 : 1));
+        * (S.buffT.dmg > 0 ? 1.3 : 1);
+      const dmg = Math.round(DRILL_DMG * mul);
+      if (dr.d - (dr.fireD || 0) >= FIRE_GAP) {           // 🔥 지나간 자리에 불을 남긴다
+        dr.fireD = dr.d;
+        S.fires = S.fires || [];
+        S.fires.push({ d: dr.d, t: FIRE_LIFE, dmg: Math.round(FIRE_DMG * mul) });
+      }
       for (const e of S.enemies) {                       // 밟힌 적에게 피해
         const ep = posAt(e.d);
         if (Math.hypot(ep.x - dp.x, ep.y - dp.y) > DRILL_RADIUS) continue;
@@ -2614,6 +2624,30 @@ function update(dt) {
         S.drills.splice(i, 1);
       }
     }
+  }
+  // 🔥 길목의 불 — 밟으면 200 피해가 3번 들어간다 (불이 꺼져도 도트는 끝까지 간다)
+  if (S.fires && S.fires.length) {
+    for (let i = S.fires.length - 1; i >= 0; i--) {
+      const f = S.fires[i];
+      f.t -= dt;
+      if (f.t <= 0) { S.fires.splice(i, 1); continue; }
+      const fp = posAt(f.d);
+      for (const e of S.enemies) {
+        if (e.burnLeft > 0) continue;                    // 이미 타는 중이면 다시 붙지 않는다
+        const ep = posAt(e.d);
+        if (Math.hypot(ep.x - fp.x, ep.y - fp.y) > FIRE_R) continue;
+        e.burnLeft = FIRE_TICKS; e.burnCd = 0; e.burnD = f.dmg;
+      }
+    }
+  }
+  for (const e of S.enemies) {
+    if (!(e.burnLeft > 0)) continue;
+    e.burnCd -= dt;
+    if (e.burnCd > 0) continue;
+    e.burnCd = FIRE_TICK; e.burnLeft--;
+    e.hp -= e.burnD;
+    const p = posAt(e.d);
+    S.effects.push({ kind: 'burntick', x: p.x, y: p.y, t: 1, decay: 2.4 });
   }
   if (S.knights && S.knights.length) {
     for (let i = S.knights.length - 1; i >= 0; i--) {
@@ -3125,6 +3159,23 @@ function draw() {
     ctx.beginPath(); ctx.moveTo(b.x + 3, b.y - 7); ctx.quadraticCurveTo(b.x + 8, b.y - 12, b.x + 5, b.y - 15); ctx.stroke();
     ctx.fillStyle = '#ffd54f';
     ctx.beginPath(); ctx.arc(b.x + 5, b.y - 15, 2 + Math.sin(S.time * 30), 0, Math.PI * 2); ctx.fill();
+  }
+
+  // 🔥 드릴이 남긴 불 — 길목에서 활활 타오른다
+  if (S.fires && S.fires.length) {
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const f of S.fires) {
+      const fp = posAt(f.d);
+      const a = Math.min(1, f.t / 1.2);                             // 꺼질 때 서서히 사라진다
+      const fl = 0.85 + Math.abs(Math.sin(S.time * 11 + f.d)) * 0.3; // 일렁이는 불꽃
+      ctx.globalAlpha = a * 0.5;
+      ctx.fillStyle = '#ff7043';
+      ctx.beginPath(); ctx.ellipse(fp.x, fp.y + 4, FIRE_R * 0.8, FIRE_R * 0.45, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = a;
+      ctx.font = `${Math.round(22 * fl)}px sans-serif`;
+      ctx.fillText('🔥', fp.x, fp.y);
+    }
+    ctx.globalAlpha = 1; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   }
 
   // 🔩 드릴러 노에시 — 길목을 파고드는 드릴차
@@ -3756,6 +3807,11 @@ function draw() {
       ctx.font = '15px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText('☠️', e.x, e.y - 14 * (1 - e.t));
       ctx.globalAlpha = 1; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    } else if (e.kind === 'burntick') {   // 🔥 불에 타는 표시
+      ctx.globalAlpha = e.t;
+      ctx.font = '16px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('🔥', e.x, e.y - 16 * (1 - e.t));
+      ctx.globalAlpha = 1; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     } else if (e.kind === 'bolt') {    // ⚡ 레일리: 지그재그 번개 + 묶는 고리
       const sx = e.sx != null ? e.sx : e.x, sy = e.sy != null ? e.sy : e.y;
       ctx.strokeStyle = '#80d8ff'; ctx.lineWidth = 3; ctx.globalAlpha = e.t;
@@ -4059,7 +4115,7 @@ function updateInfoPanel() {
       + (u.special === 'shock' ? ` · ⚡${Math.round(SHOCK_CHANCE * 100)}% 전기 연쇄` : '')
       + (u.type === 'catmachine' ? ` · 🎯${Math.round(CAT_HOMING_CHANCE * 100)}% 유도 미사일` : '')
       + (u.special === 'cheer' ? ' · 📣15% 주변 공속 UP' : '')
-      + (u.special === 'drill' ? ` · 🔩${drillCost()}G로 드릴러 변신(${DRILL_DMG} 피해 · ${DRILL_TIME}초)` : '')
+      + (u.special === 'drill' ? ` · 🔩${drillCost()}G로 드릴러 변신(${DRILL_DMG} 피해 · 길목에 🔥${FIRE_DMG}×${FIRE_TICKS} · ${DRILL_TIME}초)` : '')
       + (u.special === 'stun' ? ` · ⚡${BOLT_STUN}초 묶기(범위) · 풀린 뒤 ${STUN_IMMUNE}초는 다시 안 묶임` : '')
       + (u.special === 'steal' ? ` · 👊 막타를 뺏길 때마다 +${GAIL_STEAL_GOLD}G` : '')
       + (u.special === 'press' ? ` · 🗜️ ${pressStage(u)}/5단계 — ${PRESS_STAGES[pressStage(u) - 1].desc}` : '')
@@ -5133,18 +5189,18 @@ async function loadGlobalUse() {
   globalUseLoading = false;
 }
 const HOLLY_TIER = { // 현 메타 티어 (일반 모드 기준)
-  reddragon:'S', dosa:'B', angeldog:'S',
-  catmachine:'A', lumberjack:'A', jurasaurus:'A', farmer:'A',
+  reddragon:'S', dosa:'A', angeldog:'S',
+  catmachine:'A', lumberjack:'A', jurasaurus:'S', farmer:'A',
   deathpierrot:'B', darkrider:'B', miner:'B', tankboy:'B', ronin:'B',
-  wonkkataein:'C', ricecake:'C', swordsman:'C', noesi:'C', tenhan:'A', railey:'B', tenjo:'B', chad:'B', toogom:'S', golem:'A', gail:'A', sniper:'S',
-  archer:'S', royalchef:'A',
+  wonkkataein:'C', ricecake:'C', swordsman:'A', noesi:'B', tenhan:'A', railey:'B', tenjo:'B', chad:'B', toogom:'A', golem:'S', gail:'A', sniper:'S',
+  archer:'A', royalchef:'A',
   penguin:'S', bane:'A', indie:'B', jeff:'B',
   tez:'A', blader:'A', willy:'B',
 };
 const TIER_COLOR = { S:'#ffd54f', A:'#4fc3f7', B:'#9ccc65', C:'#ffb74d', D:'#b0bec5', '?':'#8ab8ff' };
 const HOLLY_EVAL = {
-  swordsman: '초반 3웨이브의 왕 — 이후엔 최고급 합성 재료',
-  archer: '공격력 5의 최약체가 채용률 1위 — 피의 석궁이 아군 전체를 3배로 만든다',
+  swordsman: '초반 3웨이브의 왕 — 그리고 암흑의 기사 3기를 부르는 일반 등급의 반란',
+  archer: '공격력 5의 최약체가 채용률 1위 — 피의 석궁이 아군 전체를 2배로 만든다 (2026-08-05 대청소: 3배 → 2배)',
   farmer: '낫질은 그대로지만 일륜도가 모든 걸 바꿨다 — 대반전의 주인공',
   jurasaurus: '쥬라코인 최고가 갱신 중 — 평시 보스킬러, 20웨이브마다 핵무기',
   wonkkataein: '4번 중 1번의 사나이 — 기대값은 정직, 분산이 낭만',
@@ -5154,19 +5210,19 @@ const HOLLY_EVAL = {
   darkrider: '수리검 비의 잔몹 청소부',
   miner: '폭탄 낭만 + 강화 스케일링 — 후반에도 현역',
   ricecake: '물량전의 왕, 보스전의 실업자',
-  noesi: '평소엔 최약체, 250골드 내면 판을 뒤집는 드릴차',
+  noesi: '평소엔 최약체, 250골드 내면 판을 뒤집는 드릴차 — 이제 지나간 길목에 불까지 남긴다',
   tenhan: '3웨이브에 1번만 나오는 화분 요괴 — 나온 웨이브는 압도적',
   railey: '오랜만의 공격형 영웅 — 딜보다 0.8초 묶기가 본체',
   tenjo: '싸움은 못 하지만 쉬는 아군을 깨우는 유일한 캐릭터',
   chad: '5웨이브에 1번 출근하는 로봇 — 출근하면 2발 난사',
-  toogom: '생김새와 달리 초당 연타 + 깨물어부수기 대박',
-  golem: '10초에 1번, 대신 한 방이 2000 광역',
+  toogom: '깨물어부수기 한 방이 전부 — 2026-08-05 대청소로 물어뜯는 속도가 반으로 줄었다',
+  golem: '4초에 1번, 대신 한 방이 1500 광역 — 10초 → 4초로 줄면서 실전 최상위권 진입',
   gail: '때리면 세고, 막타를 뺏겨도 돈이 된다 — 유일한 돈 버는 캐릭터',
   sniper: '맵 전체가 사거리 — 묶고 중독시키고 터뜨리는 만능 저격수',
   ronin: '만능 이류 — 하지만 발도술은 진짜',
-  angeldog: '이론상 최강, 실전도 최강(후반) — 즉사는 모든 스케일링을 무시',
+  angeldog: '이론상 최강, 실전도 최강(후반) — 즉사는 모든 스케일링을 무시. 2026-08-05 대청소로 2% → 6%',
   reddragon: '전개덱의 심장 — 일륜도 빙결+브레스가 현 메타 최강 콤보',
-  dosa: '⚠️유저 항의 반영 — "공무원이 아니라 우리팀의 공작원입니다". 전설 최하위 딜(161)이 사실로 확인됨',
+  dosa: '⚠️유저 항의 반영 — "공무원이 아니라 우리팀의 공작원입니다". 2026-08-05 대청소로 공격력 +18%',
   catmachine: '최고 화력, 최고 임대료',
   royalchef: '11일을 굴에서 기다린 전설 — 30초마다 뭐가 나올지 모르는 랜덤 서포터',
   penguin: '한 곡으로 판을 바꾸는 지휘자 — 강한 딜러 옆에 둘수록 이득이 곱해진다',
@@ -5179,7 +5235,7 @@ const HOLLY_EVAL = {
 };
 const HOLLY_USE = { // 사용처
   swordsman: '시작 직후 트랙 옆 배치 → 중반부터 합성 재료',
-  archer: '어느 덱이든 1마리 보존 — 위기·보스 웨이브에 피의 석궁으로 적 집결 + 전체 5배 딜 창',
+  archer: '어느 덱이든 1마리 보존 — 위기·보스 웨이브에 피의 석궁으로 적 집결 + 전체 2배 딜 창',
   farmer: '모든 덱에 1마리 보존(구석 칸) — 위기·보스전에 일륜도 발동',
   jurasaurus: '트랙 옆 칸 — 보스전 단일딜 · 쥬라공장 · 하이퍼 사우르스 폭딜',
   wonkkataein: '중반 원거리 보강, 아무 칸 OK',
