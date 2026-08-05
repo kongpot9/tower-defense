@@ -1342,6 +1342,7 @@ const DFX_N = 21, DFX_SIZE = 24, DFX_SPREAD = 70, DFX_SPIN = 14, DFX_LIFE = 40;
 const POT_EVERY = 3;                           // 3웨이브에 1번만 화분에서 나온다
 // ⚡ 레일리: 번개로 묶기 (기획: 구예준)
 const BOLT_STUN = 0.8;                         // 맞은 적을 0.8초 묶음
+const STUN_IMMUNE = 0.8;                       // 풀린 뒤 이만큼은 다시 안 묶인다 (무한스턴 방지)
 // 🤖 채드: 배터리 충전 (기획: 구예준)
 const CHAD_EVERY = 5, CHAD_SHOTS = 2;          // 5웨이브에 1번만 일하고, 한 번에 2발 난사
 // 🐗 혼의 투곰: 깨물어부수기 (기획: 구예준)
@@ -2367,7 +2368,7 @@ function update(dt) {
             if (Math.hypot(p2.x - bp.x, p2.y - bp.y) <= u.splash) {
               e2.hp -= D * hits;
               if (u.slow) e2.slowT = Math.max(e2.slowT, u.slow);
-              if (u.special === 'stun') e2.frozenT = Math.max(e2.frozenT || 0, BOLT_STUN); // ⚡ 레일리: 번개로 묶기
+              if (u.special === 'stun') tryStun(e2, BOLT_STUN);   // ⚡ 레일리: 번개로 묶기 (면역 시간 있음)
             }
           }
           if (hits > 1) {
@@ -3801,7 +3802,7 @@ function updateInfoPanel() {
       + (u.type === 'catmachine' ? ` · 🎯${Math.round(CAT_HOMING_CHANCE * 100)}% 유도 미사일` : '')
       + (u.special === 'cheer' ? ' · 📣15% 주변 공속 UP' : '')
       + (u.special === 'drill' ? ` · 🔩${drillCost()}G로 드릴러 변신(${DRILL_DMG} 피해 · ${DRILL_TIME}초)` : '')
-      + (u.special === 'stun' ? ` · ⚡${BOLT_STUN}초 묶기(범위)` : '')
+      + (u.special === 'stun' ? ` · ⚡${BOLT_STUN}초 묶기(범위) · 풀린 뒤 ${STUN_IMMUNE}초는 다시 안 묶임` : '')
       + (u.special === 'steal' ? ` · 👊 막타를 뺏길 때마다 +${GAIL_STEAL_GOLD}G` : '')
       + (u.special === 'ammo' ? ' · 🎯 ❄️폭설탄(묶기) → ☠️맹독탄(점점 심해짐) → 💥폭파탄(유도·광역)' : '')
       + (u.special === 'crunch' ? ` · 🐗 낮은 확률 깨물어부수기(적 체력 ${Math.round(CRUNCH_CUT*100)}% 하락 ${CRUNCH_TIME}초)` : '')
@@ -4108,6 +4109,14 @@ function showOverlay(mode) {
     b2.classList.remove('hidden');
   }
   applyLayout();   // 🧰 저장된 버튼 배치는 항상 마지막에
+}
+// ⚡ 묶기 — 방금 풀린 적은 잠깐 면역이라 다시 묶이지 않는다
+function tryStun(e, dur) {
+  if (e.frozenT > 0) return false;              // 이미 묶여 있으면 덧씌우지 않는다
+  if (S.time < (e.stunFree || 0)) return false; // 면역 중
+  e.frozenT = dur;
+  e.stunFree = S.time + dur + STUN_IMMUNE;      // 풀린 뒤 면역
+  return true;
 }
 // ☠️ 맹독 — 시간이 지날수록 한 번에 들어가는 피해가 커진다
 function startPoison(e, baseDmg) {
