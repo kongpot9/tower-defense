@@ -473,6 +473,13 @@
   }
   #chatRow button { padding:0 18px; background:#2d6cdf; box-shadow:0 3px 0 #1a3f85; border-radius:12px; font-size:14px; }
   #chatVidBtn { padding:0 13px !important; background:#4a3a6e !important; box-shadow:0 3px 0 #2c2145 !important; font-size:19px !important; }
+  #chatImgBtn { padding:0 13px !important; background:#2e6e4a !important; box-shadow:0 3px 0 #1c452e !important; font-size:19px !important; }
+  #chatImgFile { display:none; }
+  .imgbox { margin-top:5px; }
+  .imgbox img { max-width:210px; max-height:230px; border-radius:9px; display:block;
+                border:2px solid #3a4566; cursor:zoom-in; background:#12182a; }
+  .imgbox img.full { max-width:100%; max-height:none; cursor:zoom-out; }
+  .imgbox .hint { font-size:10px; color:#7d8ab0; margin-top:2px; }
   #chatVidFile { display:none; }
   #chatUpload { font-size:11px; color:#ffd54f; font-weight:800; min-height:14px; text-align:center; }
   #chat .close { background:#3a4566; padding:9px 26px; font-size:14px; border-radius:10px; }
@@ -1051,11 +1058,13 @@
   <div id="onlineList"></div>
   <div id="chatLog"></div>
   <div id="chatRow">
+    <button id="chatImgBtn" title="사진(포스터) 보내기">📷</button>
     <button id="chatVidBtn" title="동영상 보내기">🎬</button>
     <input id="chatInput" maxlength="200" placeholder="메시지를 입력하세요">
     <button id="chatSend">전송</button>
   </div>
   <input id="chatVidFile" type="file" accept="video/*" class="hidden">
+  <input id="chatImgFile" type="file" accept="image/*" class="hidden">
   <div id="chatUpload"></div>
   <button class="close" id="chatClose">나가기</button>
 </div>
@@ -6273,6 +6282,94 @@ async function sendChatVideo(file) {
     msg.textContent = '보내지 못했어요 😢 (파일이 너무 크거나 인터넷 문제)';
   }
 }
+// ── 📷 사진(포스터) 보내기 ──
+const IMG_KEEP = 40;                     // 서버에 보관할 사진 수
+const IMG_PATH = () => `${RANK_DB}/party/_chat/imgs`;
+const imgCache = {};
+function shrinkImage(file, maxSide, quality) {   // 큰 사진을 줄여 용량을 확 낮춘다
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => {
+      const im = new Image();
+      im.onload = () => {
+        const sc = Math.min(1, maxSide / Math.max(im.width, im.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(im.width * sc); c.height = Math.round(im.height * sc);
+        const x = c.getContext('2d');
+        x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);   // 투명 배경은 흰색으로
+        x.drawImage(im, 0, 0, c.width, c.height);
+        res(c.toDataURL('image/jpeg', quality));
+      };
+      im.onerror = () => rej(new Error('그림을 읽지 못했어요'));
+      im.src = fr.result;
+    };
+    fr.onerror = () => rej(new Error('읽기 실패'));
+    fr.readAsDataURL(file);
+  });
+}
+function pickChatPhoto() {
+  if (!RANK_DB || !getNick()) return;
+  const f = $('chatImgFile'); f.value = ''; f.click();
+}
+async function sendChatPhoto(file) {
+  if (!file || !RANK_DB) return;
+  const msg = $('chatUpload');
+  if (!/^image\//.test(file.type)) { msg.textContent = '사진 파일만 보낼 수 있어요'; return; }
+  if (Date.now() - lastChatSend < 2000) { msg.textContent = '조금만 천천히! (2초)'; return; }
+  lastChatSend = Date.now();
+  msg.textContent = '📤 올리는 중...';
+  try {
+    const full = await shrinkImage(file, 1000, 0.75);   // 원본은 크게 줄여서
+    const thumb = await shrinkImage(file, 150, 0.6);    // 채팅에 바로 보일 작은 것
+    const put = await (await fetch(`${IMG_PATH()}.json`, { method: 'POST',
+      body: JSON.stringify({ d: full, t: Date.now() }) })).json();
+    const pid = put && put.name;
+    if (!pid) throw new Error('업로드 실패');
+    imgCache[pid] = full;
+    await fetch(`${CHAT_PATH()}/msgs.json`, { method: 'POST',
+      body: JSON.stringify({ n: getNick(), m: '📷 사진', p: pid, th: thumb, t: Date.now() }) });
+    msg.textContent = `✅ 보냈어요! (${Math.round(full.length / 1024)}KB)`;
+    setTimeout(() => { if (/보냈어요/.test(msg.textContent)) msg.textContent = ''; }, 2500);
+    pingPresence();
+    pruneChatPhotos();
+  } catch (e) {
+    msg.textContent = '보내지 못했어요 😢 (' + (e.message || '인터넷 문제') + ')';
+  }
+}
+async function pruneChatPhotos() {
+  try {
+    const all = await (await fetch(`${IMG_PATH()}.json?shallow=true`)).json() || {};
+    if (Object.keys(all).length <= IMG_KEEP) return;
+    const meta = await (await fetch(`${IMG_PATH()}.json`)).json() || {};
+    const sorted = Object.entries(meta).sort((a, b) => (a[1].t || 0) - (b[1].t || 0));
+    for (const [id] of sorted.slice(0, sorted.length - IMG_KEEP))
+      fetch(`${IMG_PATH()}/${id}.json`, { method: 'DELETE' }).catch(() => {});
+  } catch (e) {}
+}
+function buildChatPhoto(m) {   // 작은 그림이 바로 보이고, 누르면 큰 그림을 받아온다
+  const box = document.createElement('div');
+  box.className = 'imgbox';
+  const img = document.createElement('img');
+  img.src = m.th || '';
+  img.alt = '사진';
+  const hint = document.createElement('div');
+  hint.className = 'hint'; hint.textContent = '눌러서 크게 보기';
+  let big = false, loading = false;
+  img.onclick = async () => {
+    if (loading) return;
+    if (big) { img.src = m.th; img.classList.remove('full'); hint.textContent = '눌러서 크게 보기'; big = false; return; }
+    loading = true; hint.textContent = '⏳ 불러오는 중...';
+    try {
+      let d = imgCache[m.p];
+      if (!d) { d = (await (await fetch(`${IMG_PATH()}/${m.p}.json`)).json() || {}).d; imgCache[m.p] = d; }
+      if (d) { img.src = d; img.classList.add('full'); hint.textContent = '눌러서 작게'; big = true; }
+      else hint.textContent = '사진이 사라졌어요';
+    } catch (e) { hint.textContent = '불러오지 못했어요'; }
+    loading = false;
+  };
+  box.appendChild(img); box.appendChild(hint);
+  return box;
+}
 async function pruneChatVideos() { // 오래된 영상 정리 — 무료 용량 보호
   try {
     const all = await (await fetch(`${VID_PATH()}.json?shallow=true`)).json() || {};
@@ -6367,6 +6464,7 @@ function addChatMsg(m) {
     div.appendChild(b);
   }
   if (m.v) div.appendChild(buildChatVideo(m.v)); // 🎬 올린 동영상
+  if (m.p) div.appendChild(buildChatPhoto(m));   // 📷 올린 사진(포스터)
   const link = m.v ? null : findLink(m.m);
   if (link) {
     div.appendChild(buildVideoBox(link));
@@ -6497,6 +6595,8 @@ $('ovBtn5').addEventListener('click', () => {
 });
 $('chatClose').addEventListener('click', closeChat);
 $('chatSend').addEventListener('click', sendChat);
+$('chatImgBtn').addEventListener('click', pickChatPhoto);
+$('chatImgFile').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; if (f) sendChatPhoto(f); });
 $('chatVidBtn').addEventListener('click', pickChatVideo);
 $('chatVidFile').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; if (f) sendChatVideo(f); });
 $('chatInput').addEventListener('keydown', ev => { if (ev.key === 'Enter') sendChat(); });
@@ -6758,6 +6858,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   hasBadWord, blockUser, isBlocked, startChatPoll, openChat, closeChat,
   getBlocked: () => BLOCKED.slice(), clearBlocked: () => { BLOCKED = []; localStorage.removeItem('ltd_block'); },
   sendChatVideo, buildChatVideo, pruneChatVideos, VID_MAX_BYTES, VID_KEEP,
+  sendChatPhoto, buildChatPhoto, shrinkImage, pruneChatPhotos, IMG_KEEP,
   poolOfGrade, openDeck, renderDeck, deckRandom, deckSuggest, deckStarter, STARTER_DECK, chooseNoDeck, noDeckChosen, DECK_SIZE,
   startDragon, dragonOn, IMMORTAL_TRIES, IMMORTAL_DMG,
   setDragon: ms => { DRAGON_UNTIL = ms; },
