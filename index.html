@@ -71,6 +71,8 @@
   #pressBtn { display:none; background:#546e7a; box-shadow:0 3px 0 #33454d; color:#fff;
               padding:7px 13px; font-size:13px; font-weight:800; border-radius:9px; margin-left:8px; }
   #pressBtn:disabled { filter:grayscale(1); opacity:.55; }
+  #gloveBtn { display:none; background:linear-gradient(90deg,#1565c0,#ff8f00); box-shadow:0 3px 0 #0d3c75;
+              color:#fff; padding:7px 13px; font-size:13px; font-weight:800; border-radius:9px; margin-left:8px; }
   #drillBtn:disabled { filter:grayscale(1); opacity:.55; }
   #giftBtn { padding:7px 12px; background:#d81b60; box-shadow:0 3px 0 #880e4f; display:none; margin-left:8px; font-size:14px; }
   @keyframes hyperpulse { from { filter:brightness(1); } to { filter:brightness(1.35); } }
@@ -679,7 +681,7 @@
 <canvas id="game"></canvas>
 
 <div id="bottombar">
-  <div id="unitinfo"><span id="uiHint">캐릭터를 누른 뒤: 같은 캐릭터=합성 🎲 · 빈 칸=이동 · 다른 캐릭터=교체</span><button id="hyperBtn">⚡ 하이퍼차지 발동!</button><button id="drillBtn">🔩 드릴러 변신</button><button id="pressBtn">🗜️ 프레스 강화</button><button id="sellBtn">판매</button><button id="giftBtn">💝50G</button></div>
+  <div id="unitinfo"><span id="uiHint">캐릭터를 누른 뒤: 같은 캐릭터=합성 🎲 · 빈 칸=이동 · 다른 캐릭터=교체</span><button id="hyperBtn">⚡ 하이퍼차지 발동!</button><button id="drillBtn">🔩 드릴러 변신</button><button id="pressBtn">🗜️ 프레스 강화</button><button id="gloveBtn">🌙 초승달 글러브 장착!</button><button id="sellBtn">판매</button><button id="giftBtn">💝50G</button></div>
   <div id="devbar">
     <span id="devTag">🌑 DARK KAKAO</span>
     <button class="devbtn" id="devGold">💰+1만</button>
@@ -697,6 +699,7 @@
     <button class="devbtn" id="devChaos">🎪개판</button>
     <button class="devbtn" id="devLayout">🧰버튼</button>
     <button class="devbtn" id="devCave">🕳️굴</button>
+    <button class="devbtn" id="devTaein">🌙태인</button>
     <button class="devbtn" id="devLab">🎨만들기</button>
   </div>
   <div id="noodleBar" class="hidden"></div>
@@ -1267,6 +1270,7 @@ const GIFT_CODES = [
   { code: '하이',       name: '🏆 112웨이브 소포', msg: '역대 최초 3자리 기록을 기념해',       give: { pearl: 112 } },
   { code: '보거호이',   name: '❓ 차장님의 소포',  msg: '아무도 만나고 싶어하지 않는 그분이 보냈다', give: { pearl: 1, xp: 7 } },
   { code: 'NOGAURD DRG', name: '🐯 봉인된 소포', msg: '소포가 으르렁거린다...', give: { skin: 'hoyong' } },
+  { code: 'getyourbaseball', name: '🌙 초승달이 든 소포', msg: '야구 장갑 한 짝이 들어 있다', give: { glove: 1 } },
   { code: 'NOGUARD DRG', name: '🐯 봉인된 소포', msg: '소포가 으르렁거린다...', give: { skin: 'hoyong' } }, // 철자 오타 대비 별칭
 ];
 let GIFTS = [];   // 이미 뜯은 코드 (localStorage)
@@ -1370,6 +1374,33 @@ const CHAOS_EVERY = 6;              // 몇 초마다 난장판이 한 번씩 터
 let CHAOS_UNTIL = 0;
 let CH = { on: false, t: 0, fastT: 0, stunT: 0, akT: 0, log: [] };
 const chaosOn = () => Date.now() < CHAOS_UNTIL;
+
+// 🌙 불멸 태인 이벤트 (기획: 구예준)
+// 소포 코드로 초승달 글러브를 얻고, 원까태인에게 끼우면 불멸 태인이 된다
+const TAEIN_DURATION = 7 * 864e5 + 7 * 36e5 + 7 * 6e4 + 7e3;   // 7일 7시간 7분 7초
+const TAEIN_DMG = 500000;          // 기본 공격력 50만
+const TAEIN_OKYEOM = 100;          // 옥염구는 100배
+const TAEIN_CD = 0.30, TAEIN_RANGE = 200, TAEIN_SPLASH = 60;
+let TAEIN_FROM = 0, TAEIN_UNTIL = 0;
+const taeinOn = () => { const n = Date.now(); return n >= TAEIN_FROM && n < TAEIN_UNTIL; };
+const hasGlove = () => { try { return localStorage.getItem('ltd_glove') === '1'; } catch (e) { return false; } }
+function giveGlove() { try { localStorage.setItem('ltd_glove', '1'); } catch (e) {} }
+async function loadTaeinEvent() {
+  if (!RANK_DB) return;
+  try {
+    const d = await (await fetch(`${RANK_DB}/party/_event/taein.json`)).json();
+    TAEIN_FROM = (d && d.from) || 0; TAEIN_UNTIL = (d && d.until) || 0;
+    updateEventUI();
+  } catch (e) {}
+}
+async function startTaeinEvent(fromMs) {   // 🌑 DARK KAKAO 전용
+  TAEIN_FROM = fromMs || Date.now();
+  TAEIN_UNTIL = TAEIN_FROM + TAEIN_DURATION;
+  try { await fetch(`${RANK_DB}/party/_event/taein.json`, { method: 'PUT',
+    body: JSON.stringify({ from: TAEIN_FROM, until: TAEIN_UNTIL }) }); } catch (e) {}
+  updateEventUI();
+  addText(WORLD_W / 2, 300, '🌙 불멸 태인 이벤트 개막!!', '#4fc3f7', 20);
+}
 
 // 🕳️ 굴 — 능력은 완성됐지만 아직 안 나온 캐릭터 (로얄 셰프가 11일을 기다린 그 굴)
 // 밸런스를 확인하기 전엔 소환·덱에 나오지 않는다. 🌑 DARK KAKAO에서는 테스트 가능.
@@ -2478,6 +2509,9 @@ function update(dt) {
           }
           if (u.special === 'fireball' && Math.random() < FIREBALL_CHANCE) {
             kind = 'fire'; dmg = D * FIREBALL_MUL; splash = 35; // 불꽃공!
+          }
+          if (u.special === 'okyeom' && Math.random() < FIREBALL_CHANCE) {
+            kind = 'fire'; dmg = D * TAEIN_OKYEOM; splash = 90; // 🌙 옥염구 — 100배
           }
           if (u.type === 'catmachine' && Math.random() < CAT_HOMING_CHANCE) { // 🐱 끝까지 쫓는 유도 미사일!
             homing = true; splash = CAT_HOMING_SPLASH;
@@ -3832,6 +3866,23 @@ function upgradeCost() { return 100 + S.atkLv * 30; }
 function drillCost() { return DRILL_COST + (S.drillUses || 0) * DRILL_COST_INC; } // 🔩 쓸수록 +50
 const pressStage = u => Math.min(PRESS_STAGES.length, u.stage || 1);
 const pressCost = u => PRESS_STAGES[pressStage(u) - 1].cost;   // 0이면 최종 단계
+function wearGlove() { // 🌙 초승달 글러브 장착 → 불멸 태인
+  const sl = S.selected;
+  if (!sl || !sl.unit || sl.unit.type !== 'wonkkataein') return;
+  if (!taeinOn() || !hasGlove()) return;
+  const proto = UNITS.find(u => u.type === 'wonkkataein');
+  sl.unit = { ...proto, type: 'immortaltaein', name: '불멸 태인', emoji: '🌙',
+              dmg: TAEIN_DMG, cd: TAEIN_CD, range: TAEIN_RANGE, splash: TAEIN_SPLASH,
+              atk: 'ball', special: 'okyeom', img: 'character/taein.png',
+              cdT: 0, popT: 0.9, moveT: 0, immortal: true };
+  S.immortal = true;                       // 이 판은 랭킹에 올라가지 않는다
+  S.effects.push({ kind: 'boom', x: sl.cx, y: sl.cy, r: 110, t: 1, fire: true });
+  addText(WORLD_W / 2, 240, '🌙 불멸필살옥염!', '#ffd54f', 26);
+  addText(WORLD_W / 2, 272, `불멸 태인 각성! 공격력 ${TAEIN_DMG.toLocaleString()}`, '#ff8a65', 16);
+  addText(WORLD_W / 2, 298, '※ 이 판의 기록은 랭킹에 오르지 않아요', '#9fb0d8', 12);
+  sfx('jackpot');
+  updateInfoPanel(); updateButtons();
+}
 function pressUp() { // 🗜️ 프레스 강화
   const sl = S.selected;
   if (!sl || !sl.unit || sl.unit.special !== 'press') return;
@@ -3874,6 +3925,11 @@ function updateInfoPanel() {
   if (S.selected && S.selected.unit) {
     const u = S.selected.unit;
     hyp.style.display = (u.hyper && (S.hyperCharges > 0 || ORGOL || CH.on)) ? 'block' : 'none';
+    const glv = $('gloveBtn');  // 🌙 초승달 글러브 장착 버튼
+    if (glv) {
+      const on = u.type === 'wonkkataein' && taeinOn() && hasGlove();
+      glv.style.display = on ? 'block' : 'none';
+    }
     const prs = $('pressBtn');   // 🗜️ 프레스 강화 버튼
     if (prs) {
       const on = u.special === 'press';
@@ -3903,6 +3959,7 @@ function updateInfoPanel() {
       + (u.special === 'stun' ? ` · ⚡${BOLT_STUN}초 묶기(범위) · 풀린 뒤 ${STUN_IMMUNE}초는 다시 안 묶임` : '')
       + (u.special === 'steal' ? ` · 👊 막타를 뺏길 때마다 +${GAIL_STEAL_GOLD}G` : '')
       + (u.special === 'press' ? ` · 🗜️ ${pressStage(u)}/5단계 — ${PRESS_STAGES[pressStage(u) - 1].desc}` : '')
+      + (u.special === 'okyeom' ? ` · 🌙 ${Math.round(FIREBALL_CHANCE * 100)}% 옥염구(${TAEIN_OKYEOM}배!) · 기록 제외` : '')
       + (u.special === 'ammo' ? ' · 🎯 ❄️폭설탄(묶기) → ☠️맹독탄(점점 심해짐) → 💥폭파탄(유도·광역)' : '')
       + (u.special === 'crunch' ? ` · 🐗 낮은 확률 깨물어부수기(적 체력 ${Math.round(CRUNCH_CUT*100)}% 하락 ${CRUNCH_TIME}초)` : '')
       + (u.special === 'battery' ? (S.wave % CHAD_EVERY === 0
@@ -3933,6 +3990,7 @@ function updateInfoPanel() {
     hyp.style.display = 'none';
     if (drl) drl.style.display = 'none';
     if ($('pressBtn')) $('pressBtn').style.display = 'none';
+    if ($('gloveBtn')) $('gloveBtn').style.display = 'none';
   }
 }
 
@@ -4014,6 +4072,7 @@ $('sellBtn').addEventListener('click', sellSelected);
 $('hyperBtn').addEventListener('click', () => castHyper()); // 이벤트 객체가 인자로 들어가지 않게!
 $('drillBtn').addEventListener('click', () => castDrill()); // 🔩 노에시 변신
 $('pressBtn').addEventListener('click', () => pressUp());   // 🗜️ 프레스 강화
+$('gloveBtn').addEventListener('click', () => wearGlove()); // 🌙 초승달 글러브
 $('giveupBtn').addEventListener('click', giveUp); // 🏳️ 항복 (망한 판 탈출용)
 $('speedBtn').addEventListener('click', () => {
   S.speed = S.speed === 1 ? 2 : 1;
@@ -4082,6 +4141,7 @@ function showOverlay(mode) {
     loadRaidEvent(); // 🍡 최강의 떡장수 레이드 진행 여부 확인
     loadChaosEvent(); // 🎪 개판오분전 진행 여부 확인
     loadCave();       // 🕳️ 굴에서 나온 캐릭터 확인
+    loadTaeinEvent(); // 🌙 불멸 태인 이벤트 확인
     loadDragonEvent(); // 🐲 숨겨진 합성 진행 여부
     updateEventUI();
     maybeShowNotice(); // 📢 새 공지가 있으면 자동으로 띄운다
@@ -4350,6 +4410,8 @@ function eventRegistry() {
       on:raidOn(), until:RAID_UNTIL, go:() => { $('events').classList.add('hidden'); openRaid(); } },
     { icon:'🎪', name:'개판오분전', desc:'공격력 10억 · 적 속도 10억 · 하이퍼차지 무한',
       on:chaosOn(), until:CHAOS_UNTIL, go:() => { $('events').classList.add('hidden'); startChaos(); } },
+    { icon:'🌙', name:'불멸 태인', desc:'소포 코드로 초승달 글러브를 얻어 ⚾원까태인에게 끼우면…',
+      on:taeinOn(), until:TAEIN_UNTIL, info:true },
     { icon:'🐲', name:'불멸 드래곤', desc:'드래곤끼리 5번 합성하면…',
       on:dragonOn(), until:DRAGON_UNTIL, info:true },
     { icon:'🌋', name:'라바 이벤트', desc:'게임이 끝나면 도달 웨이브만큼 무료 낚시',
@@ -4605,6 +4667,11 @@ function giveGift(give) { // 보상 지급 — 준 것들을 사람이 읽는 �
   if (give.keyring) {
     const kr = KEYRINGS.find(k => k.id === give.keyring);
     if (kr) { ARC.kr[kr.id] = (ARC.kr[kr.id] || 0) + 1; ARC.unlocked = true; saveArc(); got.push(`${kr.icon} ${kr.name}`); }
+  }
+  if (give.glove) {
+    if (!taeinOn()) { got.push('🌙 초승달 글러브 (이벤트가 아직 안 열렸어요)'); }
+    else got.push('🌙 <b>초승달 글러브</b> — ⚾원까태인에게 끼워보세요!');
+    giveGlove();
   }
   if (give.skin) {
     SKINS[give.skin] = true; saveSkins();
@@ -5974,6 +6041,7 @@ $('giftInput').addEventListener('keydown', ev => { if (ev.key === 'Enter') openG
 $('devChaos').addEventListener('click', () => { if (DEV) startChaosEvent(); });
 $('devLayout').addEventListener('click', () => { if (DEV) location.href = 'layout-lab.html'; });
 $('devCave').addEventListener('click', () => { if (DEV) openCave(); });
+$('devTaein').addEventListener('click', () => { if (DEV) startTaeinEvent(); });
 $('caveClose').addEventListener('click', () => $('cave').classList.add('hidden'));
 $('diaryBtn').addEventListener('click', () => {
   const d = $('diary'); d.classList.toggle('hidden');
@@ -6871,6 +6939,8 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   doShare, shareText, GAME_URL, applyLayout,
   openEvents, renderEvents, eventsOn, eventRegistry,
   openCave, renderCave, caveList, inCave, releaseFromCave, getCaveOut: () => CAVE_OUT,
+  taeinOn, hasGlove, giveGlove, wearGlove, startTaeinEvent, TAEIN_DMG, TAEIN_OKYEOM,
+  setTaein: (f, u2) => { TAEIN_FROM = f; TAEIN_UNTIL = u2; updateEventUI(); },
   COLLECT, ELITE_NEED, ELIXIR_TIERS, elixirTier, isElite, eliteCount, openKingdom, renderKingdom, BRICKS,
   getCollect: () => COLLECT, setCollect: c => { COLLECT = { ...COLLECT, ...c }; saveCollect(); },
   BOX_SMALL, BOX_BIG, CHAR_SKINS, charSkinOf, gainBoxes, toggleCharSkin,
