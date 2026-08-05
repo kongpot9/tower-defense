@@ -73,6 +73,9 @@
   #pressBtn:disabled { filter:grayscale(1); opacity:.55; }
   #gloveBtn { display:none; background:linear-gradient(90deg,#1565c0,#ff8f00); box-shadow:0 3px 0 #0d3c75;
               color:#fff; padding:7px 13px; font-size:13px; font-weight:800; border-radius:9px; margin-left:8px; }
+  #trickBtn { display:none; background:#6a3fa0; box-shadow:0 3px 0 #3f2560; color:#fff;
+              padding:7px 13px; font-size:13px; font-weight:800; border-radius:9px; margin-left:8px; }
+  #trickBtn.on { background:#ce93d8; color:#2c0a16; }
   #drillBtn:disabled { filter:grayscale(1); opacity:.55; }
   #giftBtn { padding:7px 12px; background:#d81b60; box-shadow:0 3px 0 #880e4f; display:none; margin-left:8px; font-size:14px; }
   @keyframes hyperpulse { from { filter:brightness(1); } to { filter:brightness(1.35); } }
@@ -688,7 +691,7 @@
 <canvas id="game"></canvas>
 
 <div id="bottombar">
-  <div id="unitinfo"><span id="uiHint">캐릭터를 누른 뒤: 같은 캐릭터=합성 🎲 · 빈 칸=이동 · 다른 캐릭터=교체</span><button id="hyperBtn">⚡ 하이퍼차지 발동!</button><button id="drillBtn">🔩 드릴러 변신</button><button id="pressBtn">🗜️ 프레스 강화</button><button id="gloveBtn">🌙 초승달 글러브 장착!</button><button id="sellBtn">판매</button><button id="giftBtn">💝50G</button></div>
+  <div id="unitinfo"><span id="uiHint">캐릭터를 누른 뒤: 같은 캐릭터=합성 🎲 · 빈 칸=이동 · 다른 캐릭터=교체</span><button id="hyperBtn">⚡ 하이퍼차지 발동!</button><button id="drillBtn">🔩 드릴러 변신</button><button id="pressBtn">🗜️ 프레스 강화</button><button id="gloveBtn">🌙 초승달 글러브 장착!</button><button id="trickBtn">🎩 트릭</button><button id="sellBtn">판매</button><button id="giftBtn">💝50G</button></div>
   <div id="devbar">
     <span id="devTag">🌑 DARK KAKAO</span>
     <button class="devbtn" id="devGold">💰+1만</button>
@@ -1157,12 +1160,14 @@ const UNITS = [
   { type:'blader',     grade:3, emoji:'🗡️', name:'블레이더',   dmg:159, cd:0.56, range:290, atk:'dagger', special:'daggers', img:'character/myth6.png' },
   { type:'chad',       grade:3, emoji:'🤖', name:'채드',       dmg:300, cd:0.80, range:180, atk:'missile', special:'battery', img:'character/myth8.png' },
   { type:'toogom',     grade:3, emoji:'🐗', name:'혼의 투곰',   dmg:190, cd:0.30, range:115, atk:'bite', special:'crunch', img:'character/myth9.png' },
-  { type:'press',      grade:3, emoji:'🗜️', name:'프레스',     dmg:90,  cd:4.00, range:150, atk:'shell', special:'press', cave:'2026-08-05' },
+  { type:'press',      grade:3, emoji:'🗜️', name:'프레스',     dmg:90,  cd:4.00, range:150, atk:'shell', special:'press', cave:'2026-08-05', img:'character/press.png' },
+  { type:'swallow',    grade:3, emoji:'🥤', name:'스왈로제트', dmg:10,  cd:0.80, range:160, splash:40, atk:'straw', special:'charge', cave:'2026-08-05', img:'character/swallow.png' },
   { type:'gail',       grade:3, emoji:'👊', name:'가일',       dmg:450, cd:1.50, range:120, atk:'punch', special:'steal', cave:'2026-08-05', img:'character/myth10.png' },
   { type:'bane',       grade:3, emoji:'😈', name:'베인',       dmg:330, cd:2.20, range:110, splash:45, atk:'bane', img:'character/myth5.png' },
   // 영웅 추가
   { type:'indie',      grade:2, emoji:'🤠', name:'인디',       dmg:44,  cd:0.70, range:140, atk:'paper', special:'cheer', img:'character/hero4.png' },
   { type:'jeff',       grade:2, emoji:'🕴️', name:'제프',       dmg:51,  cd:0.80, range:130, atk:'orb',   special:'office', img:'character/hero5.png' },
+  { type:'hosper',     grade:2, emoji:'🎩', name:'호스퍼',     dmg:35,  cd:0.90, range:150, atk:'fan', special:'trio', cave:'2026-08-05', img:'character/hosper.png' },
   { type:'railey',     grade:2, emoji:'⚡', name:'레일리',     dmg:110, cd:1.50, range:200, splash:60, atk:'bolt', special:'stun', img:'character/hero7.png' },
   { type:'willy',      grade:2, emoji:'🛟', name:'윌리',       dmg:24,  cd:0.80, range:140, atk:'tube',  special:'pool',   hyper:'워터밤 쇼!', img:'character/hero6.png' },
 ];
@@ -1221,7 +1226,7 @@ const WBOMB_SLOW = 0.25;      // 이동속도 75% 하락 (0.25배)
 const WBOMB_HP = 0.60;        // 체력 40% 하락 (60%로)                        // 🛟 윌리: 풀장 20초(웨이브 내내) — 적 감속 + 아군 공격력 +10%
 const MULTI_TARGETS = 5;                                                     // 떡장수: 동시 공격 대상 수
 const FIREBALL_CHANCE = 0.25, FIREBALL_MUL = 4; // 원까태인 불꽃공 확률 (피해 4배 + 소범위)
-const PROJ_SPEED = { noodleshot:320, snipe:900, snow:820, venom:780, blast:640, dagger:760, tube:400, arrow:700, scythe:420, ball:560, fire:480, shell:320, shuriken:650, fan:560, missile:430, drill:620, songpyeon:520, holy:560, paper:540, orb:500 };
+const PROJ_SPEED = { straw:700, noodleshot:320, snipe:900, snow:820, venom:780, blast:640, dagger:760, tube:400, arrow:700, scythe:420, ball:560, fire:480, shell:320, shuriken:650, fan:560, missile:430, drill:620, songpyeon:520, holy:560, paper:540, orb:500 };
 const INSTANT_ATK = new Set(['slash', 'bite', 'punch', 'axe', 'breath', 'ronin', 'bane', 'tez', 'bolt', 'bonk']); // 즉발(투사체 없는) 공격
 const INSTANT_DECAY = { tez:1.7, bite:1.6, breath:1.4, axe:1.8, punch:2.2, ronin:1.8, bane:1.5, bolt:1.9, bonk:1.5 };   // 이펙트 지속(작을수록 오래)
 
@@ -1446,6 +1451,18 @@ const CHAD_EVERY = 5, CHAD_SHOTS = 2;          // 5웨이브에 1번만 일하�
 const CRUNCH_CHANCE = 0.015, CRUNCH_TIME = 10, CRUNCH_CUT = 0.5;  // 낮은 확률 · 10초간 적 체력 50% 하락
 // 🔥 텐조: 옆에서 깨우기 (기획: 구예준)
 const WAKE_RANGE = 80;                         // 상하좌우로 맞닿은 칸만 (대각선 제외)
+// 🥤 스왈로제트: 같은 적에게 빨대를 꽂아 계속 차징한다 (기획: 구예준)
+// 표를 다 쓰면 그 뒤로는 계속 1.7배씩 — 무제한. 대신 대상이 바뀌거나 죽으면 처음부터.
+const SWALLOW_TABLE = [10, 20, 40, 60, 90, 170, 300];
+const SWALLOW_GROW = 1.7;
+const SWALLOW_BOSS_FIRST = 0.35;      // 가끔 보스를 먼저 노린다
+function swallowDmg(n) {
+  if (n < SWALLOW_TABLE.length) return SWALLOW_TABLE[n];
+  return Math.round(SWALLOW_TABLE[SWALLOW_TABLE.length - 1] * Math.pow(SWALLOW_GROW, n - SWALLOW_TABLE.length + 1));
+}
+// 🎩 호스퍼 (트리오 매지션): 트릭과 앙코르 (기획: 구예준)
+const TRICK_COST = 300;               // 아군 둘의 사거리를 맞바꾼다
+const ENCORE_EVERY = 10, ENCORE_PCT = 0.2, ENCORE_ROOT = 0.5;
 // 🗜️ 프레스: 돈을 부어 5단계까지 올리는 캐릭터 (기획: 구예준)
 // 1단계는 공격력 90에 공속 4초짜리 깡통. 5단계에서 공격이 3분할된다.
 const PRESS_STAGES = [
@@ -1905,6 +1922,7 @@ function resetGame() {
   S.drillUses = 0;   // 🔩 이번 판에 변신한 횟수 (쓸수록 비용 +50)
   S.buffT = { dmg: 0, spd: 0, gold: 0, ghost: 0, hyper: 0, jura: 0, bleed: 0, car: 0, pool: 0, bench: 0, wbomb: 0 };
   S.atkLv = 0;
+  S.trickMode = null;
   S.crunchT = 0;
   S.hyperCharges = 0;
   S.nextHyper = HYPER_EVERY;
@@ -2394,7 +2412,14 @@ function update(dt) {
     }
     const inRange = e => { const p = posAt(e.d); const dx = p.x - s.cx, dy = p.y - s.cy; return dx * dx + dy * dy <= u.range * u.range; };
     let targets;
-    if (u.special === 'press' && PRESS_STAGES[pressStage(u) - 1].split) {  // 🗜️ 5단계: 3명에게 나눠서
+    if (u.special === 'charge') {   // 🥤 스왈로제트: 가끔 보스를 먼저 노린다
+      const inR = S.enemies.filter(inRange);
+      const boss = inR.find(e => e.boss);
+      let pick = null;
+      if (boss && Math.random() < SWALLOW_BOSS_FIRST) pick = boss;
+      else pick = inR.sort((a, b) => b.trav - a.trav)[0] || null;
+      targets = pick ? [pick] : [];
+    } else if (u.special === 'press' && PRESS_STAGES[pressStage(u) - 1].split) {  // 🗜️ 5단계: 3명에게 나눠서
       targets = S.enemies.filter(inRange).sort((a, b) => b.trav - a.trav).slice(0, PRESS_STAGES[pressStage(u) - 1].split);
     } else if (u.special === 'multi4') { // 떡장수: 보스는 무시하고 여러 명 동시 공격
       targets = S.enemies.filter(e => !e.boss && inRange(e)).sort((a, b) => b.trav - a.trav).slice(0, MULTI_TARGETS);
@@ -2516,6 +2541,12 @@ function update(dt) {
           }
           if (u.special === 'fireball' && Math.random() < FIREBALL_CHANCE) {
             kind = 'fire'; dmg = D * FIREBALL_MUL; splash = 35; // 불꽃공!
+          }
+          if (u.special === 'charge') {   // 🥤 같은 적이면 차징이 쌓이고, 바뀌면 처음부터
+            if (u.chargeTgt === tgt.id) u.charge = (u.charge || 0) + 1;
+            else { u.charge = 0; u.chargeTgt = tgt.id; }
+            dmg = Math.round(D / (u.dmg || 1) * swallowDmg(u.charge));   // 표 값에 각종 배수를 그대로 곱한다
+            if (u.charge > 0) addText(s.cx, s.cy - 28, `🥤 ${u.charge + 1}단 차징!`, '#81d4fa', 12);
           }
           if (u.special === 'okyeom' && Math.random() < FIREBALL_CHANCE) {
             kind = 'fire'; dmg = D * TAEIN_OKYEOM; splash = 90; // 🌙 옥염구 — 100배
@@ -2691,6 +2722,10 @@ function update(dt) {
   for (let i = S.enemies.length - 1; i >= 0; i--) {
     const e = S.enemies[i];
     if (e.hp <= 0) {
+      for (const sl of slots) if (sl.unit && sl.unit.special === 'charge' && sl.unit.chargeTgt === e.id) {
+        if ((sl.unit.charge || 0) > 2) addText(sl.cx, sl.cy - 28, '🥤 차징 끊김!', '#ff8a80', 12);
+        sl.unit.charge = 0; sl.unit.chargeTgt = null;      // 빨대가 뽑혔다
+      }
       const reward = S.buffT.gold > 0 ? e.gold * 2 : e.gold; // 우동: 골드 2배
       S.gold += reward;
       if (e.gailHit && !e.gailKill) {          // 👊 가일: 막타를 뺏겼다 — 대신 돈이 들어온다
@@ -2715,6 +2750,29 @@ function update(dt) {
     if (S.effects[i].t <= 0) S.effects.splice(i, 1);
   }
   // 로얄 셰프 요리 버프 타이머
+  // 🎩 호스퍼의 앙코르 — 적 20%가 잠깐 몰려 묶인다
+  for (const sl of slots) {
+    const u2 = sl.unit;
+    if (!u2 || u2.special !== 'trio' || u2.away) continue;
+    u2.encoreT = (u2.encoreT || 0) - dt;
+    if (u2.encoreT > 0) continue;
+    u2.encoreT = ENCORE_EVERY;
+    let near2 = 0, best2 = 1e9;
+    for (let d2 = 0; d2 < PERIM; d2 += 4) {                 // 호스퍼와 가장 가까운 트랙 지점
+      const p2 = posAt(d2), dd = Math.hypot(p2.x - sl.cx, p2.y - sl.cy);
+      if (dd < best2) { best2 = dd; near2 = d2; }
+    }
+    const pool = S.enemies.filter(e => !e.boss);
+    const n = Math.max(1, Math.round(pool.length * ENCORE_PCT));
+    let moved = 0;
+    for (const e of pool.sort(() => Math.random() - 0.5).slice(0, n)) {
+      e.d = near2; e.frozenT = Math.max(e.frozenT || 0, ENCORE_ROOT); moved++;
+    }
+    if (moved) {
+      S.effects.push({ kind: 'cheer', x: sl.cx, y: sl.cy, r: 130, t: 1, decay: 1.6 });
+      addText(sl.cx, sl.cy - 30, `🎩 앙코르! ${moved}명 집합`, '#ce93d8', 13);
+    }
+  }
   updatePoison(dt);                    // ☠️ 맹독 진행
   if (S.crunchT > 0) S.crunchT -= dt;   // 🐗 깨물어부수기 지속시간
   for (const k of ['dmg', 'spd', 'gold', 'hyper', 'jura', 'bleed', 'car', 'pool', 'bench', 'wbomb']) if (S.buffT[k] > 0) S.buffT[k] -= dt;
@@ -3873,6 +3931,36 @@ function upgradeCost() { return 100 + S.atkLv * 30; }
 function drillCost() { return DRILL_COST + (S.drillUses || 0) * DRILL_COST_INC; } // 🔩 쓸수록 +50
 const pressStage = u => Math.min(PRESS_STAGES.length, u.stage || 1);
 const pressCost = u => PRESS_STAGES[pressStage(u) - 1].cost;   // 0이면 최종 단계
+function startTrick() { // 🎩 트릭 — 아군 둘의 사거리를 맞바꾼다
+  const sl = S.selected;
+  if (!sl || !sl.unit || sl.unit.special !== 'trio') return;
+  if (S.trickMode) { S.trickMode = null; addText(WORLD_W / 2, 460, '트릭 취소', '#9fb0d8', 13); updateInfoPanel(); return; }
+  if (S.gold < TRICK_COST) { addText(WORLD_W / 2, 460, `골드가 부족해요! (${TRICK_COST}G 필요)`, '#ff8a8a', 14); sfx('error'); return; }
+  S.trickMode = { paid: false, first: null };
+  addText(WORLD_W / 2, 250, '🎩 트릭! 사거리를 바꿀 아군 <b>둘</b>을 차례로 누르세요', '#ce93d8', 14);
+  updateInfoPanel();
+}
+function trickPick(slot) { // 트릭 진행 — true를 돌려주면 일반 탭 처리를 건너뛴다
+  if (!S.trickMode || !slot || !slot.unit) return false;
+  const t = S.trickMode;
+  if (!t.first) {
+    t.first = slot;
+    addText(slot.cx, slot.cy - 26, '🎩 첫 번째!', '#ce93d8', 13);
+    return true;
+  }
+  if (t.first === slot) { addText(slot.cx, slot.cy - 26, '다른 아군을 누르세요', '#ff8a8a', 12); return true; }
+  if (S.gold < TRICK_COST) { S.trickMode = null; return true; }
+  S.gold -= TRICK_COST;
+  const a = t.first.unit, b2 = slot.unit;
+  const tmp = a.range; a.range = b2.range; b2.range = tmp;   // 사거리 교체!
+  addText(WORLD_W / 2, 250, `🎩 트릭 성공! ${a.name} ↔ ${b2.name} 사거리 교체`, '#ce93d8', 15);
+  addText(t.first.cx, t.first.cy - 26, `사거리 ${a.range}`, '#81d4fa', 12);
+  addText(slot.cx, slot.cy - 26, `사거리 ${b2.range}`, '#81d4fa', 12);
+  S.trickMode = null;
+  sfx('jackpot');
+  updateInfoPanel(); updateButtons();
+  return true;
+}
 function wearGlove() { // 🌙 초승달 글러브 장착 → 불멸 태인
   const sl = S.selected;
   if (!sl || !sl.unit || sl.unit.type !== 'wonkkataein') return;
@@ -3932,6 +4020,15 @@ function updateInfoPanel() {
   if (S.selected && S.selected.unit) {
     const u = S.selected.unit;
     hyp.style.display = (u.hyper && (S.hyperCharges > 0 || ORGOL || CH.on)) ? 'block' : 'none';
+    const trk = $('trickBtn');  // 🎩 트릭 버튼
+    if (trk) {
+      const on = u.special === 'trio';
+      trk.style.display = on ? 'block' : 'none';
+      if (on) {
+        trk.textContent = S.trickMode ? '🎩 아군 둘을 누르세요 (취소)' : `🎩 트릭 ${TRICK_COST}G`;
+        trk.classList.toggle('on', !!S.trickMode);
+      }
+    }
     const glv = $('gloveBtn');  // 🌙 초승달 글러브 장착 버튼
     if (glv) {
       const on = u.type === 'wonkkataein' && taeinOn() && hasGlove();
@@ -3966,6 +4063,8 @@ function updateInfoPanel() {
       + (u.special === 'stun' ? ` · ⚡${BOLT_STUN}초 묶기(범위) · 풀린 뒤 ${STUN_IMMUNE}초는 다시 안 묶임` : '')
       + (u.special === 'steal' ? ` · 👊 막타를 뺏길 때마다 +${GAIL_STEAL_GOLD}G` : '')
       + (u.special === 'press' ? ` · 🗜️ ${pressStage(u)}/5단계 — ${PRESS_STAGES[pressStage(u) - 1].desc}` : '')
+      + (u.special === 'charge' ? ` · 🥤 같은 적에게 계속 꽂으면 무제한 차징 (지금 ${(u.charge || 0) + 1}단 · ${swallowDmg(u.charge || 0)})` : '')
+      + (u.special === 'trio' ? ` · 🎩 트릭(${TRICK_COST}G 사거리 교체) · 🎪 ${ENCORE_EVERY}초마다 앙코르(적 ${Math.round(ENCORE_PCT*100)}% 집합·속박)` : '')
       + (u.special === 'okyeom' ? ` · 🌙 ${Math.round(FIREBALL_CHANCE * 100)}% 옥염구(${TAEIN_OKYEOM}배!) · 기록 제외` : '')
       + (u.special === 'ammo' ? ' · 🎯 ❄️폭설탄(묶기) → ☠️맹독탄(점점 심해짐) → 💥폭파탄(유도·광역)' : '')
       + (u.special === 'crunch' ? ` · 🐗 낮은 확률 깨물어부수기(적 체력 ${Math.round(CRUNCH_CUT*100)}% 하락 ${CRUNCH_TIME}초)` : '')
@@ -3998,6 +4097,7 @@ function updateInfoPanel() {
     if (drl) drl.style.display = 'none';
     if ($('pressBtn')) $('pressBtn').style.display = 'none';
     if ($('gloveBtn')) $('gloveBtn').style.display = 'none';
+    if ($('trickBtn')) $('trickBtn').style.display = 'none';
   }
 }
 
@@ -4033,6 +4133,7 @@ canvas.addEventListener('pointerdown', ev => {
   for (const sl of slots) {
     if (Math.abs(wx - sl.cx) <= CELL_W/2 && Math.abs(wy - sl.cy) <= CELL_H/2) { hit = sl; break; }
   }
+  if (S.trickMode && hit && hit.unit && trickPick(hit)) return;   // 🎩 트릭 진행 중
   if (hit && hit.unit && hit.unit.ghost) { // 수프 분신은 만질 수 없어요
     addText(hit.cx, hit.cy - 24, '분신이에요!', '#81d4fa', 12);
     return;
@@ -4080,6 +4181,7 @@ $('hyperBtn').addEventListener('click', () => castHyper()); // 이벤트 객체�
 $('drillBtn').addEventListener('click', () => castDrill()); // 🔩 노에시 변신
 $('pressBtn').addEventListener('click', () => pressUp());   // 🗜️ 프레스 강화
 $('gloveBtn').addEventListener('click', () => wearGlove()); // 🌙 초승달 글러브
+$('trickBtn').addEventListener('click', () => startTrick());  // 🎩 트릭
 $('giveupBtn').addEventListener('click', giveUp); // 🏳️ 항복 (망한 판 탈출용)
 $('speedBtn').addEventListener('click', () => {
   S.speed = S.speed === 1 ? 2 : 1;
@@ -6947,6 +7049,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   openEvents, renderEvents, eventsOn, eventRegistry,
   openCave, renderCave, caveList, inCave, releaseFromCave, getCaveOut: () => CAVE_OUT,
   taeinOn, hasGlove, giveGlove, wearGlove, startTaeinEvent, TAEIN_DMG, TAEIN_OKYEOM,
+  startTrick, trickPick, swallowDmg, SWALLOW_TABLE, TRICK_COST, ENCORE_EVERY,
   setTaein: (f, u2) => { TAEIN_FROM = f; TAEIN_UNTIL = u2; updateEventUI(); },
   COLLECT, ELITE_NEED, ELIXIR_TIERS, elixirTier, isElite, eliteCount, openKingdom, renderKingdom, BRICKS,
   getCollect: () => COLLECT, setCollect: c => { COLLECT = { ...COLLECT, ...c }; saveCollect(); },
