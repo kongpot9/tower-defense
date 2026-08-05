@@ -223,12 +223,23 @@
   #deckBtns { display:flex; gap:8px; }
   #deckBtns button { padding:8px 16px; font-size:13px; border-radius:9px; }
   /* 🏀 베인오락실 */
-  #arcade, #gacha, #keyring, #cards, #raid, #gift, #shop, #kingdom, #events {
+  #arcade, #gacha, #keyring, #cards, #raid, #gift, #shop, #kingdom, #events, #cave {
     position:fixed; inset:0; background:#161b2c; z-index:23;
     padding:16px 14px calc(14px + env(safe-area-inset-bottom));
     display:flex; flex-direction:column; align-items:center; gap:8px; overflow-y:auto;
   }
-  #arcade.hidden, #gacha.hidden, #keyring.hidden, #cards.hidden, #raid.hidden, #gift.hidden, #shop.hidden, #kingdom.hidden, #events.hidden { display:none; }
+  #arcade.hidden, #gacha.hidden, #keyring.hidden, #cards.hidden, #raid.hidden, #gift.hidden, #shop.hidden, #kingdom.hidden, #events.hidden, #cave.hidden { display:none; }
+  /* 🕳️ 굴 */
+  #cave h2 { color:#ffd54f; font-size:22px; }
+  #caveList { width:100%; max-width:430px; display:flex; flex-direction:column; gap:7px; }
+  .cvrow { display:flex; align-items:center; gap:10px; background:#1a1410; border:1px solid #4a3a28;
+           border-radius:11px; padding:10px 11px; }
+  .cvrow img { width:44px; height:44px; object-fit:contain; opacity:.55; flex:none; }
+  .cvrow .tx { flex:1; min-width:0; font-size:13px; line-height:1.5; }
+  .cvrow .tx small { color:#9fb0d8; font-size:11px; }
+  .cvrow .wait { color:#ffb74d; font-weight:800; font-size:11px; }
+  .cvrow button { padding:9px 13px; font-size:12px; font-weight:800; border-radius:9px; background:#4a7c59; }
+  .cvnone { text-align:center; color:#9fb0d8; font-size:13px; line-height:1.9; padding:22px 10px; }
   /* 🎉 이벤트 모음 */
   #events h2 { color:#ffd54f; font-size:22px; }
   #eventList { width:100%; max-width:430px; display:flex; flex-direction:column; gap:7px; }
@@ -292,8 +303,8 @@
   #giftResult { width:100%; max-width:420px; font-size:14px; line-height:1.8; text-align:center; color:#ffe082; }
   #giftResult .got { background:#2c2416; border:1px solid #6a4a2c; border-radius:10px; padding:11px; margin-top:6px; }
   #giftLog { width:100%; max-width:420px; font-size:11px; color:#7d8ab0; text-align:center; line-height:1.7; }
-  #arcade h2, #gacha h2, #keyring h2, #cards h2, #raid h2, #gift h2, #shop h2, #kingdom h2, #events h2 { color:#ffd54f; font-size:22px; }
-  #arcade .sub, #gacha .sub, #keyring .sub, #cards .sub, #raid .sub, #gift .sub, #shop .sub, #kingdom .sub, #events .sub { color:#9fb0d8; font-size:12px; text-align:center; line-height:1.6; }
+  #arcade h2, #gacha h2, #keyring h2, #cards h2, #raid h2, #gift h2, #shop h2, #kingdom h2, #events h2, #cave h2 { color:#ffd54f; font-size:22px; }
+  #arcade .sub, #gacha .sub, #keyring .sub, #cards .sub, #raid .sub, #gift .sub, #shop .sub, #kingdom .sub, #events .sub, #cave .sub { color:#9fb0d8; font-size:12px; text-align:center; line-height:1.6; }
   /* 🍡 최강의 떡장수 레이드 */
   #raid > div { width:100%; max-width:420px; }
   #raidBtns { display:flex; flex-direction:column; gap:8px; }
@@ -313,7 +324,7 @@
   #rhInfo { display:flex; justify-content:space-between; font-size:11px; font-weight:800; margin-top:3px; text-shadow:0 1px 2px #000; }
   #rhTime { color:#ffd54f; } #rhTeam { color:#90caf9; } #rhBuff { color:#ff8a65; }
   #arcTime { color:#ff8a65; font-weight:800; }
-  #arcade .close, #gacha .close, #keyring .close, #cards .close, #gift .close, #shop .close, #kingdom .close, #events .close { background:#3a4566; padding:9px 26px; font-size:14px; border-radius:10px; }
+  #arcade .close, #gacha .close, #keyring .close, #cards .close, #gift .close, #shop .close, #kingdom .close, #events .close, #cave .close { background:#3a4566; padding:9px 26px; font-size:14px; border-radius:10px; }
   #arcade > .grid, #gacha > div, #keyring > div { width:100%; max-width:420px; }
   #court, #arcResult, #gachaResult, #krList, #krPageList, #cardList { width:100%; max-width:420px; }
   .atabs { display:flex; gap:5px; width:100%; max-width:420px; }
@@ -668,6 +679,7 @@
     <button class="devbtn" id="devRaid">🍡레이드</button>
     <button class="devbtn" id="devChaos">🎪개판</button>
     <button class="devbtn" id="devLayout">🧰버튼</button>
+    <button class="devbtn" id="devCave">🕳️굴</button>
     <button class="devbtn" id="devLab">🎨만들기</button>
   </div>
   <div id="noodleBar" class="hidden"></div>
@@ -919,6 +931,14 @@
 
 <div id="shareToast" class="hidden"></div>
 
+<div id="cave" class="hidden">
+  <h2>🕳️ 굴</h2>
+  <p class="sub">능력은 다 만들어졌지만 <b>아직 안 나온 캐릭터</b>들이 기다리는 곳<br>
+    밸런스를 확인한 뒤에 내보냅니다 — 로얄 셰프가 11일을 기다린 그 굴이에요</p>
+  <div id="caveList"></div>
+  <button class="close" id="caveClose">나가기</button>
+</div>
+
 <div id="events" class="hidden">
   <h2>🎉 이벤트</h2>
   <p class="sub">지금 열려 있는 이벤트가 여기 모입니다<br>새 이벤트가 생겨도 첫 화면은 깔끔하게 유지돼요</p>
@@ -1100,13 +1120,13 @@ const UNITS = [
   { type:'tez',        grade:4, emoji:'👊', name:'테즈',       dmg:211, cd:1.20, range:100, splash:45, atk:'tez', special:'chain', img:'character/legend5.png' },
   { type:'tenhan',     grade:4, emoji:'🪴', name:'텐한',       dmg:400, cd:0.50, range:150, splash:55, atk:'orb', special:'pot', img:'character/legend7.png' },
   { type:'golem',      grade:4, emoji:'🗿', name:'mr.골렘',    dmg:2000, cd:10, range:130, splash:70, atk:'bonk', img:'character/legend8.png' },
-  { type:'sniper',     grade:4, emoji:'🎯', name:'콜드나이퍼', dmg:210, cd:1.00, range:640, atk:'snipe', special:'ammo', img:'character/legend9.png' },
+  { type:'sniper',     grade:4, emoji:'🎯', name:'콜드나이퍼', dmg:210, cd:1.00, range:640, atk:'snipe', special:'ammo', cave:'2026-08-05', img:'character/legend9.png' },
   { type:'penguin',    grade:4, emoji:'🐧', name:'펭귄악사',   dmg:0,   cd:1,    range:130, support:'aura', img:'character/legend4.png' }, // 오라 서포터
   // 신화 추가
   { type:'blader',     grade:3, emoji:'🗡️', name:'블레이더',   dmg:159, cd:0.56, range:290, atk:'dagger', special:'daggers', img:'character/myth6.png' },
   { type:'chad',       grade:3, emoji:'🤖', name:'채드',       dmg:300, cd:0.80, range:180, atk:'missile', special:'battery', img:'character/myth8.png' },
   { type:'toogom',     grade:3, emoji:'🐗', name:'혼의 투곰',   dmg:190, cd:0.30, range:115, atk:'bite', special:'crunch', img:'character/myth9.png' },
-  { type:'gail',       grade:3, emoji:'👊', name:'가일',       dmg:450, cd:1.50, range:120, atk:'punch', special:'steal', img:'character/myth10.png' },
+  { type:'gail',       grade:3, emoji:'👊', name:'가일',       dmg:450, cd:1.50, range:120, atk:'punch', special:'steal', cave:'2026-08-05', img:'character/myth10.png' },
   { type:'bane',       grade:3, emoji:'😈', name:'베인',       dmg:330, cd:2.20, range:110, splash:45, atk:'bane', img:'character/myth5.png' },
   // 영웅 추가
   { type:'indie',      grade:2, emoji:'🤠', name:'인디',       dmg:44,  cd:0.70, range:140, atk:'paper', special:'cheer', img:'character/hero4.png' },
@@ -1328,6 +1348,23 @@ const CHAOS_EVERY = 6;              // 몇 초마다 난장판이 한 번씩 터
 let CHAOS_UNTIL = 0;
 let CH = { on: false, t: 0, fastT: 0, stunT: 0, akT: 0, log: [] };
 const chaosOn = () => Date.now() < CHAOS_UNTIL;
+
+// 🕳️ 굴 — 능력은 완성됐지만 아직 안 나온 캐릭터 (로얄 셰프가 11일을 기다린 그 굴)
+// 밸런스를 확인하기 전엔 소환·덱에 나오지 않는다. 🌑 DARK KAKAO에서는 테스트 가능.
+let CAVE_OUT = {};                       // 서버에서 내려온 '출시됨' 목록 {type: 출시시각}
+const inCave = u => !!(u && u.cave && !CAVE_OUT[u.type]);
+const caveList = () => UNITS.filter(u => inCave(u));
+async function loadCave() {
+  if (!RANK_DB) return;
+  try { CAVE_OUT = (await (await fetch(`${RANK_DB}/party/_cave.json`)).json()) || {}; } catch (e) {}
+}
+async function releaseFromCave(type) {   // 🌑 DARK KAKAO 전용 — 굴에서 꺼낸다
+  CAVE_OUT[type] = Date.now();
+  try { await fetch(`${RANK_DB}/party/_cave/${type}.json`, { method: 'PUT', body: String(Date.now()) }); } catch (e) {}
+  const u = UNITS.find(x => x.type === type);
+  addText(WORLD_W / 2, 300, `${u ? u.emoji + ' ' + u.name : type} 굴에서 나왔다!`, '#ffd54f', 20);
+}
+const caveDays = u => u.cave ? Math.max(0, (Date.now() - Date.parse(u.cave)) / 864e5) : 0;
 
 // 🔩 노에시 → 드릴러 노에시 변신 (기획: 구예준)
 const DRILL_COST = 250, DRILL_COST_INC = 50;   // 변신 비용 250골드, 쓸수록 +50
@@ -1870,7 +1907,7 @@ function rollGrade() {
   for (let i = 0; i < p.length; i++) { acc += p[i]; if (r < acc) return i; }
   return 0;
 }
-function unitsOfGrade(g) { return UNITS.filter(u => u.grade === g && !u.disabled); }
+function unitsOfGrade(g) { return UNITS.filter(u => u.grade === g && !u.disabled && (DEV || !inCave(u))); }
 // 🃏 전투덱: 저장된 덱이 있으면 그 안에서만 소환/합성 (덱이 없으면 지금까지처럼 전체 풀)
 function poolOfGrade(g) {
   const all = unitsOfGrade(g);
@@ -3980,6 +4017,7 @@ function showOverlay(mode) {
     loadArcEvent(); // 🏀 베인오락실 진행 여부 확인
     loadRaidEvent(); // 🍡 최강의 떡장수 레이드 진행 여부 확인
     loadChaosEvent(); // 🎪 개판오분전 진행 여부 확인
+    loadCave();       // 🕳️ 굴에서 나온 캐릭터 확인
     loadDragonEvent(); // 🐲 숨겨진 합성 진행 여부
     updateEventUI();
     maybeShowNotice(); // 📢 새 공지가 있으면 자동으로 띄운다
@@ -4201,6 +4239,24 @@ function shareToast(r) {
   clearTimeout(el.__t);
   el.__t = setTimeout(() => el.classList.add('hidden'), 2600);
 }
+// ---------- 🕳️ 굴 화면 ----------
+function renderCave() {
+  const list = caveList();
+  $('caveList').innerHTML = list.length
+    ? list.map(u => {
+        const d = caveDays(u);
+        const wait = d < 1 ? `${Math.floor(d * 24)}시간 ${Math.floor(d * 1440) % 60}분째 대기 중`
+                           : `${Math.floor(d)}일 ${Math.floor(d * 24) % 24}시간째 대기 중`;
+        return `<div class="cvrow">
+          <img src="${u.img}" alt="">
+          <span class="tx"><b>${u.emoji} ${u.name}</b> <small>[${GRADES[u.grade].name}]</small><br>
+            <small>공격 ${u.dmg} · 속도 ${u.cd}s${u.range ? ' · 사거리 ' + u.range : ''}</small><br>
+            <span class="wait">⏳ ${wait}</span></span>
+          ${DEV ? `<button data-out="${u.type}">🚪 출시</button>` : ''}</div>`;
+      }).join('')
+    : `<div class="cvnone">굴이 비었어요<br><small>새 캐릭터는 여기서 밸런스 확인을 거친 뒤 나옵니다</small></div>`;
+}
+function openCave() { $('cave').classList.remove('hidden'); renderCave(); }
 // ---------- 🎉 이벤트 모음 ----------
 // 새 이벤트를 만들면 여기에 한 줄만 추가하면 된다 (첫 화면은 그대로 유지)
 function eventRegistry() {
@@ -5838,6 +5894,13 @@ $('giftClose').addEventListener('click', () => $('gift').classList.add('hidden')
 $('giftInput').addEventListener('keydown', ev => { if (ev.key === 'Enter') openGiftCode(); });
 $('devChaos').addEventListener('click', () => { if (DEV) startChaosEvent(); });
 $('devLayout').addEventListener('click', () => { if (DEV) location.href = 'layout-lab.html'; });
+$('devCave').addEventListener('click', () => { if (DEV) openCave(); });
+$('caveClose').addEventListener('click', () => $('cave').classList.add('hidden'));
+$('caveList').addEventListener('click', async ev => {
+  const b2 = ev.target.closest('button[data-out]'); if (!b2 || !DEV) return;
+  await releaseFromCave(b2.dataset.out);
+  renderCave();
+});
 $('raidClose').addEventListener('click', closeRaid);
 $('raidSolo').addEventListener('click', () => { RD.code = null; RD.mates = {}; closeRaid(); startRaid(); });
 $('raidMake').addEventListener('click', async () => {
@@ -6632,6 +6695,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   castDrill, drillCost, POT_EVERY, DRILL_TIME, DRILL_DMG,
   doShare, shareText, GAME_URL, applyLayout,
   openEvents, renderEvents, eventsOn, eventRegistry,
+  openCave, renderCave, caveList, inCave, releaseFromCave, getCaveOut: () => CAVE_OUT,
   COLLECT, ELITE_NEED, ELIXIR_TIERS, elixirTier, isElite, eliteCount, openKingdom, renderKingdom, BRICKS,
   getCollect: () => COLLECT, setCollect: c => { COLLECT = { ...COLLECT, ...c }; saveCollect(); },
   BOX_SMALL, BOX_BIG, CHAR_SKINS, charSkinOf, gainBoxes, toggleCharSkin,
