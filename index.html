@@ -6640,6 +6640,7 @@ function myStatus() { // 지금 뭐 하는 중인지
 function pingPresence() {
   const nick = getNick();
   if (!nick || !RANK_DB) return;
+  if (document.hidden && !S.running) return;   // 탭만 켜둔 사람은 신호를 보내지 않는다
   fetch(`${PRESENCE_PATH()}/${encodeURIComponent(nick)}.json`, {
     method: 'PUT', body: JSON.stringify({ t: Date.now(), st: myStatus(), lv: LV }),
   }).catch(() => {});
@@ -6943,7 +6944,8 @@ function openChat() {
   pingPresence();
   if (!RANK_DB) { $('onlineList').innerHTML = '<span class="onchip">서버가 연결되지 않았어요</span>'; return; }
   // 접속 목록: 실시간 연결 대신 폴링 (Firebase 무료 플랜은 동시 연결 100개가 한계)
-  const pollPres = () => fetch(`${PRESENCE_PATH()}.json`).then(r => r.json()).then(renderPresence).catch(() => {});
+  const pollPres = () => { if (document.hidden) return;   // 안 보고 있으면 안 받는다
+    fetch(`${PRESENCE_PATH()}.json`).then(r => r.json()).then(renderPresence).catch(() => {}); };
   pollPres();
   presencePoll = setInterval(pollPres, 15000);
   // 메시지: 실시간 구독하되, 연결이 막히면(동시접속 초과 등) 자동으로 폴링 전환
@@ -6974,17 +6976,29 @@ function openChat() {
     };
   } catch (e) { startChatPoll(); }
 }
+// 폴링은 msgs.json(약 27KB)을 통째로 내려받는다. 사람이 몰리면 이게 무료 한도(10GB/월)를 갉아먹는다.
+// → ① 탭이 숨겨져 있으면 아예 쉬고 ② 새 글이 없으면 간격을 5초에서 20초까지 늘린다.
+const CHAT_POLL_MIN = 5000, CHAT_POLL_MAX = 20000;
+let chatPollGap = CHAT_POLL_MIN;
 function startChatPoll() { // 실시간 연결이 안 될 때의 대비책 (사람이 몰려도 채팅이 살아 있게)
   if (chatPoll) return;
+  chatPollGap = CHAT_POLL_MIN;
   const tick = async () => {
+    if (document.hidden) return;                 // 안 보고 있으면 안 받는다
     try {
       const d = await (await fetch(`${CHAT_PATH()}/msgs.json`)).json() || {};
       const list = Object.entries(d).sort((a, b) => (a[1].t || 0) - (b[1].t || 0)).slice(-40);
-      for (const [id, m] of list) chatHandle(id, m);
+      let fresh = 0;
+      for (const [id, m] of list) { if (!chatSeen[id]) fresh++; chatHandle(id, m); }
+      const gap = fresh ? CHAT_POLL_MIN : Math.min(CHAT_POLL_MAX, chatPollGap + 5000);
+      if (gap !== chatPollGap) {                 // 조용하면 천천히, 글이 오면 다시 빠르게
+        chatPollGap = gap;
+        clearInterval(chatPoll); chatPoll = setInterval(tick, chatPollGap);
+      }
     } catch (e) {}
   };
   tick();
-  chatPoll = setInterval(tick, 5000);
+  chatPoll = setInterval(tick, chatPollGap);
 }
 function closeChat() {
   $('chat').classList.add('hidden');
