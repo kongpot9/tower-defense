@@ -240,6 +240,13 @@
   .cvrow .wait { color:#ffb74d; font-weight:800; font-size:11px; }
   .cvrow button { padding:9px 13px; font-size:12px; font-weight:800; border-radius:9px; background:#4a7c59; }
   .cvnone { text-align:center; color:#9fb0d8; font-size:13px; line-height:1.9; padding:22px 10px; }
+  #diaryBtn { background:#5d4037; box-shadow:0 4px 0 #3e2723; padding:10px 18px; font-size:13px; border-radius:10px; }
+  #diary { width:100%; max-width:430px; background:#1a1410; border:1px solid #4a3a28; border-radius:11px;
+           padding:13px; font-size:12.5px; line-height:1.85; color:#e8dcc8; max-height:300px; overflow-y:auto; }
+  #diary.hidden { display:none; }
+  #diary b { color:#ffcc80; }
+  #diary .day { color:#ffb74d; font-weight:800; display:block; margin-top:9px; }
+  #diary .day:first-child { margin-top:0; }
   /* 🎉 이벤트 모음 */
   #events h2 { color:#ffd54f; font-size:22px; }
   #eventList { width:100%; max-width:430px; display:flex; flex-direction:column; gap:7px; }
@@ -936,6 +943,8 @@
   <p class="sub">능력은 다 만들어졌지만 <b>아직 안 나온 캐릭터</b>들이 기다리는 곳<br>
     밸런스를 확인한 뒤에 내보냅니다 — 로얄 셰프가 11일을 기다린 그 굴이에요</p>
   <div id="caveList"></div>
+  <button id="diaryBtn">📔 로얄 셰프의 굴 일기</button>
+  <div id="diary" class="hidden"></div>
   <button class="close" id="caveClose">나가기</button>
 </div>
 
@@ -4256,7 +4265,22 @@ function renderCave() {
       }).join('')
     : `<div class="cvnone">굴이 비었어요<br><small>새 캐릭터는 여기서 밸런스 확인을 거친 뒤 나옵니다</small></div>`;
 }
-function openCave() { $('cave').classList.remove('hidden'); renderCave(); }
+const CHEF_DIARY = [
+  ['7월 21일 (밤 10시 56분)', '요리는 다 됐다. 팬케이크, 컵케이크, 수프, 우동, 사탕. 다섯 가지 전부.<br>그런데 나갈 수가 없다. 나한테 <b>얼굴이 없단다.</b><br>살다 살다 얼굴이 없어서 출근을 못 하는 건 처음이다.'],
+  ['7월 24일', '오늘도 굴 밖으로 누가 지나갔다. 발소리가 컸다.<br>나중에 들으니 신화 등급이랬다. 나는 전설인데.'],
+  ['7월 30일', '두 명이 한꺼번에 지나갔다. 🗡️블레이더랑 🛟윌리.<br>윌리는 들어온 지 하루 만에 스타가 됐다더라. 풀장 하나 깔았을 뿐인데.<br>나는 요리를 다섯 개나 완성해뒀는데.'],
+  ['8월 1일', '👊테즈가 왔다. 전설이다. <b>나보다 늦게 왔는데 나보다 먼저 나갔다.</b><br>오늘은 수프를 다시 데웠다. 세 번째다.'],
+  ['8월 2일 (오후 3시 39분)', '나왔다.<br><b>11일 16시간 43분</b>만이다.<br>아무도 안 물어봤지만 세고 있었다.'],
+  ['8월 3일', '나태지옥덱이라는 데 들어갔다.<br>펭귄악사, 농부, 윌리, 그리고 나.<br>적이 한 발짝도 못 간다고 한다. 요리 다섯 개가 드디어 쓸모가 생겼다.'],
+  ['8월 5일', '굴에 새로 두 명이 들어왔다. 🎯콜드나이퍼랑 👊가일.<br>사거리 640이라던가, 막타를 뺏기면 돈이 나온다던가.<br>능력은 다 됐는데 못 나온단다. <b>어디서 많이 듣던 이야기다.</b><br><br>가서 수프를 데워줬다.<br>오래 걸릴 테니까.'],
+];
+function openCave() {
+  $('cave').classList.remove('hidden');
+  $('diary').classList.add('hidden');
+  $('diaryBtn').textContent = '📔 로얄 셰프의 굴 일기';
+  $('diary').innerHTML = CHEF_DIARY.map(([d, t]) => `<span class="day">📅 ${d}</span>${t}`).join('');
+  renderCave();
+}
 // ---------- 🎉 이벤트 모음 ----------
 // 새 이벤트를 만들면 여기에 한 줄만 추가하면 된다 (첫 화면은 그대로 유지)
 function eventRegistry() {
@@ -5896,6 +5920,10 @@ $('devChaos').addEventListener('click', () => { if (DEV) startChaosEvent(); });
 $('devLayout').addEventListener('click', () => { if (DEV) location.href = 'layout-lab.html'; });
 $('devCave').addEventListener('click', () => { if (DEV) openCave(); });
 $('caveClose').addEventListener('click', () => $('cave').classList.add('hidden'));
+$('diaryBtn').addEventListener('click', () => {
+  const d = $('diary'); d.classList.toggle('hidden');
+  $('diaryBtn').textContent = d.classList.contains('hidden') ? '📔 로얄 셰프의 굴 일기' : '📔 일기 접기';
+});
 $('caveList').addEventListener('click', async ev => {
   const b2 = ev.target.closest('button[data-out]'); if (!b2 || !DEV) return;
   await releaseFromCave(b2.dataset.out);
