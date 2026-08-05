@@ -468,14 +468,21 @@
   #chatBadge.hidden { display:none; }
   .msg.other { background:#22304f; color:#e8ecf8; align-self:flex-start; border-bottom-left-radius:3px; }
   .msg.mine { background:#2d6cdf; color:#fff; align-self:flex-end; border-bottom-right-radius:3px; }
-  #chatRow { width:100%; max-width:420px; display:flex; gap:8px; }
+  /* 버튼이 셋이라 좁은 폰에서 넘치기 쉽다 — 입력창이 줄어들 수 있게 min-width:0 필수 */
+  #chatRow { width:100%; max-width:420px; display:flex; gap:6px; flex-wrap:nowrap; align-items:stretch; }
   #chatInput {
-    flex:1; padding:11px 13px; border-radius:12px; border:2px solid #3a4566;
+    flex:1 1 0; min-width:0; padding:11px 12px; border-radius:12px; border:2px solid #3a4566;
     background:#12182a; color:#fff; font-size:14px; font-family:inherit; font-weight:600;
   }
-  #chatRow button { padding:0 18px; background:#2d6cdf; box-shadow:0 3px 0 #1a3f85; border-radius:12px; font-size:14px; }
-  #chatVidBtn { padding:0 13px !important; background:#4a3a6e !important; box-shadow:0 3px 0 #2c2145 !important; font-size:19px !important; }
-  #chatImgBtn { padding:0 13px !important; background:#2e6e4a !important; box-shadow:0 3px 0 #1c452e !important; font-size:19px !important; }
+  #chatRow button { flex:0 0 auto; padding:0 14px; background:#2d6cdf; box-shadow:0 3px 0 #1a3f85;
+                    border-radius:12px; font-size:14px; white-space:nowrap; }
+  #chatVidBtn { padding:0 10px !important; background:#4a3a6e !important; box-shadow:0 3px 0 #2c2145 !important; font-size:18px !important; }
+  #chatImgBtn { padding:0 10px !important; background:#2e6e4a !important; box-shadow:0 3px 0 #1c452e !important; font-size:18px !important; }
+  @media (max-width:360px) {   /* 아주 좁은 폰 */
+    #chatRow { gap:4px; }
+    #chatRow button { padding:0 10px; font-size:13px; }
+    #chatVidBtn, #chatImgBtn { padding:0 7px !important; font-size:16px !important; }
+  }
   #chatImgFile { display:none; }
   .imgbox { margin-top:5px; }
   .imgbox img { max-width:210px; max-height:230px; border-radius:9px; display:block;
