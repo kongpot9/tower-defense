@@ -264,6 +264,15 @@
   #evPool .dcard.none .dp { background:#39435e; color:#7f8db3; }
   #evBtns { display:flex; gap:8px; }
   #evBtns button { padding:8px 16px; font-size:13px; border-radius:9px; }
+  .hasnew { position:relative; overflow:visible !important; }
+  .hasnew:after {
+    content:'NEW'; position:absolute; top:-6px; right:-6px;
+    background:#e53935; color:#fff; font-size:9px; font-weight:900;
+    border-radius:8px; padding:1px 5px; letter-spacing:.3px;
+    box-shadow:0 0 0 2px #12182a; pointer-events:none;
+    animation:newblink 1.4s ease-in-out infinite;
+  }
+  @keyframes newblink { 0%,100%{opacity:1} 50%{opacity:.45} }
   /* 🏀 베인오락실 */
   #arcade, #gacha, #keyring, #cards, #raid, #gift, #shop, #kingdom, #events, #cave {
     position:fixed; inset:0; background:#161b2c; z-index:23;
@@ -5582,84 +5591,57 @@ loadGob();
 
 // ---------- 📢 공지 ----------
 // 새 공지를 낼 땐 NOTICE_ID를 바꾸면 모든 유저에게 한 번 더 뜬다.
-const NOTICE_ID = 'balance-2026-08-02';
+const NOTICE_ID = 'effort-2026-08-05';
 const NOTICE_HTML = `
-  <h3>⚖️ 밸런스 대법원 완화 패치</h3>
-  요즘 기록이 잘 안 나온다는 제보를 받아 크게 완화했어요.
+  <h3>💪 노력치 — 캐릭터를 내 마음대로 키우세요!</h3>
+  <b>[🃏 전투덱] → [💪 노력치]</b> 에서 캐릭터를 골라보세요.<br>
+  캐릭터마다 <b>10점</b>씩 있고, <b>1점에 +4%</b>씩 올라갑니다.
   <ul>
-    <li><b>아군 전체 공격력 +40%</b></li>
-    <li><b>적 전체 체력 -30%</b></li>
-    <li>합쳐서 <span class="hl">적을 2배 빨리 처치</span>합니다</li>
+    <li>⚔️ 공격력 · ⚡ 공격속도 · 🎯 사거리 중에 <span class="hl">원하는 곳에만</span> 넣으세요</li>
+    <li><b>올린 것만 오르고 나머지는 그대로예요.</b> 속도를 올려도 공격력은 안 변합니다</li>
+    <li><span class="hl">몰빵보다 나눠 넣는 게 살짝 이득!</span> 😈베인에 공격력 10점은 딜 1.40배,
+        공5+속5로 나누면 <b>1.46배</b>가 됩니다 (배율이 곱해져요)</li>
+    <li>🎯사거리는 딜은 안 오르지만, <b>트랙에서 먼 칸에 놓아도 닿게</b> 해줘요 —
+        ⚔️검사 · 🦕쥬라 · 🪓나무꾼 · 👊테즈 처럼 사거리 짧은 애들에게 최고입니다</li>
+    <li><b>언제든 공짜로 되돌릴 수 있어요.</b> 마음껏 실험해보세요!</li>
   </ul>
-  <h3>😇 그래도 보스가 안 죽는다면</h3>
-  <b>천사 도베르만</b>을 덱에 꼭 넣으세요. 보스에게 <b>최대체력 3%</b>씩 넣는
-  유일한 캐릭터라, 후반 보스는 <span class="hl">얘가 없으면 못 잡습니다.</span>
-  <h3>⚠️ 요즘 캐릭터가 잘 안 나오죠?</h3>
-  캐릭터가 <b>24종</b>으로 늘면서 원하는 캐릭터가 나올 확률이 떨어졌어요.
+  <h3>🆕 신규 캐릭터 5종이 굴에서 나왔어요!</h3>
   <ul>
-    <li>전설 1종당 <b>0.375% → 0.25%</b> (평균 267회 → 400회)</li>
-    <li>드래곤 3마리 모으기: 807회 → <b>1,188회</b></li>
+    <li><b>🎯 콜드나이퍼</b> (전설) — <span class="hl">사거리 640, 맵 전체가 사정권!</span>
+        ❄️폭설탄(묶기) · ☠️맹독탄 · 💥폭파탄을 돌아가며 씁니다</li>
+    <li><b>🥤 스왈로제트</b> (신화) — 빨대를 꽂고 <b>계속 차징</b>합니다.
+        10 → 20 → 40 → 60 → 90 → 170 → 300 — 그 뒤로도 <span class="hl">끝없이</span>!
+        대신 대상이 죽거나 바뀌면 처음부터예요. <b>보스전 최강</b>입니다</li>
+    <li><b>🗜️ 프레스</b> (신화) — 처음엔 공격력 90짜리 깡통이지만,
+        골드를 넣어 <span class="hl">5단계까지 강화</span>하면 공격이 <b>3분할</b>됩니다</li>
+    <li><b>👊 가일</b> (신화) — 때리면 세고, <span class="hl">막타를 뺏겨도 골드를 벌어옵니다</span></li>
+    <li><b>🎩 호스퍼</b> (영웅) — 트리오 매지션의 마술!
+        <b>트릭</b>으로 두 캐릭터의 <span class="hl">사거리를 맞바꾸고</span>, <b>앙코르</b>로 적을 묶습니다</li>
   </ul>
-  <h3>🃏 원하면 쓰는 기능: 전투덱</h3>
-  <b>덱은 선택이에요. 안 써도 게임은 그대로 됩니다.</b><br>
-  원하는 캐릭터를 더 자주 만나고 싶을 때만 <b>[🃏 전투덱]</b> → <b>[⭐ 내 덱 추천]</b>을 눌러보세요.
+  <h3>⚖️ 밸런스 대청소</h3>
+  <b>🔻 너프</b>
   <ul>
-    <li>내가 많이 쓴 캐릭터로 <span class="hl">자동으로 8마리</span>를 골라줍니다</li>
-    <li>전설 칸에 1마리만 두면 <span class="hl">0.25% → 1.5% (6배!)</span></li>
-    <li>저장 전까지는 아무것도 안 바뀌니 편하게 눌러보세요</li>
-    <li>덱이 싫으면 <b>[🎲 덱 없이 전체로]</b>를 누르면 안내가 사라져요</li>
+    <li>🏹 궁수 「피의 석궁」 — 방어력 하락 <b>3배 → 2배</b> (적은 더 촘촘히 모입니다)</li>
+    <li>🐗 혼의 투곰 — 공속 <b>0.3 → 0.6초</b>. 깨물어부수기 발동 기회도 절반이 됩니다</li>
   </ul>
-  <h3>👨‍🍳 로얄 셰프 출시! (11일 만에)</h3>
-  능력만 만들어놓고 그림이 없어서 못 나오던 <b>전설 서포터</b>가 드디어 나왔어요.
+  <b>🔺 버프</b>
   <ul>
-    <li><b>30초마다 요리 5종 중 하나를 랜덤</b>으로 던집니다</li>
-    <li>🥞공격력+30% · 🧁공속+50% · <span class="hl">🍲빈 칸에 아군 분신 소환</span> · 🍜골드2배 · 🍬전체 폭발</li>
-    <li>공격력은 0 — 대신 30초마다 판을 뒤집어요</li>
+    <li>🗿 mr.골렘 — 2000/10초 → <span class="hl">1500/4초 (딜 1.9배!)</span></li>
+    <li>⚔️ 검사 「영혼 사냥시간」 — 936/1.2초 → <span class="hl">450/0.2초 + 초범위!</span>
+        일반 등급 검사가 전설을 전부 제칩니다</li>
+    <li>😇 천사 도베르만 즉사 <b>2% → 6%</b> · 🧙 도사 공격력 <b>+18%</b></li>
+    <li>🦕 쥬라사우르스 공속 <b>0.45 → 0.15초</b> · 🐧 펭귄악사 연주 반경 <b>+23%</b></li>
+    <li>⚾ 원까태인 벤치클리어링 <b>45 → 50초</b></li>
   </ul>
-  <h3>🏀 베인오락실에 게임 2개 추가!</h3>
+  <h3>🧒 노에시 드릴이 불을 뿜습니다</h3>
   <ul>
-    <li><b>🎯 스키볼</b> — 세게 굴릴수록 고득점! 단 <span class="hl">끝을 넘기면 0점</span> (최대 300원)</li>
-    <li><b>🎳 볼링</b> — 조준 + 힘 맞추기. <span class="hl">스트라이크는 400원!</span></li>
+    <li>드릴 피해 280 → <b>320</b> · 이동속도 <b>+32%</b></li>
+    <li><span class="hl">🔥 신규! 드릴이 지나간 길목에 불이 남아요</span> — 밟으면 <b>200 피해가 3번</b></li>
   </ul>
-  <h3>🎟️ 코인은 이제 게임으로 벌어요</h3>
-  시간이 지나면 차던 방식에서 <b>미션 보상</b>으로 바뀌었어요.
-  <ul>
-    <li>게임 1판 끝내기 🎟️2 · 웨이브 15 🎟️2 · 웨이브 30 🎟️3</li>
-    <li>합성 15번 🎟️2 · 신화 이상 3마리 🎟️2</li>
-    <li><span class="hl">하루 최대 11개</span> — 타워디펜스를 하면 오락실도 같이 돌아갑니다!</li>
-  </ul>
-  <h3>🆕 신규 캐릭터 3종도 확인하세요</h3>
-  <ul>
-    <li><b>👊 테즈</b> (전설) — 사거리는 짧지만 <span class="hl">40% 확률로 연쇄펀치 3연타</span>! 트랙 바로 옆에 놓으세요</li>
-    <li><b>🗡️ 블레이더</b> (신화) — <span class="hl">전맵 사거리</span>에서 단검 2~3자루를 던집니다. 아무 칸에나 놔도 돼요</li>
-    <li><b>🛟 윌리</b> (영웅) — <b>3·5의 배수 웨이브마다 풀장 설치!</b> 적이 느려지고 아군 공격력 +10%</li>
-  </ul>
-  <h3>🃏 전투덱이 생겼어요!</h3>
-  첫 화면 <b>[🎣 낚시터] 옆 [🃏 전투덱]</b> 버튼을 눌러보세요.<br>
-  소환 상자에 넣을 <b>캐릭터 8마리</b>를 직접 고르는 기능이에요.
-  <ul>
-    <li>지금은 21마리 전부가 상자에 들어 있어서 원하는 캐릭터가 잘 안 나와요</li>
-    <li>덱을 짜면 <b>내가 고른 8마리만</b> 나옵니다</li>
-    <li><span class="hl">같은 등급에 적게 넣을수록 그 캐릭터가 잘 나와요!</span></li>
-  </ul>
-  <h3>📈 얼마나 잘 나오냐면</h3>
-  전설 칸에 <b>드래곤 하나만</b> 넣었을 때:
-  <ul>
-    <li>🐉 레드드래곤 0.4% → <span class="hl">1.5% (4배!)</span></li>
-    <li>😈 베인 0.9% → <span class="hl">3.7%</span></li>
-    <li>🤡 데스삐에로 2% → <span class="hl">10.5%</span></li>
-  </ul>
-  카드마다 <b>확률이 실시간으로 표시</b>되니까 직접 보면서 짜면 돼요.<br>
-  고민되면 <b>[🎲 랜덤 편성]</b>을 누르고 바로 시작해도 됩니다!
-  <h3>⚠️ 알아두세요</h3>
-  <ul>
-    <li>등급마다 <b>최소 1마리씩</b> 넣어야 저장돼요 (필수 5 + 자유 3)</li>
-    <li><b>저장하기 전까지는 지금이랑 똑같아요.</b> 천천히 해보셔도 됩니다</li>
-    <li>덱은 언제든 다시 바꿀 수 있어요</li>
-  </ul>
-  <h3>🏀 베인오락실도 진행 중!</h3>
-  농구 슛으로 원을 벌어 인형뽑기 → <b>키링</b>을 모으세요.
-  키링은 그 판 내내 아군을 강하게 만들어 줍니다. <b>8월 8일까지!</b>
+  <h3>🐧 꼭 알아두세요 — 펭귄악사는 겹쳐도 소용없어요</h3>
+  펭귄악사를 <b>여러 마리 놓아도 효과는 1마리와 똑같습니다.</b><br>
+  실측으로 1마리 · 2마리 · 3마리의 딜이 <span class="hl">전부 같았어요.</span>
+  2마리째부터는 슬롯 낭비이니, 그 자리에 딜러를 넣어주세요!
 `;
 function showNotice() {
   $('noticeBody').innerHTML = NOTICE_HTML;
@@ -5899,7 +5881,21 @@ function evAdd(type, k, d) {
   saveEV();
   renderEffort();
 }
-$('deckEvBtn').addEventListener('click', openEffort);
+// 🆕 새 기능 표시 — 공지를 안 읽고 넘긴 사람도 눈에 띄게. 한 번 열어보면 사라진다.
+const NEW_TAG = 'effort-2026-08-05';
+const NEW_BTNS = ['ovBtnD', 'deckEvBtn'];   // 홈 [🃏 전투덱] → 덱 화면 [💪 노력치]
+function renderNewDots() {
+  let seen = '';
+  try { seen = localStorage.getItem('ltd_new') || ''; } catch (e) {}
+  const on = seen !== NEW_TAG;
+  for (const id of NEW_BTNS) { const el = $(id); if (el) el.classList.toggle('hasnew', on); }
+}
+function markNewSeen() {
+  try { localStorage.setItem('ltd_new', NEW_TAG); } catch (e) {}
+  renderNewDots();
+}
+renderNewDots();
+$('deckEvBtn').addEventListener('click', () => { markNewSeen(); openEffort(); });
 $('evClose').addEventListener('click', () => $('effort').classList.add('hidden'));
 $('evResetBtn').addEventListener('click', () => {
   if (!evSel) return;
