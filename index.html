@@ -223,12 +223,25 @@
   #deckBtns { display:flex; gap:8px; }
   #deckBtns button { padding:8px 16px; font-size:13px; border-radius:9px; }
   /* 🏀 베인오락실 */
-  #arcade, #gacha, #keyring, #cards, #raid, #gift, #shop, #kingdom {
+  #arcade, #gacha, #keyring, #cards, #raid, #gift, #shop, #kingdom, #events {
     position:fixed; inset:0; background:#161b2c; z-index:23;
     padding:16px 14px calc(14px + env(safe-area-inset-bottom));
     display:flex; flex-direction:column; align-items:center; gap:8px; overflow-y:auto;
   }
-  #arcade.hidden, #gacha.hidden, #keyring.hidden, #cards.hidden, #raid.hidden, #gift.hidden, #shop.hidden, #kingdom.hidden { display:none; }
+  #arcade.hidden, #gacha.hidden, #keyring.hidden, #cards.hidden, #raid.hidden, #gift.hidden, #shop.hidden, #kingdom.hidden, #events.hidden { display:none; }
+  /* 🎉 이벤트 모음 */
+  #events h2 { color:#ffd54f; font-size:22px; }
+  #eventList { width:100%; max-width:430px; display:flex; flex-direction:column; gap:7px; }
+  .evrow { display:flex; align-items:center; gap:10px; background:#1e2438; border-radius:11px; padding:11px 12px; }
+  .evrow .no { font-size:17px; font-weight:900; color:#ffd54f; width:26px; flex:none; text-align:center; }
+  .evrow .ic { font-size:26px; flex:none; }
+  .evrow .tx { flex:1; min-width:0; font-size:13px; line-height:1.5; }
+  .evrow .tx small { color:#9fb0d8; font-size:11px; }
+  .evrow .tx .lft { color:#ff8a65; font-weight:800; }
+  .evrow button { padding:9px 14px; font-size:13px; font-weight:800; border-radius:9px; background:#3f6ea8; }
+  .evnone { text-align:center; color:#9fb0d8; font-size:13px; line-height:1.8; padding:22px 10px; }
+  #ovBtnE .badge { display:inline-block; background:#e53935; color:#fff; border-radius:10px;
+                   padding:0 6px; font-size:11px; margin-left:5px; vertical-align:middle; }
   /* 🏰 나의 왕국 */
   #kingdom h2 { color:#ffd54f; font-size:22px; }
   #kingGrid { display:grid; grid-template-columns:repeat(10,1fr); gap:2px; width:100%; max-width:430px;
@@ -279,8 +292,8 @@
   #giftResult { width:100%; max-width:420px; font-size:14px; line-height:1.8; text-align:center; color:#ffe082; }
   #giftResult .got { background:#2c2416; border:1px solid #6a4a2c; border-radius:10px; padding:11px; margin-top:6px; }
   #giftLog { width:100%; max-width:420px; font-size:11px; color:#7d8ab0; text-align:center; line-height:1.7; }
-  #arcade h2, #gacha h2, #keyring h2, #cards h2, #raid h2, #gift h2, #shop h2, #kingdom h2 { color:#ffd54f; font-size:22px; }
-  #arcade .sub, #gacha .sub, #keyring .sub, #cards .sub, #raid .sub, #gift .sub, #shop .sub, #kingdom .sub { color:#9fb0d8; font-size:12px; text-align:center; line-height:1.6; }
+  #arcade h2, #gacha h2, #keyring h2, #cards h2, #raid h2, #gift h2, #shop h2, #kingdom h2, #events h2 { color:#ffd54f; font-size:22px; }
+  #arcade .sub, #gacha .sub, #keyring .sub, #cards .sub, #raid .sub, #gift .sub, #shop .sub, #kingdom .sub, #events .sub { color:#9fb0d8; font-size:12px; text-align:center; line-height:1.6; }
   /* 🍡 최강의 떡장수 레이드 */
   #raid > div { width:100%; max-width:420px; }
   #raidBtns { display:flex; flex-direction:column; gap:8px; }
@@ -300,7 +313,7 @@
   #rhInfo { display:flex; justify-content:space-between; font-size:11px; font-weight:800; margin-top:3px; text-shadow:0 1px 2px #000; }
   #rhTime { color:#ffd54f; } #rhTeam { color:#90caf9; } #rhBuff { color:#ff8a65; }
   #arcTime { color:#ff8a65; font-weight:800; }
-  #arcade .close, #gacha .close, #keyring .close, #cards .close, #gift .close, #shop .close, #kingdom .close { background:#3a4566; padding:9px 26px; font-size:14px; border-radius:10px; }
+  #arcade .close, #gacha .close, #keyring .close, #cards .close, #gift .close, #shop .close, #kingdom .close, #events .close { background:#3a4566; padding:9px 26px; font-size:14px; border-radius:10px; }
   #arcade > .grid, #gacha > div, #keyring > div { width:100%; max-width:420px; }
   #court, #arcResult, #gachaResult, #krList, #krPageList, #cardList { width:100%; max-width:420px; }
   .atabs { display:flex; gap:5px; width:100%; max-width:420px; }
@@ -444,7 +457,7 @@
   #chat .close { background:#3a4566; padding:9px 26px; font-size:14px; border-radius:10px; }
   /* 홈 보조 버튼: 작게 — 개수가 많아 세로가 넘치지 않도록 */
   #overlay #ovBtn2, #overlay #ovBtn3, #overlay #ovBtnK, #overlay #ovBtn4,
-  #overlay #ovBtnA, #overlay #ovBtn5, #overlay #ovBtnB, #overlay #ovBtn6,
+  #overlay #ovBtnE, #overlay #ovBtnA, #overlay #ovBtn5, #overlay #ovBtnB, #overlay #ovBtn6,
   #overlay #ovBtnD, #overlay #ovBtn7, #overlay #ovBtnN, #overlay #ovBtnY, #overlay #ovBtnR, #overlay #ovBtnC, #overlay #ovBtnG, #overlay #ovBtnS, #overlay #ovBtnW, #overlay #ovBtnShare {
     margin-top:0; padding:10px 28px; font-size:15px; min-width:200px;
     background:#3a4566; box-shadow:0 4px 0 #232a42;
@@ -452,6 +465,7 @@
   #overlay #ovBtnD { background:#3f6ea8; box-shadow:0 4px 0 #26456a; } /* 🃏 전투덱 */
   #overlay #ovBtnY { background:#c0392b; box-shadow:0 4px 0 #7c241a; }  /* 📺 유튜브 */
   #overlay #ovBtnA { background:#a8632f; box-shadow:0 4px 0 #6b3d1c; } /* 🏀 베인오락실 */
+  #overlay #ovBtnE { background:linear-gradient(90deg,#e64a19,#fbc02d); box-shadow:0 4px 0 #8d3a10; } /* 🎉 이벤트 */
   #overlay #ovBtnR { background:#c94f7c; box-shadow:0 4px 0 #8d3554; } /* 🍡 최강의 떡장수 */
   #overlay #ovBtnC { background:linear-gradient(90deg,#e64a19,#fbc02d,#8e24aa); box-shadow:0 4px 0 #4a148c; } /* 🎪 개판오분전 */
   #overlay #ovBtnG { background:#c98a2f; box-shadow:0 4px 0 #8d5c1c; } /* 📦 이상한 소포 */
@@ -474,7 +488,7 @@
     #overlay p { font-size:13px; line-height:1.5; }
     #overlay button { padding:12px 40px; font-size:17px; }
     #overlay #ovBtn2, #overlay #ovBtn3, #overlay #ovBtnK, #overlay #ovBtn4,
-    #overlay #ovBtnA, #overlay #ovBtn5, #overlay #ovBtnB, #overlay #ovBtn6,
+    #overlay #ovBtnE, #overlay #ovBtnA, #overlay #ovBtn5, #overlay #ovBtnB, #overlay #ovBtn6,
     #overlay #ovBtnD, #overlay #ovBtn7, #overlay #ovBtnN, #overlay #ovBtnY, #overlay #ovBtnR, #overlay #ovBtnC, #overlay #ovBtnG, #overlay #ovBtnS, #overlay #ovBtnW, #overlay #ovBtnShare { padding:8px 22px; font-size:14px; }
   }
   .lvcard {
@@ -687,6 +701,7 @@
   <button id="ovBtnG" class="hidden">📦 이상한 소포</button>
   <button id="ovBtnY" class="hidden">📺 공식 채널</button>
   <button id="ovBtn4" class="hidden">👥 더블큐</button>
+  <button id="ovBtnE" class="hidden">🎉 이벤트</button>
   <button id="ovBtnA" class="hidden">🏀 베인오락실</button>
   <button id="ovBtnR" class="hidden">🍡 최강의 떡장수</button>
   <button id="ovBtn5" class="hidden">💬 채팅방<span id="chatBadge" class="hidden">0</span></button>
@@ -903,6 +918,13 @@
 </div>
 
 <div id="shareToast" class="hidden"></div>
+
+<div id="events" class="hidden">
+  <h2>🎉 이벤트</h2>
+  <p class="sub">지금 열려 있는 이벤트가 여기 모입니다<br>새 이벤트가 생겨도 첫 화면은 깔끔하게 유지돼요</p>
+  <div id="eventList"></div>
+  <button class="close" id="eventsClose">나가기</button>
+</div>
 
 <div id="kingdom" class="hidden">
   <h2>🏰 나의 왕국</h2>
@@ -3917,6 +3939,7 @@ function showOverlay(mode) {
   $('ovBtnN').classList.add('hidden');
   $('ovBtnY').classList.add('hidden');
   $('ovBtnA').classList.add('hidden');
+  $('ovBtnE').classList.add('hidden');
   $('ovBtnB').classList.add('hidden');
   $('ovBtnR').classList.add('hidden');
   $('ovBtnC').classList.add('hidden');
@@ -4169,6 +4192,44 @@ function shareToast(r) {
   clearTimeout(el.__t);
   el.__t = setTimeout(() => el.classList.add('hidden'), 2600);
 }
+// ---------- 🎉 이벤트 모음 ----------
+// 새 이벤트를 만들면 여기에 한 줄만 추가하면 된다 (첫 화면은 그대로 유지)
+function eventRegistry() {
+  return [
+    { icon:'🏀', name:'베인오락실', desc:'농구·스키볼·볼링으로 코인을 벌어 인형뽑기',
+      on:arcOn(), until:ARC_UNTIL, go:() => { $('events').classList.add('hidden'); $('ovBtnA').click(); } },
+    { icon:'🎁', name:'인형뽑기', desc:'오락실에서 딴 원으로 키링 뽑기',
+      on:arcOn() && ARC.unlocked, until:ARC_UNTIL, go:() => { $('events').classList.add('hidden'); $('ovBtnB').click(); } },
+    { icon:'🏰', name:'고블린의 저택', desc:'30웨이브마다 열쇠 → 상자 → 🍜누들',
+      on:gobOn(), until:GOB_UNTIL, go:() => { $('events').classList.add('hidden'); $('gobBtn').click(); } },
+    { icon:'🍡', name:'최강의 떡장수', desc:'체력 1,050만 보스를 1~5명이 10분 안에 토벌',
+      on:raidOn(), until:RAID_UNTIL, go:() => { $('events').classList.add('hidden'); openRaid(); } },
+    { icon:'🎪', name:'개판오분전', desc:'공격력 10억 · 적 속도 10억 · 하이퍼차지 무한',
+      on:chaosOn(), until:CHAOS_UNTIL, go:() => { $('events').classList.add('hidden'); startChaos(); } },
+    { icon:'🐲', name:'불멸 드래곤', desc:'드래곤끼리 5번 합성하면…',
+      on:dragonOn(), until:DRAGON_UNTIL, info:true },
+    { icon:'🌋', name:'라바 이벤트', desc:'게임이 끝나면 도달 웨이브만큼 무료 낚시',
+      on:lavaOn(), until:LAVA_UNTIL, info:true },
+  ];
+}
+const evLeft = until => {
+  const ms = until - Date.now();
+  if (ms <= 0) return '';
+  const d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60;
+  return d ? `${d}일 ${h}시간 남음` : h ? `${h}시간 ${m}분 남음` : `${m}분 남음`;
+};
+const eventsOn = () => eventRegistry().filter(e => e.on);
+function renderEvents() {
+  const list = eventsOn();
+  $('eventList').innerHTML = list.length
+    ? list.map((e, i) => `<div class="evrow">
+        <span class="no">${i + 1}</span><span class="ic">${e.icon}</span>
+        <span class="tx"><b>${e.name}</b><br><small>${e.desc}</small><br>
+          <span class="lft">⏳ ${evLeft(e.until)}</span></span>
+        ${e.info ? '' : `<button data-ev="${i}">입장</button>`}</div>`).join('')
+    : `<div class="evnone">지금은 열린 이벤트가 없어요<br>새 이벤트가 열리면 여기에 1번, 2번… 으로 쌓입니다</div>`;
+}
+function openEvents() { $('events').classList.remove('hidden'); renderEvents(); }
 // ---------- 🏰 나의 왕국 ----------
 let kingPick = null;   // 지금 손에 든 것 {kind:'doll'|'brick', id}
 function kingUsed(kind, id) {   // 이미 놓아둔 개수
@@ -5695,6 +5756,16 @@ $('ovBtnR').addEventListener('click', openRaid);
 $('ovBtnC').addEventListener('click', startChaos);
 $('ovBtnS').addEventListener('click', openShop);
 $('ovBtnW').addEventListener('click', openKingdom);
+$('ovBtnE').addEventListener('click', openEvents);
+(() => { const _u = updateEventUI; window.__evbadge = () => {
+  const n = eventsOn().length; const b3 = $('ovBtnE');
+  if (b3) b3.innerHTML = '🎉 이벤트' + (n ? `<span class="badge">${n}</span>` : '');
+}; })();
+$('eventsClose').addEventListener('click', () => $('events').classList.add('hidden'));
+$('eventList').addEventListener('click', ev => {
+  const b2 = ev.target.closest('button[data-ev]'); if (!b2) return;
+  const e = eventsOn()[+b2.dataset.ev]; if (e && e.go) e.go();
+});
 $('ovBtnShare').addEventListener('click', async () => shareToast(await doShare(ovMode === 'gameover' ? 'record' : 'game')));
 $('kingClose').addEventListener('click', () => $('kingdom').classList.add('hidden'));
 $('kingPick').addEventListener('click', ev => {
@@ -5841,11 +5912,14 @@ function updateEventUI() {
   // 🏀 베인오락실: 이벤트 중에만 노출 / 🎁인형뽑기는 첫 골 이후 / 🔑키링은 1개라도 있으면
   const atHome = !$('overlay').classList.contains('hidden') && $('ovBtn4') && !$('ovBtn4').classList.contains('hidden');
   const show = (id, on) => { const b = $(id); if (b) b.classList.toggle('hidden', !(atHome && on)); };
-  show('ovBtnA', arcOn());
-  show('ovBtnB', arcOn() && ARC.unlocked);
+  // 개별 이벤트 버튼은 첫 화면에 두지 않는다 — 🎉이벤트 칸에 모인다
+  show('ovBtnA', false);
+  show('ovBtnB', false);
+  show('ovBtnE', eventsOn().length > 0);
+  if (window.__evbadge) window.__evbadge();
   show('ovBtnK', arcOn() || arcOwned() > 0);
-  show('ovBtnR', raidOn());   // 🍡 최강의 떡장수 — 이벤트 기간에만
-  show('ovBtnC', chaosOn());  // 🎪 개판오분전 — 이벤트 기간에만
+  show('ovBtnR', false);
+  show('ovBtnC', false);
   show('ovBtnG', !isNewbie()); // 📦 이상한 소포 — 완전 신규에겐 숨김
   show('ovBtnS', !isNewbie()); // 🛒 상점
   show('ovBtnW', !isNewbie()); // 🏰 나의 왕국
@@ -6548,6 +6622,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   getArc: () => ({ ...ARC, until: ARC_UNTIL }),
   castDrill, drillCost, POT_EVERY, DRILL_TIME, DRILL_DMG,
   doShare, shareText, GAME_URL, applyLayout,
+  openEvents, renderEvents, eventsOn, eventRegistry,
   COLLECT, ELITE_NEED, ELIXIR_TIERS, elixirTier, isElite, eliteCount, openKingdom, renderKingdom, BRICKS,
   getCollect: () => COLLECT, setCollect: c => { COLLECT = { ...COLLECT, ...c }; saveCollect(); },
   BOX_SMALL, BOX_BIG, CHAR_SKINS, charSkinOf, gainBoxes, toggleCharSkin,
