@@ -230,6 +230,40 @@
   #deckDelBtn { padding:9px 12px; font-size:14px; border-radius:9px; }
   #deckBtns { display:flex; gap:8px; }
   #deckBtns button { padding:8px 16px; font-size:13px; border-radius:9px; }
+  /* 💪 노력치 */
+  #effort {
+    position:fixed; inset:0; background:#12182a; z-index:24;
+    padding:14px 12px calc(12px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+  }
+  #effort.hidden { display:none; }
+  #effort h2 { color:#ffd54f; font-size:21px; }
+  #effort .sub { color:#8fa6cc; font-size:11px; text-align:center; line-height:1.5; }
+  #evPanel { width:100%; max-width:430px; background:#0d1220; border-radius:12px;
+             padding:10px; display:flex; flex-direction:column; gap:7px; }
+  #evPanel.empty { color:#5a708f; font-size:12px; text-align:center; padding:16px 10px; }
+  #evHead { display:flex; align-items:center; gap:9px; }
+  #evHead img { width:44px; height:44px; object-fit:contain; }
+  #evHead .nm { font-size:15px; font-weight:900; }
+  #evHead .lf { margin-left:auto; font-size:12px; font-weight:800; color:#ffd54f; }
+  .evrow { display:flex; align-items:center; gap:6px; }
+  .evrow .lb { font-size:12px; font-weight:800; color:#dbe6ff; width:76px; flex:0 0 auto; }
+  .evrow .bar { flex:1 1 0; min-width:0; height:13px; border-radius:7px;
+                background:#1c2338; overflow:hidden; display:flex; gap:1px; padding:1px; }
+  .evrow .bar i { flex:1; border-radius:5px; background:#2a3358; }
+  .evrow .bar i.on { background:linear-gradient(180deg,#ffd54f,#ffb300); }
+  .evrow .vl { font-size:11px; font-weight:800; color:#8ecbff; width:62px; flex:0 0 auto; text-align:right; }
+  .evrow button { width:30px; height:28px; flex:0 0 auto; padding:0; font-size:15px;
+                  border-radius:8px; background:#2a3358; color:#fff; }
+  .evrow button:disabled { opacity:.3; }
+  #evStat { font-size:11px; font-weight:800; color:#81e88c; text-align:center; min-height:15px; }
+  #evPool { width:100%; max-width:430px; overflow-y:auto; flex:1; }
+  #evPool .gsec { font-size:11px; font-weight:800; margin:6px 0 3px; }
+  #evPool .grow { display:grid; grid-template-columns:repeat(5, 1fr); gap:5px; }
+  #evPool .dcard .dp { background:#81e88c; }
+  #evPool .dcard.none .dp { background:#39435e; color:#7f8db3; }
+  #evBtns { display:flex; gap:8px; }
+  #evBtns button { padding:8px 16px; font-size:13px; border-radius:9px; }
   /* 🏀 베인오락실 */
   #arcade, #gacha, #keyring, #cards, #raid, #gift, #shop, #kingdom, #events, #cave {
     position:fixed; inset:0; background:#161b2c; z-index:23;
@@ -855,10 +889,25 @@
     <button id="deckRandBtn">🎲 랜덤 편성</button>
     <button id="deckClearBtn" class="gray">↺ 비우기</button>
     <button id="deckNoneBtn" class="gray">🎲 덱 없이 전체로</button>
+    <button id="deckEvBtn" style="background:#a8791f;box-shadow:0 3px 0 #6d4d10">💪 노력치</button>
     <button id="deckSaveBtn">💾 저장</button>
   </div>
   <div id="deckPool"></div>
   <button class="close" id="deckClose">나가기</button>
+</div>
+
+<div id="effort" class="hidden">
+  <h2>💪 노력치</h2>
+  <p class="sub">캐릭터마다 <b>10점</b>씩 있어요 · 1점에 <b>+4%</b><br>
+    올린 능력치만 세지고 나머지는 그대로예요 — 언제든 되돌릴 수 있어요</p>
+  <div id="evPanel" class="empty">아래에서 키우고 싶은 캐릭터를 골라주세요</div>
+  <div id="evStat"></div>
+  <div id="evBtns">
+    <button id="evResetBtn" class="gray">↺ 이 캐릭터 초기화</button>
+    <button id="evResetAllBtn" class="gray">🧹 전부 초기화</button>
+  </div>
+  <div id="evPool"></div>
+  <button class="close" id="evClose">나가기</button>
 </div>
 
 <div id="arcade" class="hidden">
@@ -1171,6 +1220,29 @@ const UNITS = [
   { type:'railey',     grade:2, emoji:'⚡', name:'레일리',     dmg:110, cd:1.50, range:200, splash:60, atk:'bolt', special:'stun', img:'character/hero7.png' },
   { type:'willy',      grade:2, emoji:'🛟', name:'윌리',       dmg:24,  cd:0.80, range:140, atk:'tube',  special:'pool',   hyper:'워터밤 쇼!', img:'character/hero6.png' },
 ];
+// ---------- 💪 노력치 (기획: 구예준) ----------
+// 캐릭터마다 10점씩. 올린 능력치만 오르고 나머지는 그대로 — 소환·합성으로 나올 때 반영된다.
+const EV_MAX = 10, EV_STEP = 0.04;   // 1점 = +4% (10점 몰아주면 +40%)
+const EV_KEYS = [
+  { k:'atk', icon:'⚔️', name:'공격력' },
+  { k:'spd', icon:'⚡', name:'공격속도' },
+  { k:'rng', icon:'🎯', name:'사거리' },
+];
+let EV = {};
+try { EV = JSON.parse(localStorage.getItem('ltd_ev') || '{}') || {}; } catch (e) { EV = {}; }
+function saveEV() { try { localStorage.setItem('ltd_ev', JSON.stringify(EV)); } catch (e) {} }
+const evOf   = t => EV[t] || {};
+const evUsed = t => { const e = evOf(t); return (e.atk || 0) + (e.spd || 0) + (e.rng || 0); };
+const evFree = t => EV_MAX - evUsed(t);   // 남은 노력치 점수 (evLeft 는 이벤트 카운트다운이 이미 쓰는 이름)
+const evMul  = (t, k) => 1 + EV_STEP * (evOf(t)[k] || 0);
+// 능력치에 노력치를 입힌다. 사거리 0(서포터)은 건드리지 않는다.
+function applyEV(u) {
+  if (!u || !u.type || !evUsed(u.type)) return u;
+  u.dmg = Math.round(u.dmg * evMul(u.type, 'atk'));
+  u.cd = +(u.cd / evMul(u.type, 'spd')).toFixed(3);
+  if (u.range) u.range = Math.round(u.range * evMul(u.type, 'rng'));
+  return u;
+}
 // 🐧 펭귄악사의 연주 오라 (기획: 구예준) — 범위 내 아군 강화 + 적 약화
 const AURA_DMG = 1.25, AURA_SPD = 1.2, AURA_ENEMY_SLOW = 0.65;
 // 🤠 인디의 응원 (특정 확률로 주변 아군 공속 버프)
@@ -2125,7 +2197,7 @@ function throwFood(s) { // 로얄 셰프의 요리 타임! 5가지 중 랜덤
     const real = slots.filter(x => x.unit && !x.unit.ghost && !x.unit.support);
     let n = 0;
     if (real.length) {
-      for (const sl of slots) if (!sl.unit) { sl.unit = { ...rand(real).unit, ghost: true, cdT: 0, popT: 0.4, moveT: 0 }; n++; }
+      for (const sl of slots) if (!sl.unit) { sl.unit = applyEV({ ...rand(real).unit, ghost: true, cdT: 0, popT: 0.4, moveT: 0 }); n++; }
     }
     if (n > 0) S.buffT.ghost = FOOD_BUFF_TIME;
     else addText(WORLD_W / 2, 275, '빈 칸이 없어 수프가 식었다...', '#9fb0d8', 13);
@@ -2171,7 +2243,7 @@ function summon() {
   const g = rollGrade();
   const proto = rand(poolOfGrade(g));
   const slot = rand(empty);
-  slot.unit = { ...proto, cdT: 0, popT: 0.35, moveT: 0 };
+  slot.unit = applyEV({ ...proto, cdT: 0, popT: 0.35, moveT: 0 });
   hoyongEnter(slot);
   trackPick(proto.type);
   addText(slot.cx, slot.cy - 26, GRADES[g].name + '!', GRADES[g].color, g >= 2 ? 18 : 13);
@@ -2188,9 +2260,9 @@ function tryMerge(target) {
       if (S.dragonTry >= IMMORTAL_TRIES) {
         const proto = UNITS.find(u => u.type === 'reddragon');
         a.unit = null;
-        b.unit = { ...proto, type: 'immortaldragon', name: '불멸 드래곤', emoji: '🐲',
+        b.unit = applyEV({ ...proto, type: 'immortaldragon', name: '불멸 드래곤', emoji: '🐲',
                    dmg: IMMORTAL_DMG, cd: 1.0, range: 360, splash: 90,
-                   cdT: 0, popT: 0.9, moveT: 0, immortal: true };
+                   cdT: 0, popT: 0.9, moveT: 0, immortal: true });
         S.immortal = true;                 // 이 판은 랭킹에 올라가지 않는다
         S.dragonTry = 0;
         S.effects.push({ kind: 'boom', x: b.cx, y: b.cy, r: 120, t: 1, fire: true });
@@ -2210,7 +2282,7 @@ function tryMerge(target) {
   const ng = Math.min(GRADES.length - 1, g + (jackpot ? 2 : 1));
   const proto = rand(poolOfGrade(ng));
   a.unit = null;
-  b.unit = { ...proto, cdT: 0, popT: 0.5, moveT: 0 };
+  b.unit = applyEV({ ...proto, cdT: 0, popT: 0.5, moveT: 0 });
   hoyongEnter(b);
   S.merges = (S.merges || 0) + 1; // 🎟️ 미션 집계
   trackPick(proto.type);
@@ -4022,10 +4094,10 @@ function wearGlove() { // 🌙 초승달 글러브 장착 → 불멸 태인
   if (!sl || !sl.unit || sl.unit.type !== 'wonkkataein') return;
   if (!taeinOn() || !hasGlove()) return;
   const proto = UNITS.find(u => u.type === 'wonkkataein');
-  sl.unit = { ...proto, type: 'immortaltaein', name: '불멸 태인', emoji: '🌙',
+  sl.unit = applyEV({ ...proto, type: 'immortaltaein', name: '불멸 태인', emoji: '🌙',
               dmg: TAEIN_DMG, cd: TAEIN_CD, range: TAEIN_RANGE, splash: TAEIN_SPLASH,
               atk: 'ball', special: 'okyeom', img: 'character/taein.png',
-              cdT: 0, popT: 0.9, moveT: 0, immortal: true };
+              cdT: 0, popT: 0.9, moveT: 0, immortal: true });
   S.immortal = true;                       // 이 판은 랭킹에 올라가지 않는다
   S.effects.push({ kind: 'boom', x: sl.cx, y: sl.cy, r: 110, t: 1, fire: true });
   addText(WORLD_W / 2, 240, '🌙 불멸필살옥염!', '#ffd54f', 26);
@@ -4043,7 +4115,8 @@ function pressUp() { // 🗜️ 프레스 강화
   S.gold -= cost;
   u.stage = st + 1;
   const ns = PRESS_STAGES[u.stage - 1];
-  u.dmg = ns.dmg; u.cd = ns.cd; u.cdT = 0;
+  u.dmg = Math.round(ns.dmg * evMul(u.type, 'atk'));   // 단계표가 덮어쓰니 노력치를 다시 입힌다
+  u.cd = +(ns.cd / evMul(u.type, 'spd')).toFixed(3); u.cdT = 0;
   addText(sl.cx, sl.cy - 26, `🗜️ ${u.stage}단계!`, '#ffd54f', 17);
   addText(WORLD_W / 2, 250, `🗜️ 프레스 ${u.stage}단계 — ${ns.desc}`, '#ffd54f', 15);
   sfx('jackpot');
@@ -4952,7 +5025,7 @@ const CHAOS_ACTS = [
   { name: '🎲 전원 소환!', msg: '빈 칸이 전부 채워진다!', run: () => {
       for (const sl of slots) if (!sl.unit) {
         const g2 = rollGrade();
-        sl.unit = { ...rand(poolOfGrade(g2)), cdT: 0, popT: 0.35, moveT: 0 };
+        sl.unit = applyEV({ ...rand(poolOfGrade(g2)), cdT: 0, popT: 0.35, moveT: 0 });
       }
     } },
   { name: '🏹 궁수의 AK47!', msg: '적 전체 전멸 + 5초간 나오는 족족 사살!', run: () => {
@@ -4971,7 +5044,7 @@ const CHAOS_ACTS = [
   { name: '🐗 투곰 분신술!', msg: '빈 칸이 전부 투곰이 된다!', run: () => {
       const proto = UNITS.find(u => u.type === 'toogom');
       let n = 0;
-      for (const sl of slots) if (!sl.unit) { sl.unit = { ...proto, ghost: true, cdT: 0, popT: 0.4, moveT: 0 }; n++; }
+      for (const sl of slots) if (!sl.unit) { sl.unit = applyEV({ ...proto, ghost: true, cdT: 0, popT: 0.4, moveT: 0 }); n++; }
       if (n > 0) S.buffT.ghost = 15;
     } },
   { name: '🦕 쥬라 초가속!', msg: '공속 0.0000000000000001초!!', run: () => { CH.fastT = 20; } },
@@ -5120,7 +5193,7 @@ $('devPickBtn').addEventListener('click', () => {
       const empty = slots.filter(s => !s.unit);
       if (!empty.length) { addText(WORLD_W / 2, 300, '빈 칸이 없어요!', '#ff8a8a', 14); return; }
       const slot = rand(empty);
-      slot.unit = { ...u, cdT: 0, popT: 0.4, moveT: 0 };
+      slot.unit = applyEV({ ...u, cdT: 0, popT: 0.4, moveT: 0 });
       addText(slot.cx, slot.cy - 26, `${u.name}!`, GRADES[u.grade].color, 13);
       sfx('summon');
     });
@@ -5751,6 +5824,92 @@ function renderDeck() {
     renderDeck();
   });
 }
+// ---------- 💪 노력치 화면 (기획: 구예준) ----------
+let evSel = null;                       // 지금 고른 캐릭터 type
+function openEffort() {
+  $('effort').classList.remove('hidden');
+  renderEffort();
+}
+function evStatLine(u) {                // 노력치를 반영하면 능력치가 어떻게 되는지
+  const d = Math.round(u.dmg * evMul(u.type, 'atk'));
+  const c = +(u.cd / evMul(u.type, 'spd')).toFixed(2);
+  const r = u.range ? Math.round(u.range * evMul(u.type, 'rng')) : 0;
+  const arrow = (a, b, unit) => a === b ? `${a}${unit}` : `${a} → <b style="color:#ffd54f">${b}${unit}</b>`;
+  return `공격 ${arrow(u.dmg, d, '')} · 속도 ${arrow(u.cd, c, 's')}`
+    + (u.range ? ` · 사거리 ${arrow(u.range, r, '')}` : '');
+}
+function renderEffort() {
+  const panel = $('evPanel');
+  const u = evSel ? UNITS.find(x => x.type === evSel) : null;
+  if (!u) {
+    panel.className = 'empty';
+    panel.textContent = '아래에서 키우고 싶은 캐릭터를 골라주세요';
+    $('evStat').textContent = '';
+    $('evResetBtn').disabled = true;
+  } else {
+    panel.className = '';
+    const left = evFree(u.type);
+    const rows = EV_KEYS.map(({ k, icon, name }) => {
+      const v = evOf(u.type)[k] || 0;
+      const off = k === 'rng' && !u.range;   // 서포터는 사거리 노력치가 의미 없다
+      const bar = Array.from({ length: EV_MAX }, (_, i) => `<i class="${i < v ? 'on' : ''}"></i>`).join('');
+      return `<div class="evrow">
+        <span class="lb">${icon} ${name}</span>
+        <button data-k="${k}" data-d="-1" ${v <= 0 ? 'disabled' : ''}>−</button>
+        <span class="bar">${bar}</span>
+        <button data-k="${k}" data-d="1" ${left <= 0 || off ? 'disabled' : ''}>＋</button>
+        <span class="vl">${v}점 +${Math.round(v * EV_STEP * 100)}%</span></div>`;
+    }).join('');
+    panel.innerHTML = `<div id="evHead">
+        ${u.img ? `<img src="${u.img}" alt="${u.name}">` : `<span style="font-size:30px">${u.emoji}</span>`}
+        <span class="nm" style="color:${GRADES[u.grade].color}">${u.emoji} ${u.name}</span>
+        <span class="lf">남은 점수 ${left}/${EV_MAX}</span>
+      </div>${rows}`;
+    panel.querySelectorAll('button[data-k]').forEach(b => b.onclick = () => {
+      evAdd(u.type, b.dataset.k, +b.dataset.d);
+    });
+    $('evStat').innerHTML = evStatLine(u);
+    $('evResetBtn').disabled = !evUsed(u.type);
+  }
+  let html = '';
+  for (let g = GRADES.length - 1; g >= 0; g--) {
+    html += `<div class="gsec" style="color:${GRADES[g].color}">${GRADES[g].name}</div>
+      <div class="grow">${unitsOfGrade(g).map(x => {
+        const used = evUsed(x.type);
+        return `<div class="dcard ${x.type === evSel ? 'sel' : ''} ${used ? '' : 'none'}"
+          data-t="${x.type}" style="border-color:${GRADES[x.grade].color}">
+          ${x.img ? `<img src="${x.img}" alt="${x.name}">` : `<span class="dem">${x.emoji}</span>`}
+          <span class="dn" style="color:${GRADES[x.grade].color}">${x.name}</span>
+          <span class="dp">${used}/${EV_MAX}</span></div>`;
+      }).join('')}</div>`;
+  }
+  $('evPool').innerHTML = html;
+  $('evPool').querySelectorAll('.dcard').forEach(el => el.onclick = () => {
+    evSel = el.dataset.t; renderEffort();
+    $('evPanel').scrollIntoView({ block: 'nearest' });
+  });
+}
+function evAdd(type, k, d) {
+  const cur = EV[type] || (EV[type] = { atk: 0, spd: 0, rng: 0 });
+  const v = (cur[k] || 0) + d;
+  if (v < 0 || v > EV_MAX) return;
+  if (d > 0 && evFree(type) <= 0) return;
+  cur[k] = v;
+  if (!evUsed(type)) delete EV[type];    // 0점이면 저장하지 않는다 (용량 절약)
+  saveEV();
+  renderEffort();
+}
+$('deckEvBtn').addEventListener('click', openEffort);
+$('evClose').addEventListener('click', () => $('effort').classList.add('hidden'));
+$('evResetBtn').addEventListener('click', () => {
+  if (!evSel) return;
+  delete EV[evSel]; saveEV(); renderEffort();
+  $('evStat').innerHTML = '↺ 되돌렸어요';
+});
+$('evResetAllBtn').addEventListener('click', () => {
+  EV = {}; saveEV(); renderEffort();
+  $('evStat').innerHTML = '🧹 모든 캐릭터의 노력치를 되돌렸어요';
+});
 // 🌱 입문 추천덱 — 기록이 없는 신규 유저용 (내 덱 추천은 기록이 있어야 작동한다)
 // 핵심: 일반·희귀를 1종씩만 넣어 ⚡하이퍼차지 보유자를 거의 확정으로 뽑고, 합성도 잘 굴러가게 한다
 const STARTER_DECK = ['farmer', 'wonkkataein', 'lumberjack', 'deathpierrot', 'darkrider', 'angeldog', 'reddragon'];
@@ -7104,6 +7263,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   doShare, shareText, GAME_URL, applyLayout,
   openEvents, renderEvents, eventsOn, eventRegistry,
   openCave, renderCave, caveList, inCave, releaseFromCave, getCaveOut: () => CAVE_OUT,
+  openEffort, renderEffort, evAdd, applyEV, evUsed, evFree, evMul, EV_MAX, EV_STEP, getEV: () => EV,
   taeinOn, hasGlove, giveGlove, wearGlove, startTaeinEvent, TAEIN_DMG, TAEIN_OKYEOM,
   startTrick, trickPick, swallowDmg, SWALLOW_TABLE, TRICK_COST, ENCORE_EVERY,
   setTaein: (f, u2) => { TAEIN_FROM = f; TAEIN_UNTIL = u2; updateEventUI(); },
