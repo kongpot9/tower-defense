@@ -2021,6 +2021,21 @@ function drawFxPiece(piece, x, y, size) {   // 이모지든 그림이든 같은 
   ctx.font = `${size}px sans-serif`;
   ctx.fillText(piece, x, y);
 }
+// 👾 적 그림 (예준이 작품) — enemy/ 폴더에 넣으면 그날 바로 게임에 나온다.
+// 그림이 없는 적은 지금처럼 이모지로 나오므로, 한 장씩 그려 넣어도 게임이 안 깨진다.
+const ENEMY_ART = {
+  '👹': 'enemy/boss.png',   // 보스 — 42스테이지 공통
+  '👾': 'enemy/mob1.png',   // 일반모드 1번
+  '🐌': 'enemy/mob2.png',   // 일반모드 2번
+};
+const ENEMY_IMG = {};
+for (const [emo, src] of Object.entries(ENEMY_ART)) {
+  const im = new Image(); im.src = src; ENEMY_IMG[emo] = im;
+}
+function enemyImg(emo) {           // 다 불러와진 그림만 돌려준다
+  const im = ENEMY_IMG[emo];
+  return (im && im.complete && im.naturalWidth) ? im : null;
+}
 for (const u of UNITS) {
   if (u.img) { const im = new Image(); im.src = u.img; IMAGES[u.type] = im; }
   if (u.special === 'drill') { const dm = new Image(); dm.src = 'character/myth7.png'; IMAGES['noesi_drill'] = dm; } // 🔩 변신 모습
@@ -3502,8 +3517,14 @@ function draw() {
       if (im && im.complete && im.naturalWidth) ctx.drawImage(im, p.x - 27, p.y - 27, 54, 54);
       else { ctx.font = '40px sans-serif'; ctx.fillText('🍡', p.x, p.y); }
     } else {
-    ctx.font = `${e.boss ? 38 : 22}px sans-serif`;
-    ctx.fillText(e.emoji, p.x, p.y);
+    const eim = enemyImg(e.emoji);
+    if (eim) {                                   // 🎨 예준이 그림이 있으면 그림으로
+      const ES = e.boss ? 52 : 30;
+      ctx.drawImage(eim, p.x - ES / 2, p.y - ES / 2, ES, ES);
+    } else {                                     // 없으면 지금까지처럼 이모지
+      ctx.font = `${e.boss ? 38 : 22}px sans-serif`;
+      ctx.fillText(e.emoji, p.x, p.y);
+    }
     }
     if (e.frozenT > 0) { // 얼음 속에 갇힌 적
       ctx.globalAlpha = 0.8;
@@ -7511,6 +7532,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   UNITS, openVote, loadVotes, castVote, renderVote, getVotes: () => VOTES,
   getGob: () => ({ ...GOB, until: GOB_UNTIL }),
   setGob: (g2, until) => { GOB = { ...GOB, ...g2 }; if (until !== undefined) GOB_UNTIL = until; saveGob(); updateEventUI(); },
+  ENEMY_ART, enemyImg,
   T, trDOM, setLang, hasLang, pickLang, getLang: () => LANG, EN_DICT,
   flushPendingScores, catchUpLocalBest, getPending: () => PENDING_SCORES,
   showNotice, maybeShowNotice, NOTICE_ID, showCeleb, CELEB_USERS, isNewbie,
