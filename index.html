@@ -2721,7 +2721,12 @@ function update(dt) {
       let jeffDmg = 0;
       if (u.special === 'office') {
         if (S.jeffParty) jeffDmg = u.dmg + JEFF_PARTY_BONUS;
-        else { jeffDmg = JEFF_WORK_DMG; u.cdT = u.cdT * (JEFF_WORK_CD / u.cd); }
+        else {
+          // 💪 근무 모드도 노력치를 받는다.
+          // 공격력은 고정값이라 노력치가 무시됐고, 공속은 u.cd 가 약분돼 사라졌었다.
+          jeffDmg = Math.round(JEFF_WORK_DMG * evMul(u.type, 'atk'));
+          u.cdT = u.cdT * (JEFF_WORK_CD / u.cd) / evMul(u.type, 'spd');
+        }
       }
       // 강화(⚔️ +10%씩 복리) × 팬케이크(+30%) × 펭귄 연주(+25%) 적용 공격력
       const D = CH.on ? CHAOS_ATK // 🎪 개판오분전: 아군 공격력 10억 고정
