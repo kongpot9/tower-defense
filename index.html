@@ -3167,9 +3167,21 @@ function openNickModal() {
   document.getElementById('nickModal').classList.remove('hidden');
   setTimeout(() => inp.focus(), 60);
 }
+// 닉네임이 아직 없어서 못 올린 기록을 잠깐 들고 있는다.
+// 첫 판을 끝낸 뒤에 이름을 묻기 때문에, 이걸 안 하면 '첫 기록'이 통째로 사라진다.
+let PENDING_SCORES = [];
+function flushPendingScores() {   // 닉네임이 생기는 순간 밀린 기록을 올린다
+  if (!getNick() || !PENDING_SCORES.length) return;
+  const list = PENDING_SCORES; PENDING_SCORES = [];
+  for (const p of list) submitScore(p.kind, p.data, p.isBetter);
+}
 async function submitScore(kind, data, isBetter) {
   const nick = getNick();
-  if (!nick || !RANK_DB || DEV || ORGOL) return; // 비밀 서버 기록은 랭킹에 못 올라감
+  if (!RANK_DB || DEV || ORGOL) return;          // 비밀 서버 기록은 랭킹에 못 올라감
+  if (!nick) {                                    // 이름부터 짓고 나면 올라간다
+    PENDING_SCORES.push({ kind, data, isBetter });
+    return;
+  }
   try {
     const url = `${RANK_DB}/rank/${kind}/${encodeURIComponent(nick)}.json`;
     const cur = await (await fetch(url)).json();
@@ -3185,8 +3197,22 @@ function scoreLooksReal(wave) {
   const played = (Date.now() - (S.startedAt || 0)) / 1000;
   return played >= (wave - 1) * MIN_SEC_PER_WAVE;
 }
+function catchUpLocalBest() {
+  if (!getNick() || DEV || ORGOL) return;
+  const best = +(localStorage.getItem('ltd_ok') || 0);   // 속도 검사를 통과한 기록만
+  if (best > 0 && best <= MAX_SUBMIT_WAVE)
+    submitScore('classic', { wave: best, t: Date.now() }, cur => best > (cur.wave || 0));
+  let stars = 0;
+  for (let i = 0; i < STAGES.length; i++) if (clearedOf(i)) stars++;
+  if (stars > 0) submitScore('story', { stars, t: Date.now() }, cur => stars > (cur.stars || 0));
+}
 function submitClassicScore(wave) {
   if (!scoreLooksReal(wave)) return;
+  // 검사를 통과한 기록만 따로 표시해 둔다 — 닉네임을 늦게 지어도 이것만 올린다
+  try {
+    const ok = +(localStorage.getItem('ltd_ok') || 0);
+    if (wave > ok) localStorage.setItem('ltd_ok', String(wave));
+  } catch (e) {}
   submitScore('classic', { wave, t: Date.now() }, cur => wave > (cur.wave || 0));
 }
 function submitChaosScore(wave) { // 🎪 개판오분전 전용 (공식 아님)
@@ -5291,6 +5317,8 @@ $('nickSave').addEventListener('click', () => {
   localStorage.setItem('ltd_nick', n);
   $('nickModal').classList.add('hidden');
   startPresence(); // 닉네임 생기면 접속 신호 시작
+  flushPendingScores();   // 🏆 이름 없이 세운 기록을 이제야 랭킹에 올린다
+  catchUpLocalBest();     // 새로고침으로 날아간 경우까지 챙긴다
   if (ovMode === 'home' || ovMode === 'rank') showOverlay(ovMode);
 });
 $('nickLater').addEventListener('click', () => {
@@ -7453,6 +7481,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   getGob: () => ({ ...GOB, until: GOB_UNTIL }),
   setGob: (g2, until) => { GOB = { ...GOB, ...g2 }; if (until !== undefined) GOB_UNTIL = until; saveGob(); updateEventUI(); },
   T, trDOM, setLang, hasLang, pickLang, getLang: () => LANG, EN_DICT,
+  flushPendingScores, catchUpLocalBest, getPending: () => PENDING_SCORES,
   showNotice, maybeShowNotice, NOTICE_ID, showCeleb, CELEB_USERS, isNewbie,
   gainXp, renderCards, CARDS, cardAt, XP_PER_LEVEL, levelBadge,
   getLevel: () => ({ xp: XP, lv: LV }), setLevel: (xp, lv) => { XP = xp; LV = lv; saveLevel(); },
