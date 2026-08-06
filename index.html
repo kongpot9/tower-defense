@@ -230,6 +230,24 @@
   #deckDelBtn { padding:9px 12px; font-size:14px; border-radius:9px; }
   #deckBtns { display:flex; gap:8px; }
   #deckBtns button { padding:8px 16px; font-size:13px; border-radius:9px; }
+  /* 🌐 언어 선택 — 처음 온 사람이 제일 먼저 보는 화면 */
+  #langPick { position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
+              padding:24px; background:radial-gradient(120% 90% at 50% 0%, #1d2947 0%, #0b0f1c 70%); }
+  #langPick.hidden { display:none; }
+  #langBox { width:100%; max-width:340px; text-align:center; display:flex; flex-direction:column; gap:14px; }
+  #langBox .lp-mark { font-size:52px; line-height:1; }
+  #langBox h1 { font-size:23px; font-weight:900; letter-spacing:.06em; color:#fff; margin:0; }
+  #langBox h1 b { color:#ffd54f; }
+  #langBox .lp-sub { margin:0; font-size:14px; color:#b9c7e6; line-height:1.6; }
+  #langBox .lp-sub span { font-size:12px; color:#7f8db3; }
+  #langBox .lp-row { display:flex; flex-direction:column; gap:9px; margin-top:4px; }
+  #langBox .lp-row button { display:flex; flex-direction:column; align-items:center; gap:1px;
+      padding:13px; border-radius:12px; background:#2a3358; color:#fff; border:1px solid #3f4d78; }
+  #langBox .lp-row button b { font-size:17px; font-weight:800; }
+  #langBox .lp-row button small { font-size:11px; color:#9fb0d8; }
+  #langBox #langEn { background:linear-gradient(180deg,#3f6ea8,#2f5686); }
+  #langBox .lp-note { margin:6px 0 0; font-size:11px; color:#6b7796; line-height:1.7; }
+  #langBox .lp-note span { color:#55607d; }
   /* 💪 노력치 */
   #effort {
     position:fixed; inset:0; background:#12182a; z-index:24;
@@ -798,6 +816,20 @@
   <div id="nickLine" class="hidden">👤 <span id="nickName"></span> <button id="nickEdit">✏️ 바꾸기</button></div>
 </div>
 
+<div id="langPick" class="hidden">
+  <div id="langBox">
+    <div class="lp-mark">🏰</div>
+    <h1>TOWER DEFENSE <b>777</b></h1>
+    <p class="lp-sub">Choose your language<br><span>언어를 선택하세요</span></p>
+    <div class="lp-row">
+      <button id="langKo"><b>한국어</b><small>Korean</small></button>
+      <button id="langEn"><b>English</b><small>영어</small></button>
+    </div>
+    <p class="lp-note">Same server &middot; same leaderboard &middot; only the language changes<br>
+      <span>서버도 랭킹도 그대로예요 &middot; 언어만 바뀝니다</span></p>
+  </div>
+</div>
+
 <div id="nickModal" class="hidden">
   <div id="nickBox">
     <h2 id="nickTitle">👤 닉네임 정하기</h2>
@@ -1183,6 +1215,115 @@ let DECK = [];          // 저장된 전투덱(type 배열). 비어 있으면 �
 // 캐릭터 도감 — img 필드에 그림 파일을 지정하면 이모지 대신 표시됨
 // atk: 공격 이펙트 종류 (slash=칼베기, arrow=화살, scythe=낫던지기,
 //      bite=물기, ball=야구공, shell=포탄) / 없으면 기본 구슬
+// ---------- 🌐 한국어 / English (기획: 구예준) ----------
+// 서버는 하나다. 랭킹·채팅·이벤트를 전부 같이 쓰고 언어만 갈린다.
+// 사전 키는 '한국어 원문' — 번역이 없는 문장은 자동으로 한국어가 그대로 나온다.
+let LANG = '';
+try { LANG = localStorage.getItem('ltd_lang') || ''; } catch (e) {}
+const EN_DICT = { "타워 디펜스 777": "TOWER DEFENSE 777", "🏰 타워 디펜스 777": "🏰 TOWER DEFENSE 777", "구예준 STUDIO": "GU YEJUN STUDIO", "🏰 이벤트": "🏰 Events", "웨이브 0": "Wave 0", "캐릭터를 누른 뒤: 같은 캐릭터=합성 🎲 · 빈 칸=이동 · 다른 캐릭터=교체": "Tap a character, then: same character = merge 🎲 · empty tile = move · different character = swap", "⚡ 하이퍼차지 발동!": "⚡ Hypercharge!", "🔩 드릴러 변신": "🔩 Drill Form", "🗜️ 프레스 강화": "🗜️ Upgrade Press", "🌙 초승달 글러브 장착!": "🌙 Equip Crescent Glove!", "🎩 트릭": "🎩 Trick", "판매": "Sell", "🎲 소환 20G": "🎲 Summon 20G", "⚔️ 강화 100G": "⚔️ Upgrade 100G", "골드로 랜덤 캐릭터를 소환하고": "Summon random characters with gold", "같은 캐릭터를 합성해서 더 강하게!": "and merge matching ones to grow stronger!", "시작하기": "Start", "🎮 바로 시작하기": "🎮 Play Now", "🎮 플레이하기": "🎮 Play", "다시하기": "Play Again", "처음으로": "Home", "← 처음으로": "← Home", "스테이지 선택": "Select Stage", "🌑 캐릭터 직접 소환": "🌑 Summon Any Character", "💰+1만": "💰+10K", "🎲소환": "🎲Summon", "💀전멸": "💀Wipe", "🛡️무적": "🛡️God", "💪공10만": "💪ATK 100K", "🌋라바": "🌋Lava", "🏰저택": "🏰Manor", "🏀오락실": "🏀Arcade", "🐲불멸": "🐲Immortal", "🍡레이드": "🍡Raid", "🎪개판": "🎪Chaos", "🧰버튼": "🧰Buttons", "🕳️굴": "🕳️Cave", "🌙태인": "🌙Taein", "🎨만들기": "🎨Maker", "💬 채팅방": "💬 Chat", "⭐ 전투카드": "⭐ Battle Cards", "🔑 키링": "🔑 Keyrings", "🏆 랭킹": "🏆 Leaderboard", "🎪 개판오분전": "🎪 Total Chaos", "🛒 상점": "🛒 Shop", "🏰 나의 왕국": "🏰 My Kingdom", "🔗 친구에게 공유": "🔗 Share with Friends", "📦 이상한 소포": "📦 Strange Parcel", "📺 공식 채널": "📺 Official Channel", "👥 더블큐": "👥 Duo Queue", "🎉 이벤트": "🎉 Events", "🏀 베인오락실": "🏀 Bane Arcade", "🍡 최강의 떡장수": "🍡 The Mightiest Rice-Cake Seller", "🎁 인형뽑기": "🎁 Claw Machine", "🎣 낚시터": "🎣 Fishing Spot", "🃏 전투덱": "🃏 Battle Deck", "🗳️ 인기투표": "🗳️ Favorite Poll", "📢 공지": "📢 Notice", "✏️ 바꾸기": "✏️ Change", "🗺️ 레전드 스토리": "🗺️ Legend Story", "👤 닉네임 정하기": "👤 Choose a Nickname", "랭킹판에 올라갈 이름이에요! (최대 8글자)": "This is the name on the leaderboard! (8 characters max)", "저장": "Save", "나중에": "Later", "닫기": "Close", "나가기": "Exit", "취소": "Cancel", "입장": "Join", "입장!": "Enter!", "확인했어요!": "Got it!", "전송": "Send", "예: 예준짱": "e.g. Yejun", "코드를 입력하세요": "Enter your code", "메시지를 입력하세요": "Type a message", "사진(포스터) 보내기": "Send a photo (poster)", "동영상 보내기": "Send a video", "파티 코드": "Party code", "덱 이름 (예: 나태지옥덱)": "Deck name (e.g. Sloth Hell)", "🍓 홀리베리 서버": "🍓 Hollyberry Server", "모든 스탯과 픽률, 평가와 덱이 이곳에 — 정정당당하게!": "Every stat, pick rate, rating and deck — all out in the open!", "아군 도감": "Allies", "적 도감": "Enemies", "덱 도감": "Decks", "서버 나가기": "Leave Server", "🎼 오르골 서버": "🎼 Music Box Server", "다크 카카오의 문 너머 —": "Beyond the Dark Cacao door —", "하이퍼차지 무한 발동의 방!": "the room of endless Hypercharge!", "필살기를 마음껏 쏟아부어라 ⚡∞": "Unleash your ultimates without limit ⚡∞", "이곳의 기록은 저장되지 않는다.": "Records here are never saved.", "새로고침하면 본서버로 돌아간다.": "Refresh to return to the main server.", "친구와 함께 버텨라!": "Survive together with a friend!", "각자의 필드 · 각자의 골드 · 운명은 하나": "Your own board · your own gold · one shared fate", "🎪 파티 만들기": "🎪 Create Party", "🎲 랜덤 매칭": "🎲 Random Match", "⚔️ 게임 시작!": "⚔️ Start Game!", "합류하기": "Join", "🗳️ 캐릭터 인기투표": "🗳️ Favorite Character Poll", "가장 좋아하는 캐릭터에게 한 표를!": "Cast your vote for your favorite character!", "🏰 고블린의 저택": "🏰 The Goblin Manor", "📦 상자 열기": "📦 Open Chest", "🍜 누들 만들기": "🍜 Cook Noodles", "30웨이브를 채울 때마다 🔑열쇠를 얻어요": "Every 30 waves you earn a 🔑key", "상자를 열면 🍝면 조각이 나오고, 10개를 모으면 🍜누들 완성!": "Chests drop 🍝noodle scraps — collect 10 to cook a 🍜noodle!", "소환 상자에 넣을": "Pick", "8마리": "8 characters", "를 고르세요": "for your summon box", "적게 넣은 등급일수록 원하는 캐릭터가 잘 나옵니다": "The fewer you put in a grade, the more often that character appears", "🌱 입문 추천": "🌱 Starter Deck", "⭐ 내 덱 추천": "⭐ Suggest My Deck", "🎲 랜덤 편성": "🎲 Randomize", "↺ 비우기": "↺ Clear", "🎲 덱 없이 전체로": "🎲 Play Without a Deck", "💾 저장": "💾 Save", "💪 노력치": "💪 Effort Points", "캐릭터마다": "Every character has", "10점": "10 points", "씩 있어요 · 1점에": "· each point is", "올린 능력치만 세지고 나머지는 그대로예요 — 언제든 되돌릴 수 있어요": "Only the stat you raise goes up — the rest stay exactly the same. Reset anytime.", "아래에서 키우고 싶은 캐릭터를 골라주세요": "Pick a character below to train", "↺ 이 캐릭터 초기화": "↺ Reset This Character", "🧹 전부 초기화": "🧹 Reset All", "⚔️ 공격력": "⚔️ Attack", "⚡ 공격속도": "⚡ Attack Speed", "🎯 사거리": "🎯 Range", "💰 0원": "💰 0 coins", "🏀 농구": "🏀 Basketball", "🎯 스키볼": "🎯 Skee-Ball", "🎳 볼링": "🎳 Bowling", "🎟️ 코인 벌기": "🎟️ Earn Tokens", "플레이할 캐릭터를 고르세요": "Choose a character to play", "3점": "3 pts", "2점": "2 pts", "1점": "1 pt", "✋ 잡는다": "✋ Hold", "🏀 슛!": "🏀 Shoot!", "멀리서 던질수록 점수가 높지만 성공 구간이 좁아져요": "The farther you shoot, the more points — but the sweet spot gets narrower", "1점 100원 · 2점 200원 · 3점 300원": "1 pt = 100 · 2 pts = 200 · 3 pts = 300 coins", "넘침": "Overshot", "🎯 굴리기!": "🎯 Roll!", "세게 굴릴수록 높은 점수 구멍": "Roll harder for the higher-scoring holes", "단,": "But", "끝을 넘기면 0점": "go past the end and you score 0", "— 100점 구멍이 제일 아슬아슬해요 (1점 = 3원)": "— the 100-point hole is the tightest one (1 pt = 3 coins)", "◀ 왼쪽": "◀ Left", "가운데": "Center", "오른쪽 ▶": "Right ▶", "🎯 조준": "🎯 Aim", "🎳 투구!": "🎳 Bowl!", "가운데로 조준하고 알맞은 힘으로 굴리세요": "Aim for the center and roll with the right power", "핀 1개 = 30원 ·": "1 pin = 30 coins ·", "스트라이크 보너스 +100원": "strike bonus +100 coins", "미션은": "Missions refill", "매일 0시": "every day at midnight", "에 다시 채워져요": "", "게임을 한 판 끝낼 때마다 자동으로 확인합니다": "Checked automatically each time you finish a run", "베인오락실 안쪽 — 우리 캐릭터 인형(키링)이 잔뜩!": "Deep inside Bane Arcade — piles of our character plushies (keyrings)!", "🎁 뽑기 (100원)": "🎁 Play (100 coins)", "고마워요! 🎉": "Thank you! 🎉", "게임을 할수록 경험치가 쌓여요 (도달 웨이브만큼)": "You gain XP every run (equal to the wave you reach)", "전투력에는 전혀 영향이 없는 수집 보상입니다": "Purely a collection reward — it never affects your power", "🔑 내 키링": "🔑 My Keyrings", "게임 중에": "You can use", "1개만": "only one", "사용할 수 있어요": "per run", "🍜누들과 키링은": "Noodles and keyrings —", "둘 중 하나만": "only one of the two", "쓸 수 있습니다": "can be used", "🕳️ 굴": "🕳️ The Cave", "능력은 다 만들어졌지만": "Characters whose abilities are finished", "아직 안 나온 캐릭터": "but who haven't been released", "들이 기다리는 곳": "wait here", "밸런스를 확인한 뒤에 내보냅니다 — 로얄 셰프가 11일을 기다린 그 굴이에요": "They leave once the balance checks out — this is the cave where Royal Chef waited 11 days", "📔 로얄 셰프의 굴 일기": "📔 Royal Chef's Cave Diary", "지금 열려 있는 이벤트가 여기 모입니다": "Every event running right now gathers here", "새 이벤트가 생겨도 첫 화면은 깔끔하게 유지돼요": "New events never clutter the home screen", "상자에서 나온": "Place the", "🧸인형": "🧸plushies", "과": "and", "🧱벽돌": "🧱bricks", "을 놓아 나만의 왕국을 지으세요": "from your chests to build your own kingdom", "아래에서 하나 고르고 칸을 누르면 놓입니다 · 놓인 걸 누르면 회수돼요": "Pick one below and tap a tile to place it · tap a placed item to take it back", "↺ 전부 회수": "↺ Take Everything Back", "게임이 끝날 때마다": "Every time a run ends you earn", "도달 웨이브만큼 🪙크레딧": "🪙credits equal to the wave you reached", "이 쌓여요": "", "끝난 이벤트에 남은 재화도 자동으로 크레딧이 됩니다": "Leftover currency from finished events turns into credits automatically", "소형 ×0": "Small ×0", "대형 ×0": "Large ×0", "🎲 크레딧으로 상자 열기 (🪙20)": "🎲 Open a Chest with Credits (🪙20)", "어디선가 소포가 왔다.": "A parcel arrived from somewhere.", "코드를 넣으면 열립니다": "Enter a code to open it", "코드는 채팅방·유튜브·공지에서 가끔 뿌려져요": "Codes get handed out in the chat room, on YouTube and in notices", "📦 뜯어보기": "📦 Open It", "🍡 최강의 떡장수를 잡아라!": "🍡 Take Down the Mightiest Rice-Cake Seller!", "체력": "With", "1,050만": "10,500,000 HP", "의 떡장수가 홀로 맵을 돌고 있다": ", the rice-cake seller circles the map alone", "1~5명": "1 to 5 players", "이 팀을 짜서": "team up and take it down within", "10분": "10 minutes", "안에 쓰러뜨려라!": "!", "토벌 보상": "Clear rewards", "🛟 한정판": "🛟 Limited-edition", "윌리 스킨": "Willy skin", "— 잡은 사람만 쓸 수 있는 특별 모습": "— only for those who beat it", "신규 캐릭터 예비 이용권 1장": "1 early-access pass for a new character", "— 다음 캐릭터를 먼저 써볼 수 있다": "— try the next character before anyone else", "응원 효과": "Cheering", "로 아군 공격력이": "multiplies your attack by", "3배": "3×", "가 됩니다": "", "떡장수를 때릴 때마다": "Every hit on the seller drops", "떡값(골드)": "rice-cake money (gold)", "이 떨어져요 — 때려서 벌고, 강화해서 더 때리세요": "— hit to earn, upgrade to hit harder", "⚔️ 혼자 도전하기": "⚔️ Solo Challenge", "👥 팀 만들기 (코드 생성)": "👥 Create a Team (get a code)", "🔢 코드로 팀 합류": "🔢 Join by Code", "🍡 토벌 시작!": "🍡 Begin the Hunt!", "팀 나가기": "Leave Team", "진주로 낚시해서 보물을 건져라!": "Fish with pearls and haul up treasure!", "같은 보물을 또 낚으면": "Catch the same treasure again and it", "레벨업": "levels up", "(최대 15)": "(max 15)", "🎣 낚시하기 (🫧10)": "🎣 Cast a Line (🫧10)", "⚡ 전부 낚기": "⚡ Fish Everything", "일반": "Common", "희귀": "Rare", "영웅": "Epic", "신화": "Mythic", "전설": "Legendary", "검사": "Swordsman", "궁수": "Archer", "농부": "Farmer", "쥬라사우르스": "Jurasaurus", "원까태인": "Wonkka Taein", "노에시": "Noesi", "텐조": "Tenjo", "탱크보이": "Tank Boy", "데스삐에로": "Death Pierrot", "나무꾼": "Lumberjack", "다크라이더": "Dark Rider", "인디": "Indie", "제프": "Jeff", "호스퍼": "Hosper", "레일리": "Railey", "윌리": "Willy", "능력자광부": "Esper Miner", "떡장수": "Rice-Cake Seller", "낭인": "Ronin", "천사 도베르만": "Angel Doberman", "블레이더": "Blader", "채드": "Chad", "혼의 투곰": "Soul Battle-Bear", "프레스": "Press", "스왈로제트": "Swallowjet", "가일": "Gale", "베인": "Bane", "레드드래곤": "Red Dragon", "도사": "Sage", "캣머신": "Cat Machine", "로얄 셰프": "Royal Chef", "테즈": "Tez", "텐한": "Tenhan", "mr.골렘": "Mr. Golem", "콜드나이퍼": "Cold Sniper", "펭귄악사": "Penguin Minstrel", "불멸 드래곤": "Immortal Dragon", "불멸 태인": "Immortal Taein", "🏰 타워 디펜스 777에 온 걸 환영해요!": "🏰 Welcome to Tower Defense 777!", "아래 🎲 소환 버튼을 눌러 캐릭터를 뽑으세요": "Tap the 🎲 Summon button below to pull a character", "같은 캐릭터 2마리를 겹치면 ✨합성 — 더 센 캐릭터가 나와요": "Stack two of the same character to ✨merge into a stronger one", "캐릭터를 눌러 트랙 가까운 칸으로 옮겨보세요": "Tap a character and move it closer to the track", "적이 너무 많이 쌓이면 지니까 계속 소환하세요!": "Too many enemies and you lose — keep summoning!", "빈 칸이 없어요! 합성하거나 판매하세요": "No empty tiles! Merge or sell something", "골드가 부족해요!": "Not enough gold!", "최고 등급이에요!": "Already the highest grade!", "✨ 합성!": "✨ Merge!", "🎉 대박!! 2단계 점프!": "🎉 JACKPOT!! Two grades at once!", "💥 게임 오버!": "💥 Game Over!", "🏳️ 항복": "🏳️ Give Up", "축하": "Congrats", "(나)": "(you)", "(미출시)": "(unreleased)", "적이": "You lose if", "[🃏 전투덱]": "[🃏 Battle Deck]", "최대 6배": "up to 6×", "자주 나옵니다": "more often", "닉네임 없음": "No nickname", "🏳️ 항복하기": "🏳️ Give Up", "정말 항복할까요?": "Give up this run?", "골드": "Gold", "완성! 저장하면 다음 게임부터 적용돼요": "Done! Save and it applies from your next run", "등급이 비었어요 — 등급마다 최소 1마리!": "grade is empty — at least one from each grade!", "덱이 꽉 찼어요 — 위에서 빼고 싶은 카드를 누르세요": "Deck is full — tap a card above to remove it", "버튼을 눌러 선택하세요": "Tap a button to select it", "남은 점수": "Points left", "공격": "ATK", "속도": "SPD", "사거리": "RNG", "되돌렸어요": "Reset", "🧹 모든 캐릭터의 노력치를 되돌렸어요": "🧹 Reset effort points on every character", "지금은": "Currently summoning from", "전체 34종": "all 34 characters", "에서 소환 중 — 덱은": "— a deck is", "선택": "optional", "이에요, 안 써도 됩니다": ", you don't have to use one", "＋ 새 덱": "＋ New Deck", "🎲 덱 없이": "🎲 No Deck", "덱 없이 전체 캐릭터": "all characters, no deck", "아직 없음": "none yet", "지금 쓰는 덱:": "Active deck:", "현재": "Now playing with", "에서 소환 중": "", "전체 캐릭터에서 소환합니다 — 이제 덱 안내를 띄우지 않아요": "Summoning from every character — the deck tip won't show again", "마리 더 골라주세요": "more to choose", "등급확률": "grade chance", "유망주": "Rookie", "구매": "Buy", "해제": "Unequip", "장착": "Equip", "소형": "Small", "대형": "Large", "🎮 일반": "🎮 Classic", "🗺️ 스토리": "🗺️ Story", "🎪 개판": "🎪 Chaos", "👥 더블": "👥 Duo", "닉네임을 정하면 랭킹에 오를 수 있어요!": "Set a nickname to get on the leaderboard!", "최고 기록만 올라가요!": "Only your best record counts!", "이벤트가 끝나도 살 수 있어요 · 한 판에 종류별 1회": "Still buyable after the event ends · one of each per run", "아군 전체에 색 오라 · 성능은 그대로": "A colored aura for your whole team · stats unchanged", "스쿨 베인": "School Bane", "누들 탱크보이": "Noodle Tank Boy", "황금": "Golden", "심해": "Deep Sea", "암흑": "Darkness", "맹독": "Venom", "😈 베인 전용 · 연필이 사방으로 튄다": "😈 Bane only · pencils fly everywhere", "🚜 탱크보이 전용 · 포탄이 라면이 된다": "🚜 Tank Boy only · shells become ramen", "지구": "Earth", "화성": "Mars", "목성": "Jupiter", "토성": "Saturn", "해왕성": "Neptune", "프로": "Pro" };
+const EN_PAT = [          // 숫자가 섞여 통째로는 못 찾는 문장들
+  [/^🏆 일반 모드 최고 기록: 웨이브 (\d+)$/, '🏆 Classic best — Wave $1'],
+  [/^🏆 (.+?) 최고 기록: 웨이브 (\d+)$/, '🏆 $1 best — Wave $2'],
+  [/^웨이브 (\d+)$/, 'Wave $1'],
+  [/^웨이브 (\d+) 시작!(.*)$/, 'Wave $1 start!$2'],
+  [/^(\d+)마리$/, '$1 enemies'],
+  [/^쌓이면 패배해요\.$/, 'pile up.'],
+  [/^캐릭터가 (\d+)종으로 늘어서 원하는 캐릭터가 잘 안 나와요!$/,
+   'There are $1 characters now — the one you want rarely shows up!'],
+  [/^에서 (\d+)마리를 고르면$/, '— pick $1 there and they show up'],
+  [/^(\d+)\/(\d+)마리 — (\d+)마리 더 골라주세요$/, '$1/$2 picked — choose $3 more'],
+  [/^골드가 부족해요! \((\d+)G 필요\)$/, 'Not enough gold! ($1G needed)'],
+  [/^덱 (\d+)$/, 'Deck $1'],
+  [/^— 등급확률 ([\d.]+)% · 아직 없음$/, '— grade chance $1% · none yet'],
+  [/^— 등급확률 ([\d.]+)% · 덱에 (\d+)마리 → 1마리당 ([\d.]+)%$/,
+   '— grade chance $1% · $2 in deck → $3% each'],
+  [/^현재 (.+?) 마리로 플레이 중$/, 'Playing with $1'],
+  [/^내 덱 (\d+)마리$/, 'my deck of $1'],
+  [/^(\d+)위$/, '#$1'],
+  [/^총 (\d+)명 · 기록 보유 (\d+)명$/, '$1 players · $2 with records'],
+  [/^🌱 유망주 (\d+)명 — 첫 기록을 기다리는 중!$/, '🌱 $1 rookies — waiting on their first record!'],
+  [/^소형 ×(\d+)$/, 'Small ×$1'],
+  [/^대형 ×(\d+)$/, 'Large ×$1'],
+  [/^🎲 상자 열기 \(🪙(\d+)\)$/, '🎲 Open Chest (🪙$1)'],
+  [/^🎲 크레딧으로 상자 열기 \(🪙(\d+)\)$/, '🎲 Open a Chest with Credits (🪙$1)'],
+  [/^누들 \(랜덤 1개\) — 🪙(\d+)$/, 'Noodle (1 random) — 🪙$1'],
+  [/^(.+) 키링 — 🪙(\d+)$/, (m, n, c) => T(n) + ' Keyring — 🪙' + c],
+  [/^\[(.+?) 스킨\] (.+)$/, (m, g2, n) => '[' + T(g2) + ' Skin] ' + T(n)],
+  [/^(.+?) 오라 — 🪙(\d+)$/, (m, n, c) => T(n) + ' Aura — 🪙' + c],
+  [/^아군 공격력 \+(\d+)% · 보유 (\d+)개$/, 'Ally ATK +$1% · you own $2'],
+  [/^아군 공격속도 \+(\d+)% · 보유 (\d+)개$/, 'Ally attack speed +$1% · you own $2'],
+  [/^보스 체력 (\d+)% 하락 · 보유 (\d+)개$/, 'Boss HP -$1% · you own $2'],
+  [/^(\d+)\/(\d+)$/, '$1/$2'],
+];
+function T(s) {                        // 문자열 하나 번역
+  if (LANG !== 'en' || s == null) return s;
+  const k = String(s).trim();
+  const v = EN_DICT[k];
+  if (v !== undefined) return v;
+  for (const [re, to] of EN_PAT) if (re.test(k)) return k.replace(re, to);
+  return s;
+}
+const TN = (_, name) => T(name);   // 패턴 안에서 캐릭터 이름을 한 번 더 번역
+let trBusy = false;
+function trDOM(root) {                 // 화면에 이미 그려진 글자를 통째로 갈아끼운다
+  if (LANG !== 'en') return;
+  const r = root || document.body;
+  if (!r || !r.querySelectorAll) return;
+  trBusy = true;
+  try {
+  const w = document.createTreeWalker(r, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => (n.parentNode && /^(SCRIPT|STYLE|TEXTAREA)$/.test(n.parentNode.nodeName))
+      ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+  const list = []; let n;
+  while ((n = w.nextNode())) list.push(n);
+  for (const t of list) {
+    const k = t.nodeValue.trim();
+    if (!k || !/[가-힣]/.test(k)) continue;
+    const v = T(k);
+    if (v !== k) { t.nodeValue = t.nodeValue.replace(k, v); continue; }
+    const kn = k.replace(/\s+/g, ' ');          // 줄바꿈·들여쓰기가 낀 문장
+    if (kn !== k) { const v2 = T(kn); if (v2 !== kn) t.nodeValue = v2; }
+  }
+  for (const el of r.querySelectorAll('[placeholder],[title],[alt]'))
+    for (const a of ['placeholder', 'title', 'alt']) {
+      const k = el.getAttribute(a);
+      if (!k || !/[가-힣]/.test(k)) continue;
+      const v = EN_DICT[k.trim()];
+      if (v !== undefined) el.setAttribute(a, v);
+    }
+  } finally { trBusy = false; }   // 중간에 터져도 감시자가 굳지 않게
+}
+// 화면이 새로 그려질 때마다(덱·상점·랭킹 등 수백 곳) 알아서 따라간다.
+// ⚠️ requestAnimationFrame 은 탭이 뒤로 가면 멈춘다 — 돌아왔을 때 한국어가 남아 있으면 안 되므로 setTimeout 을 쓴다.
+// 바뀐 가지만 다시 훑기 때문에 매 프레임 전체를 훑는 것보다 훨씬 싸다.
+function startTrWatch() {
+  if (LANG !== 'en' || !window.MutationObserver) return;
+  const pend = new Set();
+  let timer = 0;
+  const flush = () => {
+    timer = 0;
+    const list = [...pend]; pend.clear();
+    for (const n of list) if (n && n.isConnected) trDOM(n);
+  };
+  const ob = new MutationObserver(muts => {
+    if (trBusy) return;
+    for (const m of muts) {
+      if (m.type === 'characterData') pend.add(m.target.parentNode);
+      else for (const n of m.addedNodes)
+        pend.add(n.nodeType === 1 ? n : n.parentNode);
+    }
+    if (pend.size && !timer) timer = setTimeout(flush, 0);
+  });
+  ob.observe(document.body, { childList: true, subtree: true, characterData: true });
+  // 안전망: 매 프레임 글자를 새로 쓰는 곳(소환 버튼·상단바 등)은 변경 알림만으로는 놓칠 수 있다.
+  // UI DOM 은 수백 노드뿐이라 0.4초마다 한 번 훑어도 부담이 없다.
+  setInterval(() => { if (LANG === 'en') trDOM(document.body); }, 400);
+}
+function setLang(l) {
+  LANG = l;
+  try { localStorage.setItem('ltd_lang', l); } catch (e) {}
+}
+function hasLang() { return LANG === 'ko' || LANG === 'en'; }
 // 일반·희귀 등급은 아들이 그린 캐릭터! (character 폴더)
 const UNITS = [
   // 일반
@@ -2088,6 +2229,7 @@ function poolOfGrade(g) {
   return picked.length ? picked : all; // 안전장치: 그 등급이 비면 전체에서
 }
 function addText(x, y, txt, color = '#fff', size = 13) {
+  txt = T(txt);
   S.texts.push({ x, y, txt, color, size, t: 1 });
   if (S.texts.length > 40) S.texts.shift();
 }
@@ -4341,6 +4483,7 @@ $('soundBtn').addEventListener('click', () => {
 // ---------- 시작/게임오버 화면 ----------
 let ovMode = 'home'; // 현재 오버레이 화면 종류
 function showOverlay(mode) {
+  if (LANG === 'en') setTimeout(() => trDOM(document.body), 0);   // 🌐 새 화면을 바로 영어로
   ovMode = mode;
   const ov = $('overlay');
   ov.classList.remove('hidden');
@@ -7268,11 +7411,27 @@ function frame(t) {
 
 resize();
 showOverlay('home');
-// 🚀 완전 신규는 홈 화면도, 닉네임도 건너뛰고 곧바로 판에 들어간다.
-// 처음 온 사람에게 버튼 17개와 닉네임 입력창부터 들이밀면 그대로 나가버린다.
-if (isBrandNew()) startFirstRun();
-else if (!getNick()) openNickModal(); // 닉네임은 한 판 해본 뒤에 물어본다
-else startPresence();                 // 닉네임이 있으면 접속 신호 시작
+// 🌐 처음 온 사람은 언어부터. 이미 놀던 사람은 묻지 않고 한국어로 둔다.
+if (!hasLang()) {
+  if (isBrandNew()) { $('langPick').classList.remove('hidden'); }
+  else { setLang('ko'); afterLang(); }
+} else { trDOM(document.body); startTrWatch(); afterLang(); }
+function afterLang() {
+  // 🚀 완전 신규는 홈 화면도, 닉네임도 건너뛰고 곧바로 판에 들어간다.
+  // 처음 온 사람에게 버튼 17개와 닉네임 입력창부터 들이밀면 그대로 나가버린다.
+  if (isBrandNew()) startFirstRun();
+  else if (!getNick()) openNickModal(); // 닉네임은 한 판 해본 뒤에 물어본다
+  else startPresence();                 // 닉네임이 있으면 접속 신호 시작
+}
+function pickLang(l) {
+  setLang(l);
+  $('langPick').classList.add('hidden');
+  trDOM(document.body); startTrWatch();
+  showOverlay('home');
+  afterLang();
+}
+$('langKo').addEventListener('click', () => pickLang('ko'));
+$('langEn').addEventListener('click', () => pickLang('en'));
 if (HOLLY_IN) openHolly();                                  // 🍓 새로고침 10번의 주인공
 else if (ORGOL_IN) {                                        // 🎼 다크 카카오 문 너머
   $('orgol').classList.remove('hidden');
@@ -7293,6 +7452,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   UNITS, openVote, loadVotes, castVote, renderVote, getVotes: () => VOTES,
   getGob: () => ({ ...GOB, until: GOB_UNTIL }),
   setGob: (g2, until) => { GOB = { ...GOB, ...g2 }; if (until !== undefined) GOB_UNTIL = until; saveGob(); updateEventUI(); },
+  T, trDOM, setLang, hasLang, pickLang, getLang: () => LANG, EN_DICT,
   showNotice, maybeShowNotice, NOTICE_ID, showCeleb, CELEB_USERS, isNewbie,
   gainXp, renderCards, CARDS, cardAt, XP_PER_LEVEL, levelBadge,
   getLevel: () => ({ xp: XP, lv: LV }), setLevel: (xp, lv) => { XP = xp; LV = lv; saveLevel(); },
