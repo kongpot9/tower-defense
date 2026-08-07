@@ -1644,7 +1644,7 @@ const GURU_CANDY = 1.10, GURU_CANDY_TIME = 10;    // 경로당 홍삼캔디: 아
 const GURU_WAVES = [2, 3, 5];                     // 이 수의 배수 웨이브마다 캔디를 돌린다
 // 🍗 찌양 — 공격력 1로 시작해 먹은 만큼 세진다 (기획: 구예준)
 const MUK_START = 1;            // 시작 공격력
-const MUK_GAIN = 10;            // 적 하나 먹을 때마다 +10
+const MUK_GAIN = 5;             // 완뚝 한 번에 +5 (구예준 확정)
 const MUK_CHANCE = 0.30;        // 30% 확률로 완뚝
 const MUK_PULL = 150;           // 완뚝: 이 반경 안의 적을 빨아들인다
 const MUK_SUCK = 26;            // 한 번에 끌려오는 거리
@@ -3047,11 +3047,9 @@ function update(dt) {
           for (const e2 of S.enemies) {
             const p2 = posAt(e2.d);
             if (Math.hypot(p2.x - bp.x, p2.y - bp.y) <= u.splash) {
-              const alive = e2.hp > 0;
               e2.hp -= D * hits;
               if (u.slow) e2.slowT = Math.max(e2.slowT, u.slow);
               if (u.special === 'stun') tryStun(e2, BOLT_STUN);   // ⚡ 레일리: 번개로 묶기 (면역 시간 있음)
-              if (u.special === 'mukbang' && alive && e2.hp <= 0) mukEat(u, s, 1);   // 🍗 완뚝으로 먹었다!
             }
           }
           if (hits > 1) {
@@ -3063,7 +3061,6 @@ function update(dt) {
           if (u.special === 'steal') { best.gailHit = true; best.gailKill = (best.hp - D) <= 0; }
           best.hp -= D;
           if (u.slow) best.slowT = Math.max(best.slowT, u.slow);
-          if (u.special === 'mukbang' && best.hp <= 0) mukEat(u, s, 1);   // 🍗 먹었다!
         }
         // 🍗 찌양: 30% 확률로 완뚝 — 주변 적을 빨아들인다
         if (u.special === 'mukbang' && Math.random() < MUK_CHANCE) {
@@ -3077,9 +3074,10 @@ function update(dt) {
             S.effects.push({ kind: 'suck', x: p2.x, y: p2.y, sx: s.cx, sy: s.cy, t: 1, decay: 2.6 });
           }
           if (pulled) {
-            addText(s.cx, s.cy - 30, '🍗 완뚝!', '#ffab91', 16);
+            mukEat(u, s);                    // 🍗 완뚝 성공 — 공격력이 오른다
+            addText(s.cx, s.cy - 30, `🍗 완뚝! +${MUK_GAIN}`, '#ffab91', 16);
             S.effects.push({ kind: 'boom', x: s.cx, y: s.cy, r: MUK_PULL * 0.55, t: 1, fire: false });
-          }
+          } else u.wanttuk = 0;              // 빨아들일 적이 없으면 완뚝이 아니다
         }
         // 🐗 혼의 투곰: 낮은 확률로 깨물어부수기 — 10초 동안 적 체력 50% 하락
         if (u.special === 'crunch' && Math.random() < CRUNCH_CHANCE) {
@@ -4695,12 +4693,12 @@ function hochiDig(sl) {
   sfx('jackpot');
 }
 // 🌳 구루투 과성장 — 300골드를 걸고 40%에 걸리면 27살로 돌아온다
-// 🍗 찌양이 적을 먹었다 — 먹은 수만큼 공격력이 영구히 오른다
-function mukEat(u, sl, n) {
-  u.eaten = (u.eaten || 0) + n;
+// 🍗 완뚝에 성공했다 — 공격력이 영구히 오른다
+function mukEat(u, sl) {
+  u.eaten = (u.eaten || 0) + 1;
   u.dmg = Math.round((MUK_START + u.eaten * MUK_GAIN) * evMul(u.type, 'atk'));
-  if (u.eaten % 10 === 0)
-    addText(sl.cx, sl.cy - 34, `🍗 ${u.eaten}인분! 공격력 ${u.dmg.toLocaleString()}`, '#ffd54f', 14);
+  if (u.eaten % 20 === 0)
+    addText(sl.cx, sl.cy - 34, `🍗 완뚝 ${u.eaten}회! 공격력 ${u.dmg.toLocaleString()}`, '#ffd54f', 14);
 }
 function castGuru() {
   const sl = S.selected;
@@ -4805,7 +4803,7 @@ function updateInfoPanel() {
       + (u.special === 'steal' ? ` · 👊 막타를 뺏길 때마다 +${GAIL_STEAL_GOLD}G` : '')
       + (u.special === 'press' ? ` · 🗜️ ${pressStage(u)}/5단계 — ${PRESS_STAGES[pressStage(u) - 1].desc}` : '')
       + (u.special === 'charge' ? ` · 🥤 같은 적에게 계속 꽂으면 무제한 차징 (지금 ${(u.charge || 0) + 1}단 · ${swallowDmg(u.charge || 0)})` : '')
-      + (u.special === 'mukbang' ? ` · 🍗 지금까지 ${(u.eaten || 0).toLocaleString()}인분 · 하나 먹을 때마다 +${MUK_GAIN} · ${Math.round(MUK_CHANCE * 100)}% 완뚝(주변을 빨아들임)` : '')
+      + (u.special === 'mukbang' ? ` · 🍗 완뚝 ${(u.eaten || 0).toLocaleString()}회 · ${Math.round(MUK_CHANCE * 100)}% 확률로 주변을 빨아들이고 공격력 +${MUK_GAIN}` : '')
       + (u.special === 'senior' ? (u.young
           ? ' · 🌱 27살 과성장 상태 — 범위공격'
           : ` · 🌳 17000살 · 경로당: ${GURU_WAVES.join('·')}의 배수 웨이브마다 아군 공격력 +${Math.round((GURU_CANDY - 1) * 100)}%`) : '')
