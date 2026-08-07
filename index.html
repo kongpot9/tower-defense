@@ -1262,18 +1262,28 @@ const EN_PAT = [          // 숫자가 섞여 통째로는 못 찾는 문장들
 ];
 // 문장 속에 박힌 낱말까지 갈아끼운다. 긴 이름부터 먼저 찾아야 '베인오락실'이
 // '베인'으로 잘려나가지 않는다.
-const EN_WORDS = [
-  '베인오락실','천사 도베르만','혼의 투곰','쥬라사우르스','스쿨 베인','누들 탱크보이',
-  '레드드래곤','펭귄악사','콜드나이퍼','데스삐에로','다크라이더','스왈로제트','능력자광부',
-  '원까태인','로얄 셰프','블레이더','다크라이더','mr.골렘','탱크보이','캣머신','호스퍼',
-  '레일리','노에시','떡장수','프레스','나무꾼','텐한','텐조','채드','베인','가일','도사',
-  '테즈','제프','인디','윌리','낭인','검사','궁수','농부','일반','희귀','영웅','신화','전설',
+// 문장 속에 박힌 낱말까지 갈아끼울 목록. 캐릭터 이름은 UNITS 에서 자동으로 뽑으므로
+// 새 캐릭터가 늘어도 여기를 손볼 필요가 없다 (사전에 이름만 넣으면 끝).
+// ⚠️ UNITS 는 아래에서 선언되므로 미리 만들면 안 된다 — 처음 쓸 때 만든다.
+const WORD_EXTRA = [
+  '베인오락실', '스쿨 베인', '누들 탱크보이',      // 캐릭터 이름을 품은 합성어 (긴 것이 먼저 잡혀야 한다)
+  '일반', '희귀', '영웅', '신화', '전설',
 ];
 const WORD_RE = {};                        // 언어마다 따로 만들어 둔다
+let WORD_LIST = null, WORD_N = -1;
+function wordList() {
+  if (!WORD_LIST || WORD_N !== UNITS.length) {   // 캐릭터가 늘면 목록·정규식을 다시 만든다
+    WORD_LIST = WORD_EXTRA.concat(UNITS.map(u => u.name));
+    WORD_N = UNITS.length;
+    for (const k in WORD_RE) delete WORD_RE[k];
+  }
+  return WORD_LIST;
+}
 function wordSwap(str) {
   const D = DICT_OF[LANG];
+  const list = wordList();   // 먼저 부른다 — 캐릭터가 늘었으면 여기서 정규식 캐시가 비워진다
   if (!WORD_RE[LANG]) {
-    const ks = WORDS_OF[LANG].filter(k => D[k]).sort((a, b) => b.length - a.length)
+    const ks = list.filter(k => D[k]).sort((a, b) => b.length - a.length)
       .map(k => k.split('.').join('\\.'));   // 이름에 든 특수문자는 마침표뿐 (mr.골렘)
     WORD_RE[LANG] = ks.length ? new RegExp(ks.join('|'), 'g') : /$^/;
   }
@@ -1284,10 +1294,8 @@ const JA_PAT = [   [/^🏆 일반 모드 최고 기록: 웨이브 (\d+)$/, '🏆
   [/^⏳ (\d+)시간 (\d+)분 남음$/, '⏳ 残り$1時間$2分'],
   [/^⏳ (\d+)분 남음$/, '⏳ 残り$1分'],
 ];
-const JA_WORDS = EN_WORDS;                 // 낱말 목록은 한국어 원문이라 그대로 쓴다
 const DICT_OF  = { en: EN_DICT,  ja: JA_DICT  };
 const PAT_OF   = { en: EN_PAT,   ja: JA_PAT   };
-const WORDS_OF = { en: EN_WORDS, ja: JA_WORDS };
 const trOn = () => !!DICT_OF[LANG];        // 한국어면 아무것도 안 바꾼다
 function T(s) {                        // 문자열 하나 번역
   if (!trOn() || s == null) return s;
