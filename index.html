@@ -7631,6 +7631,98 @@ function batAllOver() {
 }
 // ---------- 🎙️ 배틀 해설자 ----------
 // 상황이 바뀔 때만 말한다. 같은 말을 반복하지 않게 마지막 대사를 기억해 둔다.
+// ---------- 🎙️ 중계석 대사 (구예준 스튜디오) ----------
+// 상황마다 여러 대사를 두고 하나를 고른다. 같은 장면이 두 번 나와도 같은 말을 하지 않게.
+// {n}=이름 {j}=이름+조사 {g}=격차 {w}=웨이브
+const TALK = {
+  ko: {
+    start1:  ['🎙️ 자, 시작됐습니다', '🎙️ 1 대 1, 지금 출발합니다', '🎙️ 중계석입니다. 곧 첫 웨이브예요'],
+    start2:  ['🎙️ 2 대 2, 지금 시작합니다', '🎙️ 네 명이 붙습니다. 중계석입니다', '🎙️ 팀전이에요. 합계로 갈립니다'],
+    flipS:   ['앗, 뒤집혔습니다', '{j} 앞으로 나갑니다', '순위가 바뀌었어요', '{j} 슬쩍 앞섭니다'],
+    flipM:   ['{j} 치고 나갑니다!', '아 이거 분위기가 넘어가는데요', '{j} 확실히 앞섭니다'],
+    flipB:   ['{j} 완전히 흐름을 가져갔습니다!', '와, 이건 뒤집힌 정도가 아닌데요'],
+    tie:     ['동점! 원점입니다', '나란히 섰어요. 다시 시작이네요', '똑같아졌습니다. 이거 모르겠는데요'],
+    closeK:  ['숨 막히는 접전입니다', '한 끗 차이예요', '이거 진짜 모르겠습니다'],
+    runS:    ['{j} 조금씩 벌립니다', '{n}, 페이스가 좋아요'],
+    runM:    ['{j} 달아나기 시작합니다', '격차가 벌어지는데요', '{n} 쪽으로 기웁니다'],
+    runB:    ['이건 일방적인데요', '{j} 저 멀리 갑니다', '{n}, 다른 게임을 하고 있습니다'],
+    outMe:   ['아... {n} 여기까지입니다', '{n} 쓰러졌어요. 웨이브 {w}'],
+    outFoe:  ['{n} 무너집니다! 웨이브 {w}', '{n} 여기서 끝! {w}웨이브', '{n} 탈락입니다'],
+    outN:    ['{n}, 웨이브 {w}에서 멈춥니다', '{n} 여기까지네요. {w}웨이브'],
+    alone:   ['혼자 남았습니다. 버티기만 하면 돼요', '이제 자기 자신과의 싸움입니다'],
+    aloneN:  ['{n} 혼자 남았습니다', '이제 {n} 하나 남았어요'],
+    boss:    ['웨이브 {w}, 보스입니다', '보스 나옵니다. 여기가 고비예요', '{w}웨이브 보스전'],
+    danger:  ['위험합니다! 적이 쌓이고 있어요', '이거 못 버티는데요', '화면이 꽉 찼습니다'],
+    milE:    ['{w}웨이브 돌파', '벌써 {w}웨이브입니다'],
+    milM:    ['{w}웨이브! 잘 가고 있습니다', '{w}웨이브 넘었어요'],
+    milH:    ['{w}웨이브... 이건 상위권입니다', '{w}웨이브! 대단한데요', '{w}웨이브 돌파! 기록권이에요'],
+    winA:    ['🏆 {n} 승리! {a} 대 {b}', '🏆 끝났습니다. {n}의 승리! {a}:{b}'],
+    drawA:   ['🤝 무승부! 이런 경기도 있네요', '🤝 똑같습니다. 무승부예요'],
+    watch:   ['🎙️ 구예준 스튜디오 중계석입니다', '🎙️ 지금부터 지켜보겠습니다'],
+  },
+  en: {
+    start1:  ['🎙️ And we are underway!', '🎙️ 1v1 — here we go', '🎙️ Commentary desk. First wave incoming'],
+    start2:  ['🎙️ 2v2, starting now', '🎙️ Four players. This is decided on totals'],
+    flipS:   ['Oh, the lead changes hands', '{n} edges ahead', 'And the order flips'],
+    flipM:   ['{n} pushes in front!', 'The momentum is shifting here'],
+    flipB:   ['{n} has taken this over completely!', 'That is not a lead change, that is a takeover'],
+    tie:     ['All square!', 'Level again. Anyone can win this'],
+    closeK:  ['Nail-biting stuff', 'Nothing between them', 'Too close to call'],
+    runS:    ['{n} inches away', '{n} looking comfortable'],
+    runM:    ['{n} starting to pull clear', 'The gap is opening up'],
+    runB:    ['This is one-sided now', '{n} is playing a different game'],
+    outMe:   ['Ah... that is it for {n}', '{n} falls. Wave {w}'],
+    outFoe:  ['{n} goes down! Wave {w}', '{n} is done — {w}'],
+    outN:    ['{n} stops at wave {w}', 'That is {n} out, wave {w}'],
+    alone:   ['Last one standing. Just hold on', 'It is you against the game now'],
+    aloneN:  ['{n} is the last one standing', 'Only {n} left'],
+    boss:    ['Wave {w} — boss', 'Boss incoming. This is the test'],
+    danger:  ['Danger! They are piling up', 'The screen is filling up'],
+    milE:    ['Wave {w}', 'Wave {w} already'],
+    milM:    ['Wave {w}! Going well', 'Past wave {w}'],
+    milH:    ['Wave {w}... that is top-tier', 'Wave {w}! Remarkable'],
+    winA:    ['🏆 {n} wins it! {a} to {b}', '🏆 That is it — {n}! {a}:{b}'],
+    drawA:   ['🤝 A draw! You do not see that often'],
+    watch:   ['🎙️ GU YEJUN STUDIO commentary desk', '🎙️ Let us watch this one'],
+  },
+  ja: {
+    start1:  ['🎙️ さあ、始まりました', '🎙️ 1対1、スタートです', '🎙️ 実況席です。まもなく第1ウェーブ'],
+    start2:  ['🎙️ 2対2、始まります', '🎙️ 4人の勝負。合計で決まります'],
+    flipS:   ['おっと、逆転です', '{n}が前に出ます', '順位が入れ替わりました'],
+    flipM:   ['{n}、抜け出します!', '流れが変わってきました'],
+    flipB:   ['{n}が完全に主導権を握りました!', 'これは逆転どころではありません'],
+    tie:     ['同点! 振り出しです', '並びました。わからなくなってきた'],
+    closeK:  ['息詰まる接戦です', '紙一重です', 'これは読めません'],
+    runS:    ['{n}が少しずつ離します', '{n}、ペースがいい'],
+    runM:    ['{n}が抜け出し始めました', '差が開いてきます'],
+    runB:    ['これは一方的です', '{n}は別の試合をしています'],
+    outMe:   ['ああ...{n}、ここまでです', '{n}が倒れました。ウェーブ{w}'],
+    outFoe:  ['{n}が崩れます! ウェーブ{w}', '{n}、ここで終了。{w}ウェーブ'],
+    outN:    ['{n}、ウェーブ{w}で止まります', '{n}はここまで。{w}ウェーブ'],
+    alone:   ['一人になりました。耐えれば勝ちです', 'ここからは自分との戦いです'],
+    aloneN:  ['{n}が一人残りました', '残るは{n}だけ'],
+    boss:    ['ウェーブ{w}、ボスです', 'ボスが来ます。ここが山場'],
+    danger:  ['危ない! 敵が溜まっています', '画面が埋まってきました'],
+    milE:    ['ウェーブ{w}突破', 'もうウェーブ{w}です'],
+    milM:    ['ウェーブ{w}! いい調子です', 'ウェーブ{w}を超えました'],
+    milH:    ['ウェーブ{w}...これは上位です', 'ウェーブ{w}! すごい'],
+    winA:    ['🏆 {n}の勝利! {a} 対 {b}', '🏆 終わりました。{n}! {a}:{b}'],
+    drawA:   ['🤝 引き分け! めったにない試合です'],
+    watch:   ['🎙️ ク・イェジュン STUDIO 実況席です', '🎙️ この試合、見届けます'],
+  },
+};
+function talk(key, v) {
+  const bank = TALK[LANG] || TALK.ko;
+  const arr = bank[key] || TALK.ko[key];
+  if (!arr || !arr.length) return '';
+  let t = arr[Math.floor(Math.random() * arr.length)];
+  v = v || {};
+  if (v.n != null) t = t.split('{j}').join(LANG === 'ko' ? v.n + josa(v.n, '이', '가') : v.n);
+  for (const k in v) t = t.split('{' + k + '}').join(v[k]);
+  return t;
+}
+// 격차 크기로 톤을 고른다
+const tone = (g, a, b, c) => g >= 25 ? c : g >= 8 ? b : a;
 const CAST = { lines: [], lastLead: null, lastGap: -1, said: {}, peak: 0 };
 // 한국어 조사 — 마지막 글자에 받침이 있으면 '이', 없으면 '가'
 function josa(w, withF, withoutF) {
@@ -7640,9 +7732,11 @@ function josa(w, withF, withoutF) {
     return ((code - 0xAC00) % 28) ? withF : withoutF;
   return withoutF;                                  // 외국어 이름은 '가' 쪽으로
 }
-function say(text, kind) {
-  if (CAST.said[text] && Date.now() - CAST.said[text] < 12000) return;   // 방금 한 말은 다시 안 한다
-  CAST.said[text] = Date.now();
+function say(text, kind, key) {
+  if (!text) return;
+  const id = key || text;            // 같은 사건이면 다른 대사여도 한 번만
+  if (CAST.said[id] && Date.now() - CAST.said[id] < 12000) return;
+  CAST.said[id] = Date.now();
   CAST.lines.push({ t: text, k: kind || '' });
   if (CAST.lines.length > 3) CAST.lines.shift();
   const box = $('batTalk');
@@ -7670,35 +7764,38 @@ function castWatch() {
   // 누가 앞서고 있나 — 리드가 바뀌면 말한다
   const lead = gap > 0 ? 'me' : gap < 0 ? 'you' : 'tie';
   if (lead !== CAST.lastLead && CAST.lastLead !== null) {
-    if (lead === 'me') say(two ? `🔥 역전! 우리 팀이 ${gap} 앞섭니다` : `🔥 역전입니다! ${gap}웨이브 앞섰어요`, 'hot');
-    else if (lead === 'you') say(two ? `😰 역전당했습니다 — ${-gap} 뒤` : `😰 따라잡혔어요, ${-gap}웨이브 뒤집니다`, 'bad');
-    else say('⚖️ 동점! 완전히 원점입니다', 'hot');
+    const ag0 = Math.abs(gap);
+    if (lead === 'tie') say(talk('tie'), 'hot');
+    else if (lead === 'me') say(talk(tone(ag0, 'flipS', 'flipM', 'flipB'), { n: '우리' }), 'hot');
+    else say(talk(tone(ag0, 'flipS', 'flipM', 'flipB'), { n: '상대' }), 'bad');
   }
   CAST.lastLead = lead;
+  if (Math.abs(gap) <= 2 && CAST.peak > 8) say(talk('closeK'), 'hot');
 
   // 격차가 크게 벌어질 때
   const ag = Math.abs(gap);
-  if (ag >= 10 && ag >= CAST.lastGap + 10) {
+  if (ag >= 8 && ag >= CAST.lastGap + 8) {
     CAST.lastGap = ag;
-    say(gap > 0 ? `🚀 ${ag} 차이로 달아납니다` : `🧗 ${ag} 차이... 따라붙어야 합니다`, gap > 0 ? 'hot' : 'bad');
+    say(talk(tone(ag, 'runS', 'runM', 'runB'), { n: gap > 0 ? '우리' : '상대', g: ag }),
+        gap > 0 ? 'hot' : 'bad');
   }
 
   // 누가 쓰러졌나
   for (const r of batAllRoles()) {
     const q = BAT.players[r];
     if (!q || !q.nick || !q.over) continue;
-    if (batTeam(r) === myT && r !== BAT.role) say(`🪦 ${q.nick} 탈락 — 웨이브 ${q.w}`, 'bad');
-    else if (batTeam(r) !== myT) say(`💥 ${q.nick} 탈락! 웨이브 ${q.w}에서 멈췄습니다`, 'hot');
+    if (batTeam(r) === myT && r !== BAT.role) say(talk('outMe', { n: q.nick, w: q.w }), 'bad', 'out:' + r);
+    else if (batTeam(r) !== myT) say(talk('outFoe', { n: q.nick, w: q.w }), 'hot', 'out:' + r);
   }
 
   // 내 상황
   if (S.wave > CAST.peak) {
     CAST.peak = S.wave;
-    if (S.wave % 5 === 0) say(`👹 웨이브 ${S.wave} — 보스전입니다`);
-    if (alive.length === 1 && alive[0] === BAT.role) say('🛡️ 혼자 남았습니다. 버티기만 하면 됩니다', 'hot');
+    if (S.wave % 5 === 0) say(talk('boss', { w: S.wave }));
+    if (S.wave % 25 === 0) say(talk(S.wave >= 75 ? 'milH' : S.wave >= 40 ? 'milM' : 'milE', { w: S.wave }), 'hot', 'mil:' + S.wave);
+    if (alive.length === 1 && alive[0] === BAT.role) say(talk('alone'), 'hot', 'alone');
   }
-  if (S.enemies.length >= ENEMY_LIMIT * 0.75 && !S.over)
-    say(`⚠️ 적이 ${S.enemies.length}마리! 위험합니다`, 'bad');
+  if (S.enemies.length >= ENEMY_LIMIT * 0.75 && !S.over) say(talk('danger'), 'bad');
 }
 // 관전자용 — 어느 편도 들지 않는 중계
 function castWatchNeutral(two) {
@@ -7709,29 +7806,27 @@ function castWatchNeutral(two) {
     return two ? `${t.toUpperCase()}팀` : ((BAT.players[rs[0]] || {}).nick || t.toUpperCase());
   };
   if (lead !== CAST.lastLead && CAST.lastLead !== null) {
-    if (lead === 'tie') say('⚖️ 동점입니다! 원점으로 돌아갔어요', 'hot');
-    else { const n = nameOf(lead); say(`🔥 역전! ${n}${josa(n,'이','가')} ${Math.abs(gap)} 앞섭니다`, 'hot'); }
+    if (lead === 'tie') say(talk('tie'), 'hot');
+    else say(talk(tone(Math.abs(gap), 'flipS', 'flipM', 'flipB'), { n: nameOf(lead) }), 'hot');
   }
   CAST.lastLead = lead;
+  if (Math.abs(gap) <= 2 && CAST.peak > 8) say(talk('closeK'), 'hot', 'close');
   const ag = Math.abs(gap);
-  if (ag >= 10 && ag >= CAST.lastGap + 10) {
+  if (ag >= 8 && ag >= CAST.lastGap + 8) {
     CAST.lastGap = ag;
-    { const n = nameOf(lead); say(`🚀 ${n}${josa(n,'이','가')} ${ag} 차이로 달아납니다`, 'hot'); }
+    say(talk(tone(ag, 'runS', 'runM', 'runB'), { n: nameOf(lead), g: ag }), 'hot', 'run:' + Math.floor(ag / 8));
   }
   for (const r of batAllRoles()) {
     const q = BAT.players[r];
     if (!q || !q.nick || !q.over) continue;
-    say(`💥 ${q.nick} 탈락 — 웨이브 ${q.w}에서 멈췄습니다`);
+    say(talk('outN', { n: q.nick, w: q.w }), '', 'out:' + r);
   }
   const alive = batAllRoles().filter(r => { const q = BAT.players[r]; return q && q.nick && !q.over; });
-  if (alive.length === 1) {
-    const q = BAT.players[alive[0]];
-    say(`🛡️ ${q.nick} 혼자 남았습니다`, 'hot');
-  }
+  if (alive.length === 1) say(talk('aloneN', { n: (BAT.players[alive[0]] || {}).nick || '' }), 'hot', 'alone');
   const top = Math.max(...batAllRoles().map(r => (BAT.players[r] || {}).w || 0));
   if (top > CAST.peak) {
     CAST.peak = top;
-    if (top % 25 === 0) say(`👑 웨이브 ${top} 돌파!`, 'hot');
+    if (top % 25 === 0) say(talk(top >= 75 ? 'milH' : top >= 40 ? 'milM' : 'milE', { w: top }), 'hot', 'mil:' + top);
   }
 }
 function batRenderHud() {
@@ -7880,7 +7975,7 @@ function batStartGame() {
   if (!BAT.ai) { BAT.bc = setInterval(batPush, 1000); batPush(); batListen(); }
   castReset();
   batRenderHud();
-  say(BAT.mode === '2v2' ? '🎙️ 2 대 2 배틀, 시작합니다!' : '🎙️ 1 대 1 배틀, 시작합니다!', 'hot');
+  say(talk(BAT.mode === '2v2' ? 'start2' : 'start1'), 'hot');
   addText(WORLD_W / 2, 230, BAT.mode === '2v2' ? '⚔️ 2 대 2 배틀 시작!' : '⚔️ 1 대 1 배틀 시작!', '#ff8a80', 17);
   addText(WORLD_W / 2, 258, '더 오래 버티는 쪽이 이깁니다', '#cdd6f4', 12);
   sfx('summon');
@@ -7902,7 +7997,7 @@ async function batWatch(raw) {
   $('spectate').classList.remove('hidden');
   $('specSub').textContent = `${info.host}의 방 · ${BAT.mode === '2v2' ? '2 대 2' : '1 대 1'}`;
   castReset();
-  say('🎙️ 관전을 시작합니다', 'hot');
+  say(talk('watch'), 'hot');
   specRender();
   batListen();
 }
@@ -7927,10 +8022,14 @@ function specFinish() {
   if (BAT.done) return;
   BAT.done = true;
   const a = batTeamScore('a'), b = batTeamScore('b');
-  const win = a === b ? '무승부' : a > b ? 'A팀' : 'B팀';
-  say(a === b ? '🤝 무승부로 끝났습니다!' : `🏆 ${win} 승리! ${Math.max(a,b)} 대 ${Math.min(a,b)}`, 'hot');
+  const wt = a > b ? 'a' : 'b';
+  const wr = batAllRoles().filter(r => batTeam(r) === wt && (BAT.players[r] || {}).nick);
+  const win = a === b ? '무승부'
+    : BAT.mode === '2v2' ? wt.toUpperCase() + '팀'
+    : ((BAT.players[wr[0]] || {}).nick || wt.toUpperCase() + '팀');
+  say(a === b ? talk('drawA') : talk('winA', { n: win, a: Math.max(a, b), b: Math.min(a, b) }), 'hot');
   $('specSub').innerHTML = a === b ? '🤝 <b>무승부</b>'
-    : `🏆 <b style="color:#ffd54f">${win} 승리</b> — ${Math.max(a,b)} : ${Math.min(a,b)}`;
+    : `🏆 <b style="color:#ffd54f">${escapeHtml(win)} 승리</b> — ${Math.max(a,b)} : ${Math.min(a,b)}`;
   $('specNote').textContent = '경기가 끝났습니다';
   sfx('jackpot');
 }
@@ -8286,7 +8385,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   ENEMY_ART, enemyImg,
   atkParts, atkText, atkUpMul, atkSpecialMul, updateInfoPanel,
   BAT, batOpen, batStartAi, batTeamScore, batAllOver, batFinish, batCleanup,
-  CAST, say, castWatch, castReset, josa, batWatch, specRender, specFinish, specExit,
+  CAST, say, talk, TALK, castWatch, castReset, josa, batWatch, specRender, specFinish, specExit,
   batMakeBots, batTickBots, BAT_AI, BAT_ROLES,
   T, trDOM, setLang, hasLang, pickLang, getLang: () => LANG, EN_DICT,
   flushPendingScores, catchUpLocalBest, getPending: () => PENDING_SCORES,
