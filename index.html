@@ -2964,17 +2964,9 @@ function update(dt) {
   if (BAT.on && BAT.pro && BAT.playing && !S.over && !BAT.squeezed && S.time >= PRO_SQUEEZE_AT) {
     BAT.squeezed = true;
     addText(WORLD_W / 2, 230, '🌫️ 조임쇠 시작!', '#ff8a80', 19);
-    addText(WORLD_W / 2, 256, `적 한계선이 ${ENEMY_LIMIT} → ${PRO_SQUEEZE_END}마리로 좁아집니다`, '#ffd54f', 13);
+    addText(WORLD_W / 2, 256, `적 한계선이 ${ENEMY_LIMIT} → ${PRO_SQUEEZE_END}마리로 좁아집니다 (${PRO_SQUEEZE_TO / 60}분까지)`, '#ffd54f', 13);
     say('🎙️ 조임쇠가 들어갑니다! 이제부터는 버티는 게 아니라 치워내야 해요', 'hot', 'squeeze');
     sfx('error');
-  }
-  // 🏆 프로 룰: 15분까지 둘 다 살아남으면 여기서 끊는다 (적 수로 갈린다)
-  if (BAT.on && BAT.pro && BAT.playing && !BAT.cut && !S.over && S.time >= PRO_LIMIT) {
-    BAT.cut = true;
-    addText(WORLD_W / 2, 230, '⏱ 시간 종료!', '#ffd54f', 20);
-    addText(WORLD_W / 2, 258, `👾 남은 적 ${S.enemies.length}마리로 승부합니다`, '#cdd6f4', 13);
-    gameOver();
-    batPush();                                   // over:true 와 최종 적 수를 함께 올린다
   }
   // 웨이브 진행 (🍡 레이드는 웨이브 없이 보스 하나만 상대한다)
   if (CH.on) chaosUpdate(dt);                    // 🎪 개판오분전: 몇 초마다 아무 일이나 터진다
@@ -7811,12 +7803,11 @@ const BAT_AI = [
 // 🏆 프로 룰 — 랭커 경기용. 웨이브는 20초 타이머로만 오르기 때문에(startWave)
 //    "더 높은 웨이브"로는 승부가 안 갈린다 — 둘 다 살아 있으면 언제나 같은 웨이브다.
 //    그래서 제한 시간이 끝나면 👾트랙에 남은 적이 적은 쪽이 이긴다 (한계 ENEMY_LIMIT 에서 먼 쪽).
-const PRO_LIMIT = 15 * 60;                       // 한 판 15분
-// 🌫️ 조임쇠 — 웨이브 45쯤은 아직 죽을 만하지 않아서, 그냥 두면 둘 다 살아남아
-//    승부가 "적 수 비교"로만 갈린다. 그래서 브롤스타즈 쇼다운의 독구름처럼
-//    적 한계선(ENEMY_LIMIT)을 10분부터 조여든다 — 반드시 누가 먼저 무너진다.
-const PRO_SQUEEZE_AT = 10 * 60, PRO_SQUEEZE_END = 12;
-const PRO_WAVE = Math.floor(PRO_LIMIT / ROUND_LEN);   // = 45 웨이브 (⚡하이퍼차지 2회)
+// 🏆 프로 룰은 시간으로 끊지 않는다. 웨이브는 20초 타이머로만 오르므로
+//    "더 많은 웨이브" = "더 오래 버팀" = "누가 먼저 죽느냐" 로 전부 같은 말이다.
+//    시간을 재는 일은 🌫️조임쇠가 대신한다 — 한계선이 좁아져 판이 알아서 끝난다.
+// 🌫️ 조임쇠 (브롤스타즈 쇼다운의 독구름): 적 한계선이 10분부터 18분까지 60 → 5.
+const PRO_SQUEEZE_AT = 10 * 60, PRO_SQUEEZE_TO = 18 * 60, PRO_SQUEEZE_END = 5;
 const BAT = { on: false, mode: '1v1', code: null, role: null, myNick: '', playing: false,
               es: null, bc: null, tick: 0, players: {}, bots: [], done: false, ai: null,
               pro: false, cut: false, lastSec: -1 };
@@ -7840,13 +7831,13 @@ function batTeamScore(t) {
 // 🌫️ 지금 이 순간의 적 한계선. 프로 룰이 아니면 평소와 같다.
 function proLimit() {
   if (!(BAT.on && BAT.pro && BAT.playing) || S.time <= PRO_SQUEEZE_AT) return ENEMY_LIMIT;
-  const t = Math.min(1, (S.time - PRO_SQUEEZE_AT) / (PRO_LIMIT - PRO_SQUEEZE_AT));
+  const t = Math.min(1, (S.time - PRO_SQUEEZE_AT) / (PRO_SQUEEZE_TO - PRO_SQUEEZE_AT));
   return Math.max(PRO_SQUEEZE_END, Math.round(ENEMY_LIMIT + (PRO_SQUEEZE_END - ENEMY_LIMIT) * t));
 }
-// 🏆 프로 룰 판정용 — 팀이 떠안고 있는 적의 합. 적을수록 좋다.
-function batTeamEnemies(t) {
+// 🏆 프로 룰 동점 판정용 — 팀이 버틴 시간의 합(초). 길수록 좋다.
+function batTeamSecs(t) {
   return batAllRoles().filter(r => batTeam(r) === t)
-    .reduce((sum, r) => sum + ((BAT.players[r] || {}).en || 0), 0);
+    .reduce((sum, r) => sum + ((BAT.players[r] || {}).sec || 0), 0);
 }
 function batAllOver() {
   return batAllRoles().every(r => { const p = BAT.players[r]; return p && p.nick && p.over; });
@@ -8065,11 +8056,10 @@ function batRenderHud() {
   }
   if (two) html += `<span class="score">A ${batTeamScore('a')} : ${batTeamScore('b')} B</span>`;
   if (BAT.pro) {
-    const left = Math.max(0, PRO_LIMIT - S.time);
-    const mm = Math.floor(left / 60), ss = String(Math.floor(left % 60)).padStart(2, '0');
-    const lim = proLimit();
-    html += `<span class="score" style="color:${left < 60 ? '#ff8a80' : '#ffd54f'}">⏱ ${mm}:${ss}` +
-            ` · 👾${S.enemies.length}/${lim}${lim < ENEMY_LIMIT ? ' 🌫️' : ''}</span>`;
+    const mm = Math.floor(S.time / 60), ss = String(Math.floor(S.time % 60)).padStart(2, '0');
+    const lim = proLimit(), tight = lim < ENEMY_LIMIT;
+    html += `<span class="score" style="color:${tight ? '#ff8a80' : '#ffd54f'}">⏱ ${mm}:${ss}` +
+            ` · 👾${S.enemies.length}/${lim}${tight ? ' 🌫️' : ''}</span>`;
   }
   hud.innerHTML = html;
   castWatch();
@@ -8078,7 +8068,8 @@ function batPush() {   // 내 현황 방송 (대기실에서도 올려야 남들
   if (!BAT.on || !BAT.code || BAT.ai) return;
   return fetch(`${RANK_DB}/party/${BAT.code}/b/${BAT.role}.json`, {
     method: 'PUT',
-    body: JSON.stringify({ nick: BAT.myNick, w: S.wave, en: S.enemies.length, over: S.over, t: Date.now() }),
+    body: JSON.stringify({ nick: BAT.myNick, w: S.wave, en: S.enemies.length,
+                           sec: Math.round(S.time), over: S.over, t: Date.now() }),
   }).catch(() => {});
 }
 function batListen() {  // 모두의 현황 구독
@@ -8162,23 +8153,26 @@ function batResult() {
   $('batTalk').classList.add('hidden');
   const a = batTeamScore('a'), b = batTeamScore('b');
   const mine = batTeam(BAT.role) === 'a' ? a : b, theirs = batTeam(BAT.role) === 'a' ? b : a;
-  // 🏆 프로 룰: 웨이브가 같으면(= 둘 다 시간까지 버팀) 적이 적은 쪽이 이긴다
-  const ea = batTeamEnemies('a'), eb = batTeamEnemies('b');
-  const myEn = batTeam(BAT.role) === 'a' ? ea : eb, opEn = batTeam(BAT.role) === 'a' ? eb : ea;
-  const byEn = BAT.pro && mine === theirs && myEn !== opEn;
-  const win = byEn ? myEn < opEn : mine > theirs;
-  const tie = byEn ? false : mine === theirs;
+  // 🏆 프로 룰: 웨이브가 같으면 더 오래 버틴 쪽이 이긴다.
+  //    웨이브는 20초에 하나씩만 오르므로, 같은 웨이브에서 갈리는 일이 흔하다.
+  const sa = batTeamSecs('a'), sb = batTeamSecs('b');
+  const mySec = batTeam(BAT.role) === 'a' ? sa : sb, opSec = batTeam(BAT.role) === 'a' ? sb : sa;
+  const bySec = BAT.pro && mine === theirs && mySec !== opSec;
+  const win = bySec ? mySec > opSec : mine > theirs;
+  const tie = bySec ? false : mine === theirs;
   const rows = batAllRoles().map(r => {
     const p = BAT.players[r] || {};
     return `<div class="r"><span class="t ${batTeam(r)}">${batTeam(r).toUpperCase()}</span>` +
            `${escapeHtml(p.nick || '-')}<span class="w">웨이브 ${p.w || 0}` +
-           (BAT.pro ? ` · 👾${p.en || 0}` : '') + `</span></div>`;
+           (BAT.pro ? ` · ⏱${Math.floor((p.sec || 0) / 60)}:${String((p.sec || 0) % 60).padStart(2, '0')}` : '') +
+           `</span></div>`;
   }).join('');
   BAT.resultTitle = tie ? '🤝 무승부!' : win ? '🏆 승리!' : '💀 패배...';
   showOverlay('battle');
-  $('ovMsg').innerHTML = (byEn
-      ? `<b style="font-size:22px">👾 ${myEn} : ${opEn}</b><br>` +
-        `<span class="dim">웨이브 ${mine} 동률 — 남은 적이 적은 쪽이 이겼습니다</span><br>`
+  const mmss = n => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`;
+  $('ovMsg').innerHTML = (bySec
+      ? `<b style="font-size:22px">⏱ ${mmss(mySec)} : ${mmss(opSec)}</b><br>` +
+        `<span class="dim">웨이브 ${mine} 동률 — 더 오래 버틴 쪽이 이겼습니다</span><br>`
       : BAT.mode === '2v2'
       ? `<b style="font-size:22px">${mine} : ${theirs}</b><br><span class="dim">팀원 둘의 웨이브 합</span><br>`
       : `<b style="font-size:22px">웨이브 ${mine} : ${theirs}</b><br>`)
@@ -8216,7 +8210,7 @@ function batStartGame() {
   say(talk(BAT.mode === '2v2' ? 'start2' : 'start1'), 'hot');
   addText(WORLD_W / 2, 230, BAT.mode === '2v2' ? '⚔️ 2 대 2 배틀 시작!' : '⚔️ 1 대 1 배틀 시작!', '#ff8a80', 17);
   addText(WORLD_W / 2, 258, BAT.pro
-    ? `🏆 프로 룰 — 먼저 죽는 쪽이 패배 · ${PRO_SQUEEZE_AT / 60}분부터 🌫️조임쇠`
+    ? `🏆 프로 룰 — 더 많은 웨이브가 승리 · ${PRO_SQUEEZE_AT / 60}분부터 🌫️조임쇠`
     : '더 오래 버티는 쪽이 이깁니다', '#cdd6f4', 12);
   sfx('summon');
 }
@@ -8412,8 +8406,9 @@ function batRenderModes() {
   for (const b of document.querySelectorAll('.batmode')) if (b.dataset.m) b.classList.toggle('on', b.dataset.m === BAT.mode);
   $('batProBtn').classList.toggle('on', BAT.pro);
   if (BAT.pro) { $('batRule').innerHTML =
-      `🏆 <b>프로 룰</b> — <b>먼저 죽는 쪽이 패배</b> (최대 ${PRO_LIMIT / 60}분 · ⚡하이퍼차지 2회)<br>` +
-      `🌫️ <b>${PRO_SQUEEZE_AT / 60}분부터 조임쇠</b> — 적 한계선이 ${ENEMY_LIMIT} → ${PRO_SQUEEZE_END}마리로 좁아집니다`;
+      `🏆 <b>프로 룰</b> — <b>더 많은 웨이브에 간 쪽이 승리</b> (시간 제한 없음)<br>` +
+      `🌫️ <b>${PRO_SQUEEZE_AT / 60}분부터 조임쇠</b> — 적 한계선이 ${ENEMY_LIMIT} → ${PRO_SQUEEZE_END}마리로 좁아집니다. ` +
+      `버티기만 해선 못 이깁니다`;
     return; }
   $('batRule').innerHTML = BAT.mode === '2v2'
     ? '4명이 각자 화면에서 싸웁니다 · <b>팀원 둘의 웨이브 합</b>이 팀 점수'
@@ -8787,7 +8782,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   getBoxes: () => BOXES, setBoxes: b2 => { BOXES = { ...BOXES, ...b2 }; saveBoxes(); },
   CREDIT_PER_WAVE, BOX_COST, PRICE, SHOP_SKINS, openShop, openBox, renderShop,
   GEM_PER_GAME, GEM_MIN_WAVE, gainGem, getGem: () => GEM, setGem: n => { GEM = n; saveGem(); },
-  proLimit, PRO_LIMIT, PRO_SQUEEZE_AT, PRO_SQUEEZE_END, ENEMY_LIMIT,
+  proLimit, PRO_SQUEEZE_AT, PRO_SQUEEZE_TO, PRO_SQUEEZE_END, ENEMY_LIMIT, batTeamSecs,
   DOSA_SPLIT, DOSA_ATK, DOSA_SPLIT_WAVES, DOSA_ATK_WAVES,
   TEZ_CHARGE_TIME, TEZ_CHARGE_CD, TEZ_CHARGE_MUL,
   CAT_CANNON_TIME, CAT_CANNON_KILL, CAT_CANNON_SPLASH, CAT_CANNON_BOSS,
