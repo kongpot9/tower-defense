@@ -1014,6 +1014,9 @@
         <button class="batmode on" data-m="1v1">⚔️ 1 대 1</button>
         <button class="batmode" data-m="2v2">⚔️ 2 대 2</button>
       </div>
+      <div id="batModes" style="margin-top:6px">
+        <button id="batProBtn" class="batmode">🏆 프로 룰 (랭커 경기)</button>
+      </div>
       <p id="batRule" class="dim"></p>
       <button id="batCreateBtn">🎪 방 만들기</button>
       <div class="row">
@@ -2921,6 +2924,19 @@ function sellSelected() {
 // ---------- 업데이트 ----------
 function update(dt) {
   S.time += dt;
+  // 🏆 프로 룰: 남은 시간 시계는 1초마다만 다시 그린다 (매 프레임 그리면 낭비다)
+  if (BAT.on && BAT.pro && BAT.playing && !S.over) {
+    const sec = Math.floor(S.time);
+    if (sec !== BAT.lastSec) { BAT.lastSec = sec; batRenderHud(); }
+  }
+  // 🏆 프로 룰: 15분이 되면 양쪽 다 여기서 판을 끊는다 (적 수로 승부가 갈린다)
+  if (BAT.on && BAT.pro && BAT.playing && !BAT.cut && !S.over && S.time >= PRO_LIMIT) {
+    BAT.cut = true;
+    addText(WORLD_W / 2, 230, '⏱ 시간 종료!', '#ffd54f', 20);
+    addText(WORLD_W / 2, 258, `👾 남은 적 ${S.enemies.length}마리로 승부합니다`, '#cdd6f4', 13);
+    gameOver();
+    batPush();                                   // over:true 와 최종 적 수를 함께 올린다
+  }
   // 웨이브 진행 (🍡 레이드는 웨이브 없이 보스 하나만 상대한다)
   if (CH.on) chaosUpdate(dt);                    // 🎪 개판오분전: 몇 초마다 아무 일이나 터진다
   if (RD.on) { raidUpdate(dt); if (!RD.on) return; }
@@ -5807,7 +5823,8 @@ $('batStartBtn').addEventListener('click', () => {
   fetch(`${RANK_DB}/party/${BAT.code}/bat/go.json`, { method: 'PUT', body: JSON.stringify(Date.now()) }).catch(() => {});
   batStartGame();
 });
-document.querySelectorAll('.batmode').forEach(b => b.addEventListener('click', () => {
+$('batProBtn').addEventListener('click', () => { BAT.pro = !BAT.pro; batRenderModes(); });
+document.querySelectorAll('.batmode:not(#batProBtn)').forEach(b => b.addEventListener('click', () => {
   BAT.mode = b.dataset.m; batRenderModes();
 }));
 document.querySelectorAll('.batai').forEach(b => b.addEventListener('click', () => batStartAi(+b.dataset.d)));
@@ -7732,8 +7749,14 @@ const BAT_AI = [
   { key: 1, name: '보통',   emoji: '😎', wave: 70,  spread: 14 },
   { key: 2, name: '어려움', emoji: '👹', wave: 110, spread: 18 },
 ];
+// 🏆 프로 룰 — 랭커 경기용. 웨이브는 20초 타이머로만 오르기 때문에(startWave)
+//    "더 높은 웨이브"로는 승부가 안 갈린다 — 둘 다 살아 있으면 언제나 같은 웨이브다.
+//    그래서 제한 시간이 끝나면 👾트랙에 남은 적이 적은 쪽이 이긴다 (한계 ENEMY_LIMIT 에서 먼 쪽).
+const PRO_LIMIT = 15 * 60;                       // 한 판 15분
+const PRO_WAVE = Math.floor(PRO_LIMIT / ROUND_LEN);   // = 45 웨이브 (⚡하이퍼차지 2회)
 const BAT = { on: false, mode: '1v1', code: null, role: null, myNick: '', playing: false,
-              es: null, bc: null, tick: 0, players: {}, bots: [], done: false, ai: null };
+              es: null, bc: null, tick: 0, players: {}, bots: [], done: false, ai: null,
+              pro: false, cut: false, lastSec: -1 };
 const batTeam = r => (r || '')[0];                      // 'a1' → 'a'
 const batIsMe  = r => r === BAT.role;
 function batCodeGen() {
@@ -7750,6 +7773,11 @@ function batLabel(r) {
 function batTeamScore(t) {
   return batAllRoles().filter(r => batTeam(r) === t)
     .reduce((sum, r) => sum + ((BAT.players[r] || {}).w || 0), 0);
+}
+// 🏆 프로 룰 판정용 — 팀이 떠안고 있는 적의 합. 적을수록 좋다.
+function batTeamEnemies(t) {
+  return batAllRoles().filter(r => batTeam(r) === t)
+    .reduce((sum, r) => sum + ((BAT.players[r] || {}).en || 0), 0);
 }
 function batAllOver() {
   return batAllRoles().every(r => { const p = BAT.players[r]; return p && p.nick && p.over; });
@@ -7967,6 +7995,12 @@ function batRenderHud() {
             `${escapeHtml(p.nick)} ${p.w || 0}</span>`;
   }
   if (two) html += `<span class="score">A ${batTeamScore('a')} : ${batTeamScore('b')} B</span>`;
+  if (BAT.pro) {
+    const left = Math.max(0, PRO_LIMIT - S.time);
+    const mm = Math.floor(left / 60), ss = String(Math.floor(left % 60)).padStart(2, '0');
+    html += `<span class="score" style="color:${left < 60 ? '#ff8a80' : '#ffd54f'}">⏱ ${mm}:${ss}` +
+            ` · 👾${S.enemies.length}</span>`;
+  }
   hud.innerHTML = html;
   castWatch();
 }
@@ -8058,15 +8092,24 @@ function batResult() {
   $('batTalk').classList.add('hidden');
   const a = batTeamScore('a'), b = batTeamScore('b');
   const mine = batTeam(BAT.role) === 'a' ? a : b, theirs = batTeam(BAT.role) === 'a' ? b : a;
-  const win = mine > theirs, tie = mine === theirs;
+  // 🏆 프로 룰: 웨이브가 같으면(= 둘 다 시간까지 버팀) 적이 적은 쪽이 이긴다
+  const ea = batTeamEnemies('a'), eb = batTeamEnemies('b');
+  const myEn = batTeam(BAT.role) === 'a' ? ea : eb, opEn = batTeam(BAT.role) === 'a' ? eb : ea;
+  const byEn = BAT.pro && mine === theirs && myEn !== opEn;
+  const win = byEn ? myEn < opEn : mine > theirs;
+  const tie = byEn ? false : mine === theirs;
   const rows = batAllRoles().map(r => {
     const p = BAT.players[r] || {};
     return `<div class="r"><span class="t ${batTeam(r)}">${batTeam(r).toUpperCase()}</span>` +
-           `${escapeHtml(p.nick || '-')}<span class="w">웨이브 ${p.w || 0}</span></div>`;
+           `${escapeHtml(p.nick || '-')}<span class="w">웨이브 ${p.w || 0}` +
+           (BAT.pro ? ` · 👾${p.en || 0}` : '') + `</span></div>`;
   }).join('');
   BAT.resultTitle = tie ? '🤝 무승부!' : win ? '🏆 승리!' : '💀 패배...';
   showOverlay('battle');
-  $('ovMsg').innerHTML = (BAT.mode === '2v2'
+  $('ovMsg').innerHTML = (byEn
+      ? `<b style="font-size:22px">👾 ${myEn} : ${opEn}</b><br>` +
+        `<span class="dim">웨이브 ${mine} 동률 — 남은 적이 적은 쪽이 이겼습니다</span><br>`
+      : BAT.mode === '2v2'
       ? `<b style="font-size:22px">${mine} : ${theirs}</b><br><span class="dim">팀원 둘의 웨이브 합</span><br>`
       : `<b style="font-size:22px">웨이브 ${mine} : ${theirs}</b><br>`)
     + `<div id="batRoster" style="margin-top:8px">${rows}</div>`;
@@ -8096,13 +8139,15 @@ function batStartGame() {
   S.speed = 1; $('speedBtn').textContent = 'x1';
   $('pauseBtn').disabled = true; $('speedBtn').disabled = true;   // 박자를 맞춰야 공평하다
   startWave();
-  BAT.playing = true; BAT.done = false; BAT.tick = 0;
+  BAT.playing = true; BAT.done = false; BAT.tick = 0; BAT.cut = false;
   if (!BAT.ai) { BAT.bc = setInterval(batPush, 1000); batPush(); batListen(); }
   castReset();
   batRenderHud();
   say(talk(BAT.mode === '2v2' ? 'start2' : 'start1'), 'hot');
   addText(WORLD_W / 2, 230, BAT.mode === '2v2' ? '⚔️ 2 대 2 배틀 시작!' : '⚔️ 1 대 1 배틀 시작!', '#ff8a80', 17);
-  addText(WORLD_W / 2, 258, '더 오래 버티는 쪽이 이깁니다', '#cdd6f4', 12);
+  addText(WORLD_W / 2, 258, BAT.pro
+    ? `🏆 프로 룰 — ${PRO_LIMIT / 60}분 · 끝까지 살면 👾적이 적은 쪽 승`
+    : '더 오래 버티는 쪽이 이깁니다', '#cdd6f4', 12);
   sfx('summon');
 }
 // ---------- 👤 계정(프로필) ----------
@@ -8294,7 +8339,12 @@ function batOpen() {
   batRenderModes();
 }
 function batRenderModes() {
-  for (const b of document.querySelectorAll('.batmode')) b.classList.toggle('on', b.dataset.m === BAT.mode);
+  for (const b of document.querySelectorAll('.batmode')) if (b.dataset.m) b.classList.toggle('on', b.dataset.m === BAT.mode);
+  $('batProBtn').classList.toggle('on', BAT.pro);
+  if (BAT.pro) { $('batRule').innerHTML =
+      `🏆 <b>프로 룰</b> — 한 판 <b>${PRO_LIMIT / 60}분</b> (웨이브 ${PRO_WAVE} · ⚡하이퍼차지 2회)<br>` +
+      `먼저 죽으면 패배. 둘 다 끝까지 살면 <b>👾트랙에 남은 적이 적은 쪽</b>이 이깁니다`;
+    return; }
   $('batRule').innerHTML = BAT.mode === '2v2'
     ? '4명이 각자 화면에서 싸웁니다 · <b>팀원 둘의 웨이브 합</b>이 팀 점수'
     : '둘이 각자 화면에서 싸웁니다 · <b>더 높은 웨이브</b>가 승리';
@@ -8314,7 +8364,7 @@ async function batCreate() {
                        players: {}, bots: [], done: false, ai: null });
   BAT.players.a1 = { nick: BAT.myNick, w: 0, over: false };
   await fetch(`${RANK_DB}/party/${code}/bat.json`, { method: 'PUT',
-    body: JSON.stringify({ mode: BAT.mode, host: BAT.myNick, t: Date.now() }) }).catch(() => {});
+    body: JSON.stringify({ mode: BAT.mode, host: BAT.myNick, pro: BAT.pro, t: Date.now() }) }).catch(() => {});
   await batPush();
   $('batHome').classList.add('hidden');
   $('batWait').classList.remove('hidden');
@@ -8332,6 +8382,7 @@ async function batJoin(raw) {
   let cur = {};
   try { cur = (await (await fetch(`${RANK_DB}/party/${code}/b.json`)).json()) || {}; } catch (e) {}
   BAT.mode = info.mode || '1v1';
+  BAT.pro = !!info.pro;                      // 방장이 정한 룰을 그대로 따른다
   const free = batAllRoles().find(r => !cur[r] || !cur[r].nick);
   if (!free) { $('batMsg').textContent = '방이 꽉 찼어요!'; return; }
   Object.assign(BAT, { on: true, code, role: free, myNick: getNick(), playing: false,
