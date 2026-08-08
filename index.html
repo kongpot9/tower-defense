@@ -1648,6 +1648,7 @@ const MUK_START = 1;            // 시작 공격력
 // ⚠️ 누적 피해에 그냥 비례시키면 '세져서 더 때리고 더 때려서 더 세지는' 고리가 생겨 폭주한다.
 //    제곱근으로 눌러야 시간에 대해 완만하게(거의 직선으로) 자란다.
 const MUK_K = 2;                // 공격력 = 1 + 2 × √(누적 피해)
+const MUK_MAX = 99999;          // 안전망 상한 (정상 플레이로는 200웨이브를 가도 3만 언저리)
 const MUK_CHANCE = 0.30;        // 30% 확률로 완뚝
 const MUK_PULL = 150;           // 완뚝: 이 반경 안의 적을 빨아들인다
 const MUK_SUCK = 26;            // 한 번에 끌려오는 거리
@@ -3011,6 +3012,9 @@ function update(dt) {
       const D = CH.on ? CHAOS_ATK // 🎪 개판오분전: 아군 공격력 10억 고정
         : DEV_POWER ? 100000 // 🌑 DARK KAKAO: 기본 공격력 10만
         : Math.round((jeffDmg || u.dmg) * atkUpMul() * atkSpecialMul(u, aura, juraHyper));
+      // 🍗 찌양이 자랄 때 쓸 배수 — 누적에 강화·버프가 곱해져 들어가면 복리가 되어 폭주한다
+      const mukMul = u.special === 'mukbang'
+        ? Math.max(1, atkUpMul() * atkSpecialMul(u, aura, juraHyper)) : 1;
       if (false) { // (인디의 응원은 상시 오라로 바뀌어 확률 발동을 쓰지 않는다)
       }
       // 🗡️ 블레이더: 원거리 전용 저격수 — 한 대 던질 때마다 기세가 쌓인다
@@ -3054,7 +3058,7 @@ function update(dt) {
               e2.hp -= D * hits;
               if (u.slow) e2.slowT = Math.max(e2.slowT, u.slow);
               if (u.special === 'stun') tryStun(e2, BOLT_STUN);   // ⚡ 레일리: 번개로 묶기 (면역 시간 있음)
-              if (u.special === 'mukbang') mukEat(u, s, took2);   // 🍗 완뚝으로 먹은 만큼
+              if (u.special === 'mukbang') mukEat(u, s, took2 / mukMul);  // 🍗 완뚝으로 먹은 만큼
             }
           }
           if (hits > 1) {
@@ -3067,7 +3071,7 @@ function update(dt) {
           const took = Math.max(0, Math.min(best.hp, D));
           best.hp -= D;
           if (u.slow) best.slowT = Math.max(best.slowT, u.slow);
-          if (u.special === 'mukbang') mukEat(u, s, took);      // 🍗 준 만큼 자란다
+          if (u.special === 'mukbang') mukEat(u, s, took / mukMul);   // 🍗 자기 힘만큼만 자란다
         }
         // 🍗 찌양: 30% 확률로 완뚝 — 주변 적을 빨아들인다
         if (u.special === 'mukbang' && Math.random() < MUK_CHANCE) {
@@ -4705,7 +4709,7 @@ function mukEat(u, sl, dealt) {
   if (!(dealt > 0)) return;
   u.dealt = (u.dealt || 0) + dealt;
   const before = u.dmg;
-  u.dmg = Math.round((MUK_START + MUK_K * Math.sqrt(u.dealt)) * evMul(u.type, 'atk'));
+  u.dmg = Math.min(MUK_MAX, Math.round((MUK_START + MUK_K * Math.sqrt(u.dealt)) * evMul(u.type, 'atk')));
   // 자릿수가 바뀔 때만 알려준다 (매 프레임 뜨면 시끄럽다)
   if (sl && before > 0 && String(u.dmg).length > String(before).length)
     addText(sl.cx, sl.cy - 34, `🍗 공격력 ${u.dmg.toLocaleString()}!`, '#ffd54f', 14);
@@ -8633,7 +8637,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   getArc: () => ({ ...ARC, until: ARC_UNTIL }),
   castDrill, drillCost, POT_EVERY, DRILL_TIME, DRILL_DMG,
   castGuru, hochiDig, GURU_COST, GURU_CHANCE, GURU_WAVES, HOCHI_WAVES,
-  mukEat, MUK_START, MUK_K, MUK_CHANCE, MUK_PULL,
+  mukEat, MUK_START, MUK_K, MUK_MAX, MUK_CHANCE, MUK_PULL,
   doShare, shareText, GAME_URL, applyLayout,
   openEvents, renderEvents, eventsOn, eventRegistry,
   openCave, renderCave, caveList, inCave, releaseFromCave, getCaveOut: () => CAVE_OUT,
