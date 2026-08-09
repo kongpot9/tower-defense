@@ -1789,6 +1789,7 @@ const GIFT_CODES = [
   { code: 'getyourbaseball', name: '🌙 초승달이 든 소포', msg: '야구 장갑 한 짝이 들어 있다', give: { glove: 1 } },
   { code: 'NOGUARD DRG', name: '🐯 봉인된 소포', msg: '소포가 으르렁거린다...', give: { skin: 'hoyong' } }, // 철자 오타 대비 별칭
   { code: 'APPLE', name: '🌌 잠들지 못한 소포', msg: '열자마자 별이 쏟아졌다', give: { aura: 'nightmare' } },
+  { code: '5252', name: '🌑 악몽이 든 소포', msg: '사슬 소리가 새어 나온다...', give: { skin: 'nmtez' } },
 ];
 let GIFTS = [];   // 이미 뜯은 코드 (localStorage)
 
@@ -5896,7 +5897,9 @@ function giveGift(give) { // 보상 지급 — 준 것들을 사람이 읽는 �
   }
   if (give.skin) {
     SKINS[give.skin] = true; saveSkins();
-    got.push(`🎴 한정판 「${SKIN_NAMES[give.skin] || give.skin}」`);
+    // 캐릭터 스킨은 CHAR_SKINS 에 이름이 있다 — 없으면 id 가 그대로 보여 흉하다
+    const csk = CHAR_SKINS.find(x => x.id === give.skin);
+    got.push(`🎴 한정판 「${SKIN_NAMES[give.skin] || (csk && csk.name) || give.skin}」`);
   }
   if (give.aura) {
     const a = AURAS[give.aura];
