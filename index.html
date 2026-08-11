@@ -423,14 +423,14 @@
   }
   @keyframes newblink { 0%,100%{opacity:1} 50%{opacity:.45} }
   /* 🏀 베인오락실 */
-  #arcade, #gacha, #keyring, #cards, #raid, #gift, #shop, #kingdom, #events, #cave {
+  #arcade, #gacha, #keyring, #cards, #raid, #gift, #shop, #kingdom, #events, #cave, #week {
     position:fixed; inset:0; background:#161b2c; z-index:23;
     padding:16px 14px calc(14px + env(safe-area-inset-bottom));
     display:flex; flex-direction:column; align-items:center; gap:8px; overflow-y:auto;
   }
-  #arcade.hidden, #gacha.hidden, #keyring.hidden, #cards.hidden, #raid.hidden, #gift.hidden, #shop.hidden, #kingdom.hidden, #events.hidden, #cave.hidden { display:none; }
+  #arcade.hidden, #gacha.hidden, #keyring.hidden, #cards.hidden, #raid.hidden, #gift.hidden, #shop.hidden, #kingdom.hidden, #events.hidden, #cave, #week.hidden { display:none; }
   /* 🕳️ 굴 */
-  #cave h2 { color:#ffd54f; font-size:22px; }
+  #cave h2, #week h2 { color:#ffd54f; font-size:22px; }
   #caveList { width:100%; max-width:430px; display:flex; flex-direction:column; gap:7px; }
   .cvrow { display:flex; align-items:center; gap:10px; background:#1a1410; border:1px solid #4a3a28;
            border-radius:11px; padding:10px 11px; }
@@ -511,8 +511,8 @@
   #giftResult { width:100%; max-width:420px; font-size:14px; line-height:1.8; text-align:center; color:#ffe082; }
   #giftResult .got { background:#2c2416; border:1px solid #6a4a2c; border-radius:10px; padding:11px; margin-top:6px; }
   #giftLog { width:100%; max-width:420px; font-size:11px; color:#7d8ab0; text-align:center; line-height:1.7; }
-  #arcade h2, #gacha h2, #keyring h2, #cards h2, #raid h2, #gift h2, #shop h2, #kingdom h2, #events h2, #cave h2 { color:#ffd54f; font-size:22px; }
-  #arcade .sub, #gacha .sub, #keyring .sub, #cards .sub, #raid .sub, #gift .sub, #shop .sub, #kingdom .sub, #events .sub, #cave .sub { color:#9fb0d8; font-size:12px; text-align:center; line-height:1.6; }
+  #arcade h2, #gacha h2, #keyring h2, #cards h2, #raid h2, #gift h2, #shop h2, #kingdom h2, #events h2, #cave, #week h2 { color:#ffd54f; font-size:22px; }
+  #arcade .sub, #gacha .sub, #keyring .sub, #cards .sub, #raid .sub, #gift .sub, #shop .sub, #kingdom .sub, #events .sub, #cave, #week .sub { color:#9fb0d8; font-size:12px; text-align:center; line-height:1.6; }
   /* 🍡 최강의 떡장수 레이드 */
   #raid > div { width:100%; max-width:420px; }
   #raidBtns { display:flex; flex-direction:column; gap:8px; }
@@ -532,7 +532,7 @@
   #rhInfo { display:flex; justify-content:space-between; font-size:11px; font-weight:800; margin-top:3px; text-shadow:0 1px 2px #000; }
   #rhTime { color:#ffd54f; } #rhTeam { color:#90caf9; } #rhBuff { color:#ff8a65; }
   #arcTime { color:#ff8a65; font-weight:800; }
-  #arcade .close, #gacha .close, #keyring .close, #cards .close, #gift .close, #shop .close, #kingdom .close, #events .close, #cave .close { background:#3a4566; padding:9px 26px; font-size:14px; border-radius:10px; }
+  #arcade .close, #gacha .close, #keyring .close, #cards .close, #gift .close, #shop .close, #kingdom .close, #events .close, #cave, #week .close { background:#3a4566; padding:9px 26px; font-size:14px; border-radius:10px; }
   #arcade > .grid, #gacha > div, #keyring > div { width:100%; max-width:420px; }
   #court, #arcResult, #gachaResult, #krList, #krPageList, #cardList { width:100%; max-width:420px; }
   .atabs { display:flex; gap:5px; width:100%; max-width:420px; }
@@ -984,6 +984,19 @@
     margin-top: 0 !important; padding: 6px 10px !important;
     font-size: 12px !important; box-shadow: 0 3px 0 #23702a !important;
   }
+
+  /* 📅 주간 미션 (기획: 구예준) — 매주 월요일에 목록이 바뀐다 */
+  #wkList { width:100%; max-width:420px; display:flex; flex-direction:column; gap:8px; }
+  .wkrow { background:#1e3050; border-radius:10px; padding:10px 12px; text-align:left; }
+  .wkrow.done { background:#1d3f2a; }
+  .wktop { display:flex; align-items:center; gap:8px; font-size:13px; color:#dbe6ff; }
+  .wktop .nm { flex:1; }
+  .wktop .rw { color:#ffd54f; font-weight:800; font-size:12px; }
+  .wkbar { margin-top:6px; height:8px; background:#0e1830; border-radius:5px; overflow:hidden; }
+  .wkbar > div { height:100%; background:linear-gradient(90deg,#66d36e,#3fa946); }
+  .wkcnt { margin-top:3px; font-size:11px; color:#9fb0d8; }
+  .wkrow.done .wkcnt { color:#81e88c; }
+  #wkLeft { color:#ffd54f; font-size:12px; font-weight:800; margin:2px 0 4px; }
   .rankcount { width:100%; text-align:left; color:#8a96b8; font-size:11px; font-weight:800; margin-top:4px; }
   /* 🏆 내 순위 — 명단이 길어도 자기 기록은 맨 위에서 바로 보인다 */
   .myrank { width:100%; display:flex; align-items:center; gap:10px; padding:11px 12px; margin:6px 0 2px;
@@ -1084,6 +1097,7 @@
   <div id="deckBanner" class="hidden"></div>
   <button id="ovBtn" data-art="play">시작하기</button>
   <button id="ovBtn5" data-art="chat" class="hidden">💬 채팅방<span id="chatBadge" class="hidden">0</span></button>
+  <button id="ovBtnM" class="hidden">📅 주간미션<span id="wkBadge" class="hidden">0</span></button>
   <button id="ovBtnL" class="hidden">⭐ 전투카드</button>
   <button id="ovBtnK" data-art="keyring" class="hidden">🔑 키링</button>
   <button id="ovBtn2" data-art="story" class="hidden">스테이지 선택</button>
@@ -1413,6 +1427,14 @@
   </div>
   <div id="cardList"></div>
   <button class="close" id="cardsClose">나가기</button>
+</div>
+
+<div id="week" class="hidden">
+  <h2>📅 주간 미션</h2>
+  <p class="sub">매주 <b>월요일</b>에 5개가 새로 바뀝니다<br>달성하면 게임이 끝날 때 🪙코인을 바로 드려요</p>
+  <div id="wkLeft"></div>
+  <div id="wkList"></div>
+  <button class="close" id="wkClose">나가기</button>
 </div>
 
 <div id="keyring" class="hidden">
@@ -2687,6 +2709,8 @@ function resetGame() {
   S.ore = 0;              // ⛏️ 캔 광물은 판마다 새로 센다
   S.keyring = null; // 🔑 판당 1개
   S.merges = 0;     // 🎟️ 미션용 합성 횟수
+  S.summons = 0;    // 📅 주간 미션용 소환 횟수
+  S.bossKills = 0;  // 📅 주간 미션용 보스 처치 수
   S.dragonTry = 0; S.immortal = false; // 🐲 불멸 드래곤
   S.nextKey = GOB_KEY_EVERY;
   S.startedAt = Date.now(); // 🛡️ 기록 검증용 시작 시각
@@ -2994,6 +3018,7 @@ function summon() {
   if (!empty.length) { addText(WORLD_W/2, 460, '빈 칸이 없어요! 합성하거나 판매하세요', '#ff8a8a', 14); sfx('error'); return; }
   S.gold -= S.summonCost;
   S.summonCost += SUMMON_INC;
+  S.summons = (S.summons || 0) + 1;   // 📅 주간 미션 집계
   const g = gradeWithStock(rollGrade());     // 🚫 밴으로 빈 등급이 걸리면 옆 등급으로
   if (g < 0) { addText(WORLD_W/2, 460, '뽑을 캐릭터가 없어요!', '#ff8a8a', 14); return; }
   const proto = rand(poolOfGrade(g));
@@ -3678,6 +3703,7 @@ function update(dt) {
         if ((sl.unit.charge || 0) > 2) addText(sl.cx, sl.cy - 28, '🥤 차징 끊김!', '#ff8a80', 12);
         sl.unit.charge = 0; sl.unit.chargeTgt = null;      // 빨대가 뽑혔다
       }
+      if (e.boss) S.bossKills = (S.bossKills || 0) + 1;   // 📅 주간 미션 집계
       const reward = S.buffT.gold > 0 ? e.gold * 2 : e.gold; // 우동: 골드 2배
       S.gold += reward;
       if (e.gailHit && !e.gailKill) {          // 👊 가일: 막타를 뺏겼다 — 대신 돈이 들어온다
@@ -3773,9 +3799,12 @@ function gameOver() {
     }
     pingPresence();
   }
-  if (!DEV && !ORGOL && !DIG) { // 🎟️ 오락실 미션 판정
+  if (!DEV && !ORGOL && !DIG) { // 🎟️ 오락실 미션 · 📅 주간 미션 판정
     const high = slots.filter(sl => sl.unit && sl.unit.grade >= 3).length;
+    const legend = slots.filter(sl => sl.unit && sl.unit.grade >= 4).length;
     arcCheckMissions({ wave: S.wave, merges: S.merges || 0, high });
+    if (!CH.on) wkCheck({ wave: S.wave, merges: S.merges || 0, summons: S.summons || 0,
+                          high, legend, boss: S.bossKills || 0 });
   }
   if (BAT.on && BAT.playing) {          // ⚔️ 배틀: 내 현황을 알리고, 다 죽었으면 결과
     if (BAT.players[BAT.role]) { BAT.players[BAT.role].w = S.wave; BAT.players[BAT.role].over = true; }
@@ -3808,6 +3837,119 @@ function gameOver() {
   }
 }
 
+
+// ---------- 📅 주간 미션 (기획: 구예준) ----------
+// 고인물 기준으로 오락실 미션(최고 웨이브 30)은 매 판 전부 자동 달성이라 목표가 없었다.
+// 매주 월요일에 5개가 새로 바뀌고, 그중엔 고수만 되는 것도 섞는다.
+// type:'run' 한 판 안에서 달성 · type:'sum' 이번 주 동안 모으기
+const WK_PICK = 5;
+const WK_MISSIONS = [
+  // tag = 무엇을 재는가 (같은 tag 는 한 주에 하나만 나온다) · hard = 고수용
+  { id:'w40',    type:'run', tag:'wave',   goal:40,  coin:30, name:'한 판에 웨이브 40 도달',  get:r => r.wave },
+  { id:'w60',    type:'run', tag:'wave',   goal:60,  coin:50, hard:1, name:'한 판에 웨이브 60 도달', get:r => r.wave },
+  { id:'w80',    type:'run', tag:'wave',   goal:80,  coin:90, hard:1, name:'한 판에 웨이브 80 도달', get:r => r.wave },
+  { id:'mg60',   type:'run', tag:'merge',  goal:60,  coin:40, name:'한 판에 합성 60번',       get:r => r.merges },
+  { id:'sm150',  type:'run', tag:'summon', goal:150, coin:35, name:'한 판에 소환 150번',      get:r => r.summons },
+  { id:'myth5',  type:'run', tag:'grade',  goal:5,   coin:45, name:'한 판에 신화 이상 5마리', get:r => r.high },
+  { id:'lg3',    type:'run', tag:'grade',  goal:3,   coin:55, hard:1, name:'한 판에 전설 3마리 배치', get:r => r.legend },
+  { id:'play20', type:'sum', tag:'play',   goal:20,  coin:30, name:'이번 주 20판 플레이',     get:r => 1 },
+  { id:'play50', type:'sum', tag:'play',   goal:50,  coin:60, hard:1, name:'이번 주 50판 플레이', get:r => 1 },
+  { id:'mg300',  type:'sum', tag:'merge',  goal:300, coin:40, name:'이번 주 합성 300번',      get:r => r.merges },
+  { id:'sm500',  type:'sum', tag:'summon', goal:500, coin:40, name:'이번 주 소환 500번',      get:r => r.summons },
+  { id:'wv500',  type:'sum', tag:'wave',   goal:500, coin:45, name:'이번 주 웨이브 누적 500', get:r => r.wave },
+  { id:'wv1500', type:'sum', tag:'wave',   goal:1500,coin:80, hard:1, name:'이번 주 웨이브 누적 1500', get:r => r.wave },
+  { id:'boss30', type:'sum', tag:'boss',   goal:30,  coin:50, name:'이번 주 보스 30마리 처치',get:r => r.boss },
+];
+
+// 한국 시간 기준 월요일에 주가 바뀐다 (1970-01-01 이 목요일이라 +3 을 더해 월요일로 맞춘다)
+function weekNo(t) {
+  const days = Math.floor(((t === undefined ? Date.now() : t) + 9 * 3600e3) / 86400e3);
+  return Math.floor((days + 3) / 7);
+}
+function weekEndsIn() {                      // 이번 주가 끝나기까지 남은 시간
+  const ms = (weekNo() + 1) * 7 * 86400e3 - 3 * 86400e3 - (Date.now() + 9 * 3600e3);
+  const h = Math.max(0, Math.floor(ms / 3600e3));
+  return h >= 24 ? `${Math.floor(h / 24)}일 ${h % 24}시간` : `${h}시간`;
+}
+// 주차 번호로 정해지는 5개 (모두에게 똑같이 나온다).
+// 한 판짜리 3개 + 이번주 모으기 2개, 재는 항목(tag)은 서로 겹치지 않게,
+// 고수용(hard)이 최소 1개는 들어가게 고른다.
+function weekPick(w) {
+  let seed = (w * 9301 + 49297) % 233280;
+  const next = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  const out = [], tags = new Set();
+  const take = (type, n) => {
+    const pool = WK_MISSIONS.filter(m => m.type === type);
+    for (let i = 0; i < n; i++) {
+      const ok = pool.filter(m => !tags.has(m.tag) && !out.includes(m));
+      if (!ok.length) return;
+      const m = ok[Math.floor(next() * ok.length)];
+      out.push(m); tags.add(m.tag);
+    }
+  };
+  take('run', 3);
+  take('sum', WK_PICK - out.length);
+  if (!out.some(m => m.hard)) {                    // 고수용이 하나도 없으면 하나를 바꿔 넣는다
+    // 같은 항목(tag)·같은 방식(type)의 어려운 버전으로 교체해야 5개 구성이 안 무너진다
+    for (let i = out.length - 1; i >= 0; i--) {
+      const cand = WK_MISSIONS.filter(m => m.hard && m.tag === out[i].tag && m.type === out[i].type);
+      if (cand.length) { out[i] = cand[Math.floor(next() * cand.length)]; break; }
+    }
+  }
+  return out;
+}
+let WK = { w: 0, p: {}, done: [] };
+function loadWeek() {
+  try { WK = { w: 0, p: {}, done: [], ...JSON.parse(localStorage.getItem('ltd_week') || '{}') }; } catch (e) {}
+  wkReset();
+}
+function saveWeek() { try { localStorage.setItem('ltd_week', JSON.stringify(WK)); } catch (e) {} }
+function wkReset() {                          // 주가 바뀌면 진행도를 비운다
+  const w = weekNo();
+  if (WK.w !== w) { WK = { w, p: {}, done: [] }; saveWeek(); }
+}
+function wkList() { wkReset(); return weekPick(WK.w); }
+function wkCheck(r) {                         // 게임 한 판이 끝날 때
+  wkReset();
+  let got = 0; const names = [];
+  for (const m of wkList()) {
+    if (WK.done.includes(m.id)) continue;
+    const v = +m.get(r) || 0;
+    const cur = m.type === 'sum' ? (WK.p[m.id] || 0) + v : Math.max(WK.p[m.id] || 0, v);
+    WK.p[m.id] = cur;
+    if (cur >= m.goal) { WK.done.push(m.id); got += m.coin; names.push(`${m.name} +${m.coin}`); }
+  }
+  saveWeek();
+  if (got) {
+    gainCredit(got);
+    addText(WORLD_W / 2, 310, `📅 주간 미션 달성! 🪙${got}`, '#ffd54f', 17);
+    for (let i = 0; i < names.length; i++) addText(WORLD_W / 2, 336 + i * 20, names[i], '#c5e1a5', 13);
+  }
+  wkBadge();
+  return got;
+}
+function wkBadge() {                          // 남은 미션 개수를 버튼에 표시
+  const b = $('wkBadge'); if (!b) return;
+  wkReset();
+  const left = wkList().filter(m => !WK.done.includes(m.id)).length;
+  b.textContent = left;
+  b.classList.toggle('hidden', left === 0);
+}
+function renderWeek() {
+  wkReset();
+  $('wkLeft').textContent = `이번 주 미션이 바뀌기까지 ${weekEndsIn()} 남음`;
+  $('wkList').innerHTML = wkList().map(m => {
+    const done = WK.done.includes(m.id);
+    const cur = Math.min(WK.p[m.id] || 0, m.goal);
+    const pct = Math.round(cur / m.goal * 100);
+    return `<div class="wkrow${done ? ' done' : ''}">
+      <div class="wktop"><span>${done ? '✅' : (m.type === 'sum' ? '📦' : '🎯')}</span>
+        <span class="nm">${m.name}</span><span class="rw">🪙${m.coin}</span></div>
+      <div class="wkbar"><div style="width:${pct}%"></div></div>
+      <div class="wkcnt">${done ? '완료! 코인을 받았어요' : `${cur} / ${m.goal}`}</div>
+    </div>`;
+  }).join('');
+}
 // ---------- ⭐ 전투 레벨 (기획: 구예준) ----------
 // 게임을 할수록 쌓이고 절대 사라지지 않는다. 전투력에는 영향 없음 — 오직 전투카드 수집용.
 let XP = 0, LV = 1;
@@ -5560,6 +5702,8 @@ function showOverlay(mode) {
     $('ovBtnN').classList.remove('hidden'); // 📢 공지 다시 보기
     $('ovBtnY').classList.remove('hidden'); // 📺 공식 유튜브 채널
     $('ovBtnL').classList.remove('hidden'); // ⭐ 전투카드
+    $('ovBtnM').classList.remove('hidden'); // 📅 주간 미션
+    wkBadge();
     if (VOTE_ROUND >= 2) $('ovBtn7').classList.remove('hidden'); // 🗳️ 인기투표는 2회차에 복귀
     if (DUO.on) duoCleanup(); // 홈으로 오면 듀오 종료
     if (BAT.on) batCleanup();  // ⚔️ 배틀도 정리
@@ -6805,6 +6949,9 @@ async function openVote() {
   renderVote();
 }
 $('ovBtn7').addEventListener('click', openVote);
+$('ovBtnM').addEventListener('click', () => { renderWeek(); $('week').classList.remove('hidden'); });
+$('wkClose').addEventListener('click', () => { $('week').classList.add('hidden'); wkBadge(); });
+loadWeek();
 $('voteClose').addEventListener('click', () => $('vote').classList.add('hidden'));
 
 // ---------- 🏰 고블린의 저택 (기간 한정 이벤트, 기획: 구예준) ----------
@@ -9630,6 +9777,7 @@ window.__game = { S, slots, summon, startWave, tryMerge, resetGame, update, move
   arcState: () => ({ phase: arcPhase, pick: arcPick, ball: arcBallPos, power: arcPower, pts: arcPts,
     game: arcGame, skeePower, bowlAim, bowlPower, bowlPhase }),
   skeeRoll, bowlAimSet, bowlThrow, switchArcGame, arcCheckMissions, renderMissions, ARC_MISSIONS,
+  WK_MISSIONS, weekNo, weekPick, wkCheck, renderWeek, wkList, getWeek: () => WK,
   setArcPlay: o => { if (o.skeePower !== undefined) skeePower = o.skeePower;
     if (o.bowlAim !== undefined) bowlAim = o.bowlAim; if (o.bowlPower !== undefined) bowlPower = o.bowlPower;
     if (o.bowlPhase !== undefined) bowlPhase = o.bowlPhase; },
