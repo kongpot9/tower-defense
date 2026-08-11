@@ -980,6 +980,9 @@
     display: flex; flex-wrap: wrap; justify-content: center; gap: 5px;
     width: 100%; padding: 6px 6px 0; flex: 0 0 auto;
   }
+  /* 🏃 러닝은 새 모드라 눈에 띄게 (예준이 그림이 나오면 해변 그림 안으로 옮긴다) */
+  #overlay #ovBtnRun { background:linear-gradient(180deg,#f7c948,#e0a81c) !important;
+    box-shadow:0 4px 0 #9c7410 !important; color:#2A1F00 !important; }
   body.beach #bMore button {
     margin-top: 0 !important; padding: 6px 10px !important;
     font-size: 12px !important; box-shadow: 0 3px 0 #23702a !important;
@@ -1097,6 +1100,7 @@
   <div id="deckBanner" class="hidden"></div>
   <button id="ovBtn" data-art="play">시작하기</button>
   <button id="ovBtn5" data-art="chat" class="hidden">💬 채팅방<span id="chatBadge" class="hidden">0</span></button>
+  <button id="ovBtnRun" class="hidden">🏃 러닝</button>
   <button id="ovBtnM" class="hidden">📅 주간미션<span id="wkBadge" class="hidden">0</span></button>
   <button id="ovBtnL" class="hidden">⭐ 전투카드</button>
   <button id="ovBtnK" data-art="keyring" class="hidden">🔑 키링</button>
@@ -5702,6 +5706,7 @@ function showOverlay(mode) {
     $('ovBtnN').classList.remove('hidden'); // 📢 공지 다시 보기
     $('ovBtnY').classList.remove('hidden'); // 📺 공식 유튜브 채널
     $('ovBtnL').classList.remove('hidden'); // ⭐ 전투카드
+    $('ovBtnRun').classList.remove('hidden'); // 🏃 러닝 액션
     $('ovBtnM').classList.remove('hidden'); // 📅 주간 미션
     wkBadge();
     if (VOTE_ROUND >= 2) $('ovBtn7').classList.remove('hidden'); // 🗳️ 인기투표는 2회차에 복귀
@@ -6949,6 +6954,7 @@ async function openVote() {
   renderVote();
 }
 $('ovBtn7').addEventListener('click', openVote);
+$('ovBtnRun').addEventListener('click', () => { location.href = 'run.html'; });
 $('ovBtnM').addEventListener('click', () => { renderWeek(); $('week').classList.remove('hidden'); });
 $('wkClose').addEventListener('click', () => { $('week').classList.add('hidden'); wkBadge(); });
 loadWeek();
