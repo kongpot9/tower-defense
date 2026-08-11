@@ -1810,6 +1810,7 @@ const UNITS = [
   { type:'deathpierrot', grade:2, emoji:'🤡', name:'데스삐에로', dmg:72,  cd:0.80, range:140, atk:'punch', special:'shock', img:'character/hero1.png' },
   { type:'lumberjack',   grade:2, emoji:'🪓', name:'나무꾼',     dmg:91,  cd:1.00, range:100, atk:'axe',      img:'character/hero2.png' },
   { type:'darkrider',    grade:2, emoji:'🥷', name:'다크라이더', dmg:16,  cd:0.22, range:165, atk:'shuriken', img:'character/hero3.png' },
+  { type:'wolf',         grade:2, emoji:'🐺', name:'울프수강생', dmg:100, cd:1.10, range:120, atk:'bite',  special:'wolf', img:'character/hero8.png' },
   // 신화 — 아들 그림!
   { type:'miner',    grade:3, emoji:'⛏️', name:'능력자광부',   dmg:30,  cd:0.50, range:130, atk:'drill',     special:'bomb',   img:'character/myth1.png' },
   { type:'ricecake', grade:3, emoji:'🍡', name:'떡장수',       dmg:45,  cd:0.75, range:170, atk:'songpyeon', special:'multi4', img:'character/myth2.png' },
@@ -1834,6 +1835,7 @@ const UNITS = [
   { type:'press',      grade:3, emoji:'🗜️', name:'프레스',     dmg:90,  cd:4.00, range:150, atk:'shell', special:'press', cave:'2026-08-05', img:'character/press.png' },
   { type:'swallow',    grade:3, emoji:'🥤', name:'스왈로제트', dmg:10,  cd:0.80, range:160, splash:40, atk:'straw', special:'charge', cave:'2026-08-05', img:'character/swallow.png' },
   { type:'gail',       grade:3, emoji:'👊', name:'가일',       dmg:450, cd:1.50, range:120, atk:'punch', special:'steal', cave:'2026-08-05', img:'character/myth10.png' },
+  { type:'aetna',      grade:3, emoji:'🛡️', name:'에이트나',   dmg:300, cd:1.30, range:115, splash:58, atk:'slash', special:'push', img:'character/myth11.png' },
   { type:'guru',       grade:3, emoji:'🌳', name:'구루투',     dmg:22,  cd:1.50, range:130, atk:'slash', special:'senior', cave:'2026-08-07', img:'character/guru.png' },
   { type:'bane',       grade:3, emoji:'😈', name:'베인',       dmg:330, cd:2.20, range:110, splash:45, atk:'bane', img:'character/myth5.png' },
   // 영웅 추가
@@ -1893,6 +1895,10 @@ const MUK_SUCK = 26;            // 한 번에 끌려오는 거리
 const oreMul = () => 1 + Math.min((S.ore || 0) * HOCHI_ORE_STEP, HOCHI_ORE_MAX);
 // ⛏️ 호치 — 매 웨이브 판다. 캔 광물은 사라지지 않고 쌓여서 팀을 계속 밀어준다.
 //    (전에는 3·5의 배수에만 파고 효과가 10초짜리라, 그 칸에 딜러를 넣는 게 나았다 — 팀 화력 -8%)
+// 🐺 울프수강생 (기획: 구예준) — 발톱 100을 두 번, 30% 확률로 급소를 찾아 15초간 아군 1.3배
+const WOLF_HITS = 2, WOLF_CHANCE = 0.30, WOLF_BUFF_TIME = 15;
+// 🛡️ 에이트나 (기획: 구예준) — 검으로 범위 300, 방패로 적을 트랙 뒤로 밀어낸다
+const AETNA_PUSH = 26;
 const HOCHI_GOLD = 300;
 const HOCHI_ORE_STEP = 0.01;    // 광물 한 개당 아군 공격력 +1%
 // 최대 +25%. 🔵영웅인 호치가 🟡전설 펭귄악사(+30%)를 넘으면 등급이 거꾸로가 된다.
@@ -3412,6 +3418,11 @@ function update(dt) {
               e2.hp -= D * hits;
               if (u.slow) e2.slowT = Math.max(e2.slowT, u.slow);
               if (u.special === 'stun') tryStun(e2, BOLT_STUN);   // ⚡ 레일리: 번개로 묶기 (면역 시간 있음)
+              if (u.special === 'push' && e2.d > 0) {             // 🛡️ 에이트나: 방패로 뒤로 밀어낸다
+                e2.d = Math.max(0, e2.d - AETNA_PUSH);
+                const p3 = posAt(e2.d);
+                S.effects.push({ kind: 'suck', x: p2.x, y: p2.y, sx: p3.x, sy: p3.y, t: 1, decay: 3 });
+              }
               if (u.special === 'mukbang') mukEat(u, s, took2 / mukMul);  // 🍗 완뚝으로 먹은 만큼
             }
           }
@@ -3440,8 +3451,10 @@ function update(dt) {
           }
         } else {
           if (u.special === 'steal') { best.gailHit = true; best.gailKill = (best.hp - D) <= 0; }
-          const took = Math.max(0, Math.min(best.hp, D));
-          best.hp -= D;
+          const hitN = u.special === 'wolf' ? WOLF_HITS : 1;      // 🐺 발톱은 두 번 긁는다
+          const took = Math.max(0, Math.min(best.hp, D * hitN));
+          best.hp -= D * hitN;
+          if (hitN > 1) addText(bp.x, bp.y - 24, `🐺 ×${hitN}`, '#cfd8dc', 13);
           if (u.slow) best.slowT = Math.max(best.slowT, u.slow);
           if (u.special === 'mukbang') mukEat(u, s, took / mukMul);   // 🍗 자기 힘만큼만 자란다
         }
@@ -3461,6 +3474,12 @@ function update(dt) {
             addText(s.cx, s.cy - 30, '🍗 완뚝!', '#ffab91', 16);
             S.effects.push({ kind: 'boom', x: s.cx, y: s.cy, r: MUK_PULL * 0.55, t: 1, fire: false });
           } else u.wanttuk = 0;              // 빨아들일 적이 없으면 완뚝이 아니다
+        }
+        // 🐺 울프수강생: 30% 확률로 급소 — 15초 동안 아군 전체 공격력 1.3배
+        if (u.special === 'wolf' && Math.random() < WOLF_CHANCE) {
+          S.buffT.dmg = Math.max(S.buffT.dmg, WOLF_BUFF_TIME);
+          addText(s.cx, s.cy - 32, '🐺 급소 발견!', '#ffd54f', 15);
+          S.effects.push({ kind: 'boom', x: bp.x, y: bp.y, r: 30, t: 1, fire: false });
         }
         // 🐗 혼의 투곰: 낮은 확률로 깨물어부수기 — 10초 동안 적 체력 50% 하락
         if (u.special === 'crunch' && Math.random() < CRUNCH_CHANCE) {
@@ -6726,6 +6745,7 @@ const HOLLY_TIER = { // 현 메타 티어 (일반 모드 기준)
   archer:'A', royalchef:'A',
   penguin:'S', bane:'A', indie:'B', jeff:'B',
   tez:'A', blader:'A', willy:'B', guru:'A', hochi:'B', jjyang:'A', sunin:'A',
+  wolf:'?', aetna:'?',
 };
 const TIER_COLOR = { S:'#ffd54f', A:'#4fc3f7', B:'#9ccc65', C:'#ffb74d', D:'#b0bec5', '?':'#8ab8ff' };
 const HOLLY_EVAL = {
@@ -6760,6 +6780,8 @@ const HOLLY_EVAL = {
   jjyang: '공격력 1로 시작하는 전설 — 먹은 만큼 영구히 세진다. 일찍 꺼낼수록 강해진다',
   guru: '17000살을 300골드에 걸어 27살로 되돌리는 도박 — 실패하면 그냥 노인이다',
   hochi: '싸우지 않고 땅만 판다 — 금맥·광물·폭발의 캔디 중 뭐가 나올지는 파봐야 안다',
+  wolf: '혼자 세지는 게 아니라 팀을 세게 만든다 — 급소가 터지는 15초 동안은 판 전체가 1.3배',
+  aetna: '입문용 탱커 — 검은 범위로 때리고 방패는 적을 트랙 뒤로 밀어낸다. 밀어낸 만큼 시간을 번다',
   bane: '한 방의 무게 330 — 뭉친 적을 통째로 지우는 신화의 파괴자',
   indie: '혼자선 약하지만 팀을 빠르게 만든다 — 공격력이 전부가 아니라는 증명',
   tez: '짧은 사거리를 40% 연쇄펀치로 갚는다 — 트랙 옆 명당이 전부인 근접 전설',
