@@ -6,7 +6,7 @@
 <title>베인 러닝 액션 — 구예준 STUDIO</title>
 <meta name="theme-color" content="#EFEDE4">
 <meta property="og:title" content="베인 러닝 액션">
-<meta property="og:description" content="눌러서 점프! 젤리를 모아 새 캐릭터를 사세요. 구예준 STUDIO">
+<meta property="og:description" content="눌러서 점프, 한 번 더 누르면 2단 점프! 젤리를 모아 새 캐릭터를 사세요. 구예준 STUDIO">
 <meta property="og:image" content="https://kongpot9.github.io/tower-defense/share.png">
 <style>html,body{margin:0;padding:0;background:#EFEDE4}@media (prefers-color-scheme:dark){html,body{background:#14150F}}</style>
 </head>
@@ -34,8 +34,15 @@
     border:1.5px solid var(--line); border-radius:8px; padding:6px 11px; }
   .hd .back:hover{ border-color:var(--ink); }
   .hd .by{ font-size:11px; color:var(--muted); letter-spacing:.14em; }
+  /* 러닝은 가로가 넓을수록 앞이 많이 보인다 — 폰을 가로로 돌리면 화면을 꽉 채운다 */
   .screen{ position:relative; background:#fff; border:1px solid var(--line); border-radius:12px;
-    overflow:hidden; aspect-ratio:16/9; max-height:64vh; }
+    overflow:hidden; aspect-ratio:16/9; }
+  @media (orientation:landscape){
+    .screen{ aspect-ratio:auto; height:min(84vh, 56.25vw); border-radius:10px; }
+  }
+  .turn{ display:none; margin:8px 0 0; padding:9px 12px; border-radius:9px; font-size:12.5px; font-weight:700;
+    background:var(--gold); color:#2A1F00; border:1.5px solid #171712; text-align:center; }
+  @media (orientation:portrait){ .turn{ display:block; } }
   canvas{ display:block; width:100%; height:100%; touch-action:none; }
   .hud{ position:absolute; inset:8px 10px auto 10px; display:flex; gap:14px; align-items:center;
     pointer-events:none; font-weight:800; font-size:15px; color:#171712; }
@@ -97,7 +104,7 @@
     <div class="card on" id="cardStart">
       <div>
         <h2>베인 러닝 액션</h2>
-        <p>화면을 누르거나 <b>스페이스</b>로 점프<br>구덩이에 빠지면 끝이에요</p>
+        <p>화면을 누르거나 <b>스페이스</b>로 점프<br><b>공중에서 한 번 더 누르면 2단 점프</b><br>구덩이에 빠지면 끝이에요</p>
         <p class="big">🍬 젤리 800개를 모으면 새 캐릭터를 살 수 있어요</p>
         <button id="btnStart">시작하기</button>
       </div>
@@ -111,6 +118,8 @@
       </div>
     </div>
   </div>
+
+  <p class="turn">📱 폰을 <b>가로로 돌리면</b> 화면이 커지고 앞이 더 많이 보여요</p>
 
   <div class="wallet">
     <div>모은 젤리 <b id="wCandy">0</b></div>
@@ -238,6 +247,12 @@ function draw(){
   }
   if (P) {
     const a = ASSETS[bank.pick] || ASSETS.bane, im = IMG[bank.pick] || IMG.bane;
+    if (P.puff > 0) {                      // 🦘 2단 점프한 자리에 동그라미
+      ctx.save(); ctx.globalAlpha = P.puff * 3;
+      ctx.strokeStyle = '#E0631C'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(P.x, P.y - 6, 26 + (0.25 - P.puff) * 90, 0, 7); ctx.stroke();
+      ctx.restore();
+    }
     if (im.complete) {
       ctx.save();
       ctx.translate(P.x, P.y);
@@ -261,7 +276,8 @@ function start(){
   const f = firstPlat();
   if (!f) { alert('맵에 트랙이 없어요'); return; }
   for (const o of objs) o.gone = false;
-  P = { x: f.x + 30, y: f.y, vy: 0, air: false, fly: 0, candy: 0, coin: 0, dead: false, hold: false };
+  P = { x: f.x + 30, y: f.y, vy: 0, air: false, jumps: 0, puff: 0, fly: 0,
+        candy: 0, coin: 0, dead: false, hold: false };
   cam = 0; state = 'play';
   $('cardStart').classList.remove('on'); $('cardEnd').classList.remove('on');
   last = performance.now(); cancelAnimationFrame(raf); raf = requestAnimationFrame(step);
@@ -278,10 +294,16 @@ function finish(clear){
     `코인 ${COIN_PER_OFFICIAL}개마다 오피셜 코인 1개 → 이번 판 <b>${Math.floor(P.coin/COIN_PER_OFFICIAL)}개</b>`;
   $('cardEnd').classList.add('on');
 }
+// 🦘 2단 점프 — 공중에서 한 번 더 누르면 다시 뛴다 (기획: 구예준)
+const JUMPS_MAX = 2;
 function press(){
   if (state !== 'play') return;
   if (P.fly > 0) { P.hold = true; return; }
-  if (!P.air) { P.vy = -MAP.jmp; P.air = true; }
+  if (P.jumps >= JUMPS_MAX) return;
+  P.jumps++;
+  P.vy = -MAP.jmp;          // 2단도 같은 세기 — 그래야 얼마나 갈지 계산이 쉽다
+  P.air = true;
+  if (P.jumps === 2) P.puff = 0.25;   // 두 번째 점프 표시
 }
 function release(){ if (P) P.hold = false; }
 cv.addEventListener('pointerdown', e => { e.preventDefault(); press(); });
@@ -295,6 +317,7 @@ $('btnAgain').addEventListener('click', start);
 
 function step(now){
   const dt = Math.min(0.033, (now - last)/1000); last = now;
+  if (P.puff > 0) P.puff = Math.max(0, P.puff - dt);
   P.x += MAP.spd * dt;
   if (P.fly > 0) {                                   // 🟨 보너스 — 날아간다
     P.fly -= dt;
@@ -303,12 +326,12 @@ function step(now){
     P.y += P.vy * dt;
     if (P.y < FLY_TOP) { P.y = FLY_TOP; P.vy = 0; }
     if (P.y > FLY_BOT) { P.y = FLY_BOT; P.vy = 0; }
-    if (P.fly <= 0) { P.fly = 0; P.air = true; P.vy = 0; }
+    if (P.fly <= 0) { P.fly = 0; P.air = true; P.vy = 0; P.jumps = 1; }   // 비행 끝나면 한 번 남겨 준다
   } else {
     P.vy += G * dt; P.y += P.vy * dt;
     const s = surfaceAt(P.x);
     if (s === null) P.air = true;
-    else if (P.y >= s && P.vy >= 0) { P.y = s; P.vy = 0; P.air = false; }
+    else if (P.y >= s && P.vy >= 0) { P.y = s; P.vy = 0; P.air = false; P.jumps = 0; }
     else if (P.y < s) P.air = true;
     if (P.y > GROUND + 120) { P.dead = true; }
   }

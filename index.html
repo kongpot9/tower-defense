@@ -981,8 +981,18 @@
     width: 100%; padding: 6px 6px 0; flex: 0 0 auto;
   }
   /* 🏃 러닝은 새 모드라 눈에 띄게 (예준이 그림이 나오면 해변 그림 안으로 옮긴다) */
-  #overlay #ovBtnRun { background:linear-gradient(180deg,#f7c948,#e0a81c) !important;
-    box-shadow:0 4px 0 #9c7410 !important; color:#2A1F00 !important; }
+  /* 새 모드라 제일 먼저, 한 줄을 다 차지하게 — 예준이 그림이 나오면 해변 안으로 옮긴다 */
+  #overlay #ovBtnRun {
+    background:linear-gradient(180deg,#f7c948,#e0a81c) !important;
+    box-shadow:0 4px 0 #9c7410 !important; color:#2A1F00 !important;
+    border:2px solid #171712 !important;
+  }
+  body.beach #bMore #ovBtnRun {
+    order:-1; flex:0 0 100%; width:100%;
+    font-size:18px !important; font-weight:800 !important;
+    padding:13px 10px !important; border-radius:10px !important;
+    letter-spacing:-.01em; margin-bottom:3px !important;
+  }
   body.beach #bMore button {
     margin-top: 0 !important; padding: 6px 10px !important;
     font-size: 12px !important; box-shadow: 0 3px 0 #23702a !important;
@@ -1100,7 +1110,7 @@
   <div id="deckBanner" class="hidden"></div>
   <button id="ovBtn" data-art="play">시작하기</button>
   <button id="ovBtn5" data-art="chat" class="hidden">💬 채팅방<span id="chatBadge" class="hidden">0</span></button>
-  <button id="ovBtnRun" class="hidden">🏃 러닝</button>
+  <button id="ovBtnRun" class="hidden">🏃 러닝 액션 — 새로 나왔어요!</button>
   <button id="ovBtnM" class="hidden">📅 주간미션<span id="wkBadge" class="hidden">0</span></button>
   <button id="ovBtnL" class="hidden">⭐ 전투카드</button>
   <button id="ovBtnK" data-art="keyring" class="hidden">🔑 키링</button>
