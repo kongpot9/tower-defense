@@ -923,13 +923,13 @@
      그대로 이어 그려서, 화면이 잘린 것처럼 보이지 않게 한다. */
   #beachBg {
     position: relative; flex: 1 1 auto; min-height: 0;
-    width: min(100%, calc(100dvh * 994 / 1432));
+    width: min(100%, calc(100dvh * 994 / 1500));
     display: flex; align-items: center; justify-content: center;
     background: linear-gradient(to right, #5089CB 0 23.5%, #F4F4F4 23.5% 74%, #5089CB 74% 100%);
   }
   #beachWrap {
     position: relative; flex: 0 0 auto;
-    aspect-ratio: 994 / 1432;
+    aspect-ratio: 994 / 1500;   /* 원본 994×1432 보다 살짝 세로로 늘려 버튼을 키운다 */
     width: 100%; max-height: 100%;
     background: url("beach/home.jpg") center / 100% 100% no-repeat;
   }
@@ -959,7 +959,7 @@
   }
   #bLv, #bNick { background: #fff; border: 2px solid #111; }
   #bCoin { background: #5a5a5a; color: #fff; border: 2px solid #111; }
-  #bBest { color: #111; }
+  #bBest { background: #84A83A; color: #111; }   /* 초록 바와 같은 색 — 바 안에 들어간 것처럼 */
   /* 그림에 자리가 없는 나머지 버튼은 그림 아래 여백에 작게 */
   body.beach #bMore {
     display: flex; flex-wrap: wrap; justify-content: center; gap: 5px;
@@ -5745,6 +5745,9 @@ function updatePoison(dt) {
 }
 // ---------- 🧰 버튼 배치 (편집기에서 저장한 설정) ----------
 function applyLayout() {
+  // 🏖️ 예준이가 그린 홈 화면일 때는 버튼 자리를 그림에 맞춰 놨으므로 손대지 않는다.
+  // (여기서 left/top 을 지우면 버튼이 전부 한자리에 겹친다)
+  if (document.body.classList.contains('beach')) return;
   let cfg = null;   // 기본은 원래 세로 배치. 편집기로 저장한 사람만 자유 배치가 적용된다
   try { cfg = JSON.parse(localStorage.getItem('ltd_layout') || 'null'); } catch (e) {}
   const ov = $('overlay');
@@ -7044,6 +7047,10 @@ function maybeShowNotice() {
   showNotice();
 }
 // 🎨 한국어일 때만 예준이 그림 버튼을 켠다 (그림 속 글씨가 한글이라)
+const BEACH_STRETCH = 1500 / 1432;   // 그림을 세로로 이만큼 늘려 버튼을 키웠다
+const BEACH_WRAP_AR = 994 / 1500;    // 화면에 깔린 그림칸의 가로÷세로
+const BEACH_GROW = 0.06;             // 누르는 칸을 사방으로 6% 넓힌다 (더 키우면 옆 버튼과 겹친다)
+const VOTE_ROUND = 1;   // 🗳️ 인기투표 회차 — 2 로 올리면 홈에 버튼이 다시 뜬다 (기획: 구예준)
 // 🏖️ 예준이가 그린 홈 화면 — 버튼 id → 그림 속 위치 [left%, top%, width%, 가로세로비]
 // 숫자는 IMG_1087(994×1432) 에서 그 버튼이 그려진 자리를 그대로 잰 값이다.
 const BEACH_ART = {
@@ -7067,7 +7074,7 @@ const BEACH_VAL = {
   bLv:   [ 0.90,  0.70, 14.0, 4.5],   // 레벨
   bNick: [15.40,  0.70, 20.6, 4.5],   // 닉네임
   bCoin: [66.90,  3.60, 26.0, 5.5],   // 코인갯수
-  bBest: [63.80, 63.60, 12.0, 5.0],   // 최고 웨이브: 뒤
+  bBest: [55.90, 63.30, 7.80, 5.8],   // 최고 웨이브: 초록 바 안쪽 오른끝
 };
 const ART_H = 62;                           // 그림 버튼 높이 (CSS 의 height 와 같아야 한다)
 function applyArtButtons() {
@@ -7110,8 +7117,14 @@ function applyBeach(on) {
     const b2 = $(id); if (!b2) continue;
     if (!on) { b2.style.cssText = ''; continue; }
     const [l, t, w, ar] = BEACH_ART[id];
-    b2.style.left = l + '%'; b2.style.top = t + '%';
-    b2.style.width = w + '%'; b2.style.aspectRatio = ar;
+    // 손가락이 조금 빗나가도 눌리게 누르는 칸을 사방으로 조금 넓힌다.
+    // 세로는 %의 기준이 가로와 달라, 그림 비율로 환산해서 같은 만큼 넓힌다.
+    const ar2 = ar / BEACH_STRETCH;                  // 세로로 늘린 만큼 되돌린 비율
+    const hPct = w * BEACH_WRAP_AR / ar2;            // 이 버튼 높이 (세로 %)
+    b2.style.left = (l - w * BEACH_GROW / 2) + '%';
+    b2.style.top = (t - hPct * BEACH_GROW / 2) + '%';
+    b2.style.width = (w * (1 + BEACH_GROW)) + '%';
+    b2.style.aspectRatio = ar2;
   }
   for (const id in BEACH_VAL) {
     const v = $(id); if (!v) continue;
