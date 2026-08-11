@@ -911,90 +911,60 @@
   /* 채팅 안 읽음 표시는 그림 위에 그대로 보여야 한다 */
   body.artbtn #overlay button.art #chatBadge { color: #fff; }
 
-  /* 🏖️ 예준이가 그린 해변 홈 화면 (기획·그림: 구예준)
-     그림 속 글씨가 한글이라 그림 버튼과 마찬가지로 한국어일 때만 켠다. */
+  /* 🏖️ 예준이가 그린 홈 화면 (기획·그림: 구예준)
+     그림을 조각내지 않는다 — 원본을 그대로 깔고 그 위에 투명 버튼만 얹는다.
+     #beachWrap 이 그림과 똑같은 비율이라, 버튼 위치를 그림 좌표 %로 그대로 쓸 수 있다. */
   body.beach #overlay {
-    display: grid;
-    grid-template-columns: 24% 50% 26%;
-    grid-template-areas:
-      "btop   btop   btop"
-      "shop   sun    notice"
-      "parcel sun    rank"
-      "parcel deco   rank"
-      "chat   best   yt"
-      "chat   play   yt"
-      ".      duo    ."
-      ".      story  ."
-      "bbot   bbot   bbot"
-      "bmore  bmore  bmore";
-    align-content: start; justify-items: center; align-items: center;
-    gap: 3px 4px;
-    padding: 5px 4px calc(8px + env(safe-area-inset-bottom));
-    background:
-      url("beach/wave.png") 6px 78px / 52px auto repeat-y,
-      url("beach/wave.png") calc(100% - 6px) 118px / 52px auto repeat-y,
-      linear-gradient(to right, #508ACA 0 24%, #F4F4F4 24% 74%, #508ACA 74% 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    gap: 0; padding: 0 0 env(safe-area-inset-bottom);
+    background: #508ACA; overflow: hidden;
   }
-  body.beach #overlay > h1,
-  body.beach #overlay > .big-emoji,
-  body.beach #overlay > #ovMsg,
-  body.beach #overlay > .record,
+  /* 그림보다 화면이 세로로 길다. 남는 위아래는 그림의 바다-모래-바다 줄무늬를
+     그대로 이어 그려서, 화면이 잘린 것처럼 보이지 않게 한다. */
+  #beachBg {
+    position: relative; flex: 1 1 auto; min-height: 0;
+    width: min(100%, calc(100dvh * 994 / 1432));
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(to right, #5089CB 0 23.5%, #F4F4F4 23.5% 74%, #5089CB 74% 100%);
+  }
+  #beachWrap {
+    position: relative; flex: 0 0 auto;
+    aspect-ratio: 994 / 1432;
+    width: 100%; max-height: 100%;
+    background: url("beach/home.jpg") center / 100% 100% no-repeat;
+  }
+  body.beach #overlay > h1, body.beach #overlay > .big-emoji,
+  body.beach #overlay > #ovMsg, body.beach #overlay > .record,
   body.beach #overlay > #nickLine { display: none; }
-  body.beach #overlay > #stageSel,
-  body.beach #overlay > #homeEvent,
-  body.beach #overlay > #deckBanner { grid-column: 1 / -1; }
+  body.beach #overlay > #stageSel, body.beach #overlay > #homeEvent,
+  body.beach #overlay > #deckBanner { width: 100%; }
 
-  /* 버튼은 칸 너비에 맞추고 높이는 그림 비율대로 (--bar 는 자바스크립트가 넣는다) */
-  body.beach #overlay button[data-beach] {
-    background: var(--bart) center / contain no-repeat !important;
-    background-color: transparent !important;
-    width: 100% !important; max-width: 100% !important; min-width: 0 !important;
-    height: auto !important; aspect-ratio: var(--bar, 3);
-    color: transparent !important; text-shadow: none !important;
-    box-shadow: none !important; border: 0 !important;
-    padding: 0 !important; margin: 0 !important; border-radius: 0 !important;
+  /* 그림 위에 정확히 겹치는 투명 버튼 — 좌표는 자바스크립트가 넣는다 */
+  #beachWrap button {
+    position: absolute; margin: 0 !important; padding: 0 !important;
+    background: none !important; box-shadow: none !important; border: 0 !important;
+    border-radius: 4px !important; color: transparent !important; text-shadow: none !important;
+    font-size: 0 !important; min-width: 0 !important;
   }
-  body.beach #overlay button[data-beach]:active { transform: translateY(2px); }
-  body.beach #overlay button[data-beach]:disabled { filter: grayscale(.7) opacity(.5); }
-  body.beach #overlay button.art #chatBadge {
-    color: #fff; background: #e53935; border-radius: 10px; padding: 0 5px; font-size: 12px;
+  #beachWrap button:active { background: rgba(255,255,255,.35) !important; }
+  #beachWrap button:disabled { background: rgba(90,90,90,.45) !important; }
+  #beachWrap button #chatBadge {
+    position: absolute; right: -4px; top: -6px; font-size: 11px; color: #fff;
+    background: #e53935; border-radius: 10px; padding: 0 5px;
   }
-
-  #bTop { grid-area: btop; display: flex; align-items: center; gap: 6px; width: 100%; }
-  #bLv, #bNick {
-    background: #fff; border: 3px solid #111; border-radius: 4px;
-    font-size: 14px; font-weight: 800; color: #111; padding: 3px 8px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  /* 예준이가 비워 둔 칸에 실제 값을 적는다 */
+  #beachWrap .bval {
+    position: absolute; display: flex; align-items: center; justify-content: center;
+    font-weight: 800; color: #111; white-space: nowrap; overflow: hidden;
   }
-  #bNick { flex: 1; min-width: 0; text-align: left; }
-  #bCoinBox {
-    margin-left: auto; display: flex; align-items: center; gap: 5px;
-    background: #5a5a5a; border: 3px solid #111; border-radius: 6px; padding: 3px 10px 3px 4px;
-  }
-  #bCoinBox img { width: 22px; height: 22px; }
-  #bCoin { color: #fff; font-size: 15px; font-weight: 800; }
-
-  #bSun  { grid-area: sun;  width: 58%; max-width: 112px; }
-  #bDeco { grid-area: deco; width: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 4px; }
-  #bDeco .st { width: 22%; }
-  #bDeco .ps { width: 44%; }
-  #bBestRow { grid-area: best; display: flex; align-items: center; gap: 6px; width: 100%; }
-  #bBestRow img { flex: 1 1 auto; min-width: 0; }
-  #bBest {
-    flex: 0 0 auto; background: #8BC34A; border: 3px solid #111; border-radius: 4px;
-    color: #111; font-size: 15px; font-weight: 800; padding: 2px 7px;
-  }
-  #bBot, #bMore { display: contents; }
-  body.beach #bBot {
-    grid-area: bbot; display: flex; align-items: flex-end; justify-content: center;
-    gap: 4px; width: 100%; margin-top: 4px;
-  }
-  body.beach #bBot button[data-beach] { flex: 1 1 0; }
+  #bLv, #bNick { background: #fff; border: 2px solid #111; }
+  #bCoin { background: #5a5a5a; color: #fff; border: 2px solid #111; }
+  #bBest { color: #111; }
+  /* 그림에 자리가 없는 나머지 버튼은 그림 아래 여백에 작게 */
   body.beach #bMore {
-    grid-area: bmore; display: flex; flex-wrap: wrap; justify-content: center;
-    gap: 5px; width: 100%; margin-top: 6px;
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 5px;
+    width: 100%; padding: 6px 6px 0; flex: 0 0 auto;
   }
-  /* 예준이 그림에 없는 나머지 버튼들 — 작게 줄여서 한 화면 안에 담는다 */
   body.beach #bMore button {
     margin-top: 0 !important; padding: 6px 10px !important;
     font-size: 12px !important; box-shadow: 0 3px 0 #23702a !important;
@@ -1090,14 +1060,6 @@
 </div>
 
 <div id="overlay">
-  <!-- 🏖️ 해변 홈 화면의 정보칸 — 레벨·닉네임·코인·최고웨이브 (기획: 구예준) -->
-  <div id="bTop" class="hidden">
-    <span id="bLv">Lv.1</span><span id="bNick">손님</span>
-    <span id="bCoinBox"><img src="beach/coinicon.png" alt="코인"><span id="bCoin">0</span></span>
-  </div>
-  <img id="bSun" class="hidden" src="beach/sun.png" alt="">
-  <div id="bDeco" class="hidden"><img class="st" src="beach/star.png" alt=""><img class="ps" src="beach/parasol.png" alt=""></div>
-  <div id="bBestRow" class="hidden"><img src="beach/best.png" alt="최고 웨이브"><b id="bBest">0</b></div>
   <h1>🏰 타워 디펜스 777</h1>
   <div class="big-emoji" id="ovChars"><img src="character/hero1.png" alt="데스삐에로"><img src="character/hero3.png" alt="다크라이더"><img src="character/legend2.png" alt="도사"><img src="character/legend1.png" alt="레드드래곤"></div>
   <p id="ovMsg">골드로 랜덤 캐릭터를 소환하고<br>같은 캐릭터를 합성해서 더 강하게!</p>
@@ -7082,70 +7044,91 @@ function maybeShowNotice() {
   showNotice();
 }
 // 🎨 한국어일 때만 예준이 그림 버튼을 켠다 (그림 속 글씨가 한글이라)
-// 🏖️ 해변 홈 화면 — 버튼 id → [그림 파일, 격자 자리] (기획·그림: 구예준)
-// 자리가 빈 칸은 아래 #bBot 줄에 가로로 늘어선다.
-const VOTE_ROUND = 1;   // 🗳️ 인기투표 회차 — 2 로 올리면 홈에 버튼이 다시 뜬다 (기획: 구예준)
+// 🏖️ 예준이가 그린 홈 화면 — 버튼 id → 그림 속 위치 [left%, top%, width%, 가로세로비]
+// 숫자는 IMG_1087(994×1432) 에서 그 버튼이 그려진 자리를 그대로 잰 값이다.
 const BEACH_ART = {
-  ovBtnS: ['shop', 'shop'], ovBtnG: ['parcel', 'parcel'], ovBtn5: ['chat', 'chat'],
-  ovBtnN: ['notice', 'notice'], ovBtn3: ['rank', 'rank'], ovBtnY: ['youtube', 'yt'],
-  ovBtn: ['play', 'play'], ovBtn4: ['duo', 'duo'], ovBtn2: ['story', 'story'],
-  ovBtnE: ['event', ''], ovBtn6: ['fishing', ''], ovBtnV: ['battle', ''],
-  ovBtnD: ['deck', ''], ovBtnShare: ['share', ''],
+  ovBtn:      [36.42, 69.69, 28.77, 3.405],   // 플레이
+  ovBtn2:     [35.01, 82.96, 32.19, 3.810],   // 레전드 스토리
+  ovBtn4:     [37.32, 75.56, 23.74, 3.371],   // 더블 큐
+  ovBtn3:     [66.10, 28.77, 29.28, 2.509],   // 랭킹
+  ovBtnN:     [69.62, 22.91, 27.77, 3.286],   // 공지사항
+  ovBtnS:     [ 0.40, 35.75, 16.80, 1.740],   // 상점
+  ovBtnG:     [ 0.40, 43.44, 19.92, 0.770],   // 이상한 소포
+  ovBtn5:     [ 0.30, 65.43, 19.72, 1.941],   // 채팅
+  ovBtnY:     [77.97, 68.99, 21.03, 0.930],   // 공식 계정 (유튜브+글씨)
+  ovBtnE:     [ 7.24, 90.22, 18.71, 1.755],   // 이벤트
+  ovBtn6:     [24.95, 89.53, 13.48, 0.944],   // 강태공 낚시터
+  ovBtnV:     [38.03, 88.13, 26.56, 1.590],   // 전투
+  ovBtnD:     [65.59, 89.53, 10.56, 0.724],   // 덱
+  ovBtnShare: [85.31, 86.73, 13.48, 0.724],   // 공유
 };
-// 해변 화면에 자리가 있는 버튼은 예준이가 이 화면용으로 다시 그린 그림을 쓴다.
-// 나머지(키링·계정 등)는 예전 그림 버튼 그대로.
+// 예준이가 비워 둔 칸 — [left%, top%, width%, height%]
+const BEACH_VAL = {
+  bLv:   [ 0.90,  0.70, 14.0, 4.5],   // 레벨
+  bNick: [15.40,  0.70, 20.6, 4.5],   // 닉네임
+  bCoin: [66.90,  3.60, 26.0, 5.5],   // 코인갯수
+  bBest: [63.80, 63.60, 12.0, 5.0],   // 최고 웨이브: 뒤
+};
 const ART_H = 62;                           // 그림 버튼 높이 (CSS 의 height 와 같아야 한다)
 function applyArtButtons() {
   const on = !trOn();                       // 번역 중이 아니면 = 한국어
-  document.body.classList.toggle('artbtn', on);
-  applyBeach(on);
+  // 예전 '띠 모양 그림 버튼'은 예준이가 그린 홈 화면이 통째로 대신한다.
+  document.body.classList.remove('artbtn');
   for (const b of document.querySelectorAll('#overlay button[data-art]')) {
-    const mine = on && !BEACH_ART[b.id];    // 해변 그림이 있는 버튼은 그쪽에 맡긴다
-    b.classList.toggle('art', mine);
-    if (!mine) { b.style.removeProperty('--art'); b.style.removeProperty('width'); continue; }
-    const src = `button/${b.dataset.art}.png`;
-    b.style.setProperty('--art', `url("${src}")`);
-    // 높이는 62px 로 맞추고 폭만 그림 비율대로 — 그래야 글씨 크기가 다 같아진다
-    const im = new Image();
-    im.onload = () => { b.style.width = Math.round(ART_H * im.naturalWidth / im.naturalHeight) + 'px'; };
-    im.src = src;
+    b.classList.remove('art');
+    b.style.removeProperty('--art');
+    if (!BEACH_ART[b.id]) b.style.removeProperty('width');   // ⚠️ 해변 버튼의 폭은 건드리면 안 된다
   }
+  applyBeach(on);
 }
-// 🏖️ 해변 화면 켜기/끄기 (기획·그림: 구예준)
+
+// 🏖️ 해변 화면 켜기/끄기 — 예준이 그림을 통째로 깔고 그 위에 투명 버튼을 얹는다
 function applyBeach(on) {
   document.body.classList.toggle('beach', on);
-  for (const id of ['bTop', 'bSun', 'bDeco', 'bBestRow']) $(id).classList.toggle('hidden', !on);
-  if (!$('bMore')) {                        // 해변 배치에 자리가 없는 버튼들을 한 줄에 모아 둔다
-    const more = document.createElement('div');
-    more.id = 'bMore';                      // 평소엔 display:contents 라 지금 배치가 안 바뀐다
-    $('overlay').insertBefore(more, $('nickLine'));
-    for (const b of [...$('overlay').querySelectorAll(':scope > button')])
-      if (!BEACH_ART[b.id]) more.appendChild(b);
-  }
-  for (const id in BEACH_ART) {
-    const b = $(id); if (!b) continue;
-    if (!on) {
-      b.removeAttribute('data-beach');
-      b.style.removeProperty('--bart'); b.style.removeProperty('--bar');
-      b.style.removeProperty('grid-area');
-      continue;
+  const ov = $('overlay');
+  if (!$('beachWrap')) {
+    const bg = document.createElement('div');
+    bg.id = 'beachBg';
+    ov.insertBefore(bg, ov.firstChild);
+    const wrap = document.createElement('div');
+    wrap.id = 'beachWrap';
+    bg.appendChild(wrap);
+    for (const id in BEACH_ART) if ($(id)) wrap.appendChild($(id));
+    for (const id in BEACH_VAL) {           // 레벨·닉네임·코인·최고웨이브 칸
+      const v = document.createElement('div');
+      v.id = id; v.className = 'bval';
+      wrap.appendChild(v);
     }
-    const [art, area] = BEACH_ART[id], src = 'beach/' + art + '.png';
-    b.dataset.beach = art;
-    b.style.setProperty('--bart', `url("${src}")`);
-    if (area) b.style.gridArea = area;
-    const im = new Image();                 // 칸 너비에 맞추고 높이는 그림 비율대로
-    im.onload = () => b.style.setProperty('--bar', (im.naturalWidth / im.naturalHeight).toFixed(3));
-    im.src = src;
+    const more = document.createElement('div');
+    more.id = 'bMore';                       // 그림에 자리가 없는 나머지 버튼
+    ov.appendChild(more);
+    for (const b2 of [...ov.querySelectorAll(':scope > button')]) more.appendChild(b2);
+  }
+  $('beachBg').style.display = on ? '' : 'none';
+  $('bMore').style.display = on ? '' : 'contents';
+  for (const id in BEACH_ART) {
+    const b2 = $(id); if (!b2) continue;
+    if (!on) { b2.style.cssText = ''; continue; }
+    const [l, t, w, ar] = BEACH_ART[id];
+    b2.style.left = l + '%'; b2.style.top = t + '%';
+    b2.style.width = w + '%'; b2.style.aspectRatio = ar;
+  }
+  for (const id in BEACH_VAL) {
+    const v = $(id); if (!v) continue;
+    const [l, t, w, h] = BEACH_VAL[id];
+    v.style.left = l + '%'; v.style.top = t + '%';
+    v.style.width = w + '%'; v.style.height = h + '%';
+    v.style.fontSize = 'min(3.6vw, 15px)';
   }
   if (on) updateBeachInfo();
 }
 // 레벨 · 닉네임 · 코인 · 최고웨이브 (기획: 구예준)
 function updateBeachInfo() {
-  $('bLv').textContent = 'Lv.' + (LV || 1);
-  $('bNick').textContent = getNick() || '손님';
-  $('bCoin').textContent = Math.round(CREDIT).toLocaleString();
-  $('bBest').textContent = +(localStorage.getItem('ltd_best') || 0);
+  const set = (id, txt) => { const e = $(id); if (e) e.textContent = txt; };
+  set('bLv', 'Lv.' + (LV || 1));
+  set('bNick', getNick() || '손님');
+  set('bCoin', Math.round(CREDIT).toLocaleString());
+  set('bBest', +(localStorage.getItem('ltd_best') || 0));
 }
 setInterval(() => {
   if (document.body.classList.contains('beach') && !$('overlay').classList.contains('hidden'))
