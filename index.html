@@ -810,6 +810,9 @@
   .hcard .hname { font-weight:800; font-size:15px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
   .hcard .hstat { color:#d8a0ac; font-size:12px; margin-top:3px; }
   .hcard .heval { color:#ffc4cd; font-size:12px; margin-top:4px; font-style:italic; }
+  .hcard .hstory { font-size:11px; color:#cfc0f0; line-height:1.65; margin:5px 0 2px;
+                   background:#241f3a; border-left:3px solid #7e6bc4;
+                   border-radius:0 7px 7px 0; padding:6px 9px; }
   .hbadge { font-size:10px; padding:2px 7px; border-radius:8px; font-weight:800; }
   #holly .close { background:#7a2a42; padding:11px 30px; font-size:15px; border-radius:10px; }
   #duo {
@@ -6758,6 +6761,12 @@ const HOLLY_TIER = { // 현 메타 티어 (일반 모드 기준)
   wolf:'?', aetna:'?',
 };
 const TIER_COLOR = { S:'#ffd54f', A:'#4fc3f7', B:'#9ccc65', C:'#ffb74d', D:'#b0bec5', '?':'#8ab8ff' };
+// 📖 캐릭터 뒷이야기 (이야기: 구예준) — 도감에서 평가 아래에 나온다
+const HOLLY_STORY = {
+  wolf: '멋있는 늑대가 되려고 늑대능력평가를 봤다. 희망대학 칸에 최고 명문 늑대대학을 적으려 했는데, ' +
+        '늑구대학을 쓴 다른 학생과 원서가 바뀌어 버렸다. 그래서 지금 늑구대학에 다니는 중이다 — ' +
+        '아직 늑대가 아니라 수강생인 이유.',
+};
 const HOLLY_EVAL = {
   swordsman: '초반 3웨이브의 왕 — 그리고 암흑의 기사 3기를 부르는 일반 등급의 반란',
   archer: '공격력 5의 최약체가 채용률 1위 — 피의 석궁이 아군 전체를 2배로 만든다 (2026-08-05 대청소: 3배 → 2배)',
@@ -6885,6 +6894,7 @@ function renderHolly(tab) {
         <div class="hstat">공격 ${u.dmg} · 속도 ${u.cd}s · 사거리 ${u.range} · DPS ${dps}${extra ? ' · ' + extra : ''}</div>
         <div class="hstat">픽률(${pickLabel}): ${pick}${hasGlobal && myPick ? ` · 나: ${myPick}` : ''}</div>
         <div class="heval">"${HOLLY_EVAL[u.type] || ''}"</div>
+        ${HOLLY_STORY[u.type] ? `<div class="hstory">📖 ${HOLLY_STORY[u.type]}</div>` : ''}
         <div class="hstat">📍 사용처: ${HOLLY_USE[u.type] || ''}</div>
       </div>`;
     }).join('');
