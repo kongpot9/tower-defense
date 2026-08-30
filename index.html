@@ -438,7 +438,7 @@
     padding:16px 14px calc(14px + env(safe-area-inset-bottom));
     display:flex; flex-direction:column; align-items:center; gap:8px; overflow-y:auto;
   }
-  #arcade.hidden, #gacha.hidden, #keyring.hidden, #cards.hidden, #raid.hidden, #gift.hidden, #shop.hidden, #kingdom.hidden, #events.hidden, #cave, #week.hidden { display:none; }
+  #arcade.hidden, #gacha.hidden, #keyring.hidden, #cards.hidden, #raid.hidden, #gift.hidden, #shop.hidden, #kingdom.hidden, #events.hidden, #cave.hidden, #week.hidden { display:none; }
   /* 🕳️ 굴 */
   #cave h2, #week h2 { color:#ffd54f; font-size:22px; }
   #caveList { width:100%; max-width:430px; display:flex; flex-direction:column; gap:7px; }
@@ -521,8 +521,8 @@
   #giftResult { width:100%; max-width:420px; font-size:14px; line-height:1.8; text-align:center; color:#ffe082; }
   #giftResult .got { background:#2c2416; border:1px solid #6a4a2c; border-radius:10px; padding:11px; margin-top:6px; }
   #giftLog { width:100%; max-width:420px; font-size:11px; color:#7d8ab0; text-align:center; line-height:1.7; }
-  #arcade h2, #gacha h2, #keyring h2, #cards h2, #raid h2, #gift h2, #shop h2, #kingdom h2, #events h2, #cave, #week h2 { color:#ffd54f; font-size:22px; }
-  #arcade .sub, #gacha .sub, #keyring .sub, #cards .sub, #raid .sub, #gift .sub, #shop .sub, #kingdom .sub, #events .sub, #cave, #week .sub { color:#9fb0d8; font-size:12px; text-align:center; line-height:1.6; }
+  #arcade h2, #gacha h2, #keyring h2, #cards h2, #raid h2, #gift h2, #shop h2, #kingdom h2, #events h2, #cave h2, #week h2 { color:#ffd54f; font-size:22px; }
+  #arcade .sub, #gacha .sub, #keyring .sub, #cards .sub, #raid .sub, #gift .sub, #shop .sub, #kingdom .sub, #events .sub, #cave .sub, #week .sub { color:#9fb0d8; font-size:12px; text-align:center; line-height:1.6; }
   /* 🍡 최강의 떡장수 레이드 */
   #raid > div { width:100%; max-width:420px; }
   #raidBtns { display:flex; flex-direction:column; gap:8px; }
@@ -542,7 +542,7 @@
   #rhInfo { display:flex; justify-content:space-between; font-size:11px; font-weight:800; margin-top:3px; text-shadow:0 1px 2px #000; }
   #rhTime { color:#ffd54f; } #rhTeam { color:#90caf9; } #rhBuff { color:#ff8a65; }
   #arcTime { color:#ff8a65; font-weight:800; }
-  #arcade .close, #gacha .close, #keyring .close, #cards .close, #gift .close, #shop .close, #kingdom .close, #events .close, #cave, #week .close { background:#3a4566; padding:9px 26px; font-size:14px; border-radius:10px; }
+  #arcade .close, #gacha .close, #keyring .close, #cards .close, #gift .close, #shop .close, #kingdom .close, #events .close, #cave .close, #week .close { background:#3a4566; padding:9px 26px; font-size:14px; border-radius:10px; }
   #arcade > .grid, #gacha > div, #keyring > div { width:100%; max-width:420px; }
   #court, #arcResult, #gachaResult, #krList, #krPageList, #cardList { width:100%; max-width:420px; }
   .atabs { display:flex; gap:5px; width:100%; max-width:420px; }
@@ -7332,6 +7332,16 @@ function applyBeach(on) {
     for (const b2 of [...ov.querySelectorAll(':scope > button')]) more.appendChild(b2);
   }
   $('beachBg').style.display = on ? '' : 'none';
+  // ⚠️ 버튼은 #beachWrap 안에 들어 있다. 그림을 끄면 버튼도 같이 사라지므로 밖으로 꺼낸다.
+  const wrap = $('beachWrap'), more = $('bMore');
+  for (const id in BEACH_ART) {
+    const b2 = $(id); if (!b2) continue;
+    const want = on ? wrap : ov;
+    if (b2.parentElement !== want) {
+      if (on) wrap.appendChild(b2);
+      else ov.insertBefore(b2, more);        // 그림을 끄면 원래 메뉴 흐름으로 돌려놓는다
+    }
+  }
   $('bMore').style.display = on ? '' : 'contents';
   for (const id in BEACH_ART) {
     const b2 = $(id); if (!b2) continue;
