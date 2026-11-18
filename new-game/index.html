@@ -1,0 +1,1095 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>구예준 STUDIO 신작</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#22314A">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&display=swap">
+<style>
+:root{
+  /* Layout: one-screen phone app. Score strip on top, graph-paper battlefield in the middle, sticker control tray at the bottom. */
+  --desk:#22314A;
+  --desk-hi:#30436A;
+  --paper:#F4F6F1;
+  --paper-2:#E6ECE2;
+  --grid:#D3DEE6;
+  --ink:#1B2232;
+  --muted:#5D6886;
+  --red:#E2463A;
+  --orange:#F0913A;
+  --blue:#2F6BD8;
+  --yellow:#F7C438;
+  --green:#4DB36A;
+  --f-display:"Black Han Sans","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+  --f-ui:"Jua","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{height:100%;background:var(--desk);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{height:100%;margin:0;background:var(--desk);color:var(--paper);font-family:var(--f-ui);font-size:15px;overflow:hidden;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#app{height:100%;max-width:480px;margin:0 auto;display:flex;flex-direction:column;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px}
+.screen{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;position:relative}
+button{font:inherit;color:inherit;cursor:pointer;margin:0}
+button:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+h1,h2,p{margin:0}
+
+/* sticker buttons */
+.btn{border:2.5px solid var(--ink);border-radius:14px;background:var(--paper);color:var(--ink);
+  box-shadow:0 4px 0 var(--ink);padding:12px 16px;font-size:18px;line-height:1.1;transition:transform .06s,box-shadow .06s}
+.btn:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn-blue{background:var(--blue);color:var(--paper)}
+.btn-yellow{background:var(--yellow)}
+.btn-sm{padding:8px 12px;font-size:15px;border-radius:11px;box-shadow:0 3px 0 var(--ink)}
+.sq{width:52px;padding:0;display:grid;place-items:center;font-size:20px}
+.chip{display:inline-block;padding:2px 9px;border-radius:999px;border:2px solid var(--ink);background:var(--yellow);color:var(--ink);font-size:13px;font-variant-numeric:tabular-nums}
+.coin{display:inline-block;width:.95em;height:.95em;border-radius:50%;background:var(--yellow);border:2px solid var(--ink);
+  vertical-align:-.14em;box-shadow:inset -2px -2px 0 color-mix(in srgb,var(--ink) 18%,transparent);flex:none}
+.stk{display:grid;place-items:center;border-radius:50%;background:var(--c,var(--paper));border:2.5px solid var(--ink);
+  box-shadow:0 0 0 3px var(--paper),0 0 0 5px var(--ink);font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;line-height:1}
+
+/* ---------- home ---------- */
+.home{overflow-y:auto;gap:16px;padding-block:6px 4px}
+.studio{font-family:var(--f-display);letter-spacing:.18em;font-size:13px;color:color-mix(in srgb,var(--paper) 70%,var(--desk));text-align:center;padding-top:6px}
+.title-card{position:relative;background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:18px;
+  padding:26px 18px 20px;transform:rotate(-1.6deg);box-shadow:0 7px 0 var(--ink);text-align:center;margin:8px 6px 0}
+.title-card::before,.title-card::after{content:"";position:absolute;top:-12px;width:74px;height:22px;
+  background:color-mix(in srgb,var(--yellow) 72%,transparent);border:1.5px solid color-mix(in srgb,var(--ink) 25%,transparent)}
+.title-card::before{left:18px;transform:rotate(-8deg)}
+.title-card::after{right:18px;transform:rotate(6deg)}
+.eyebrow{font-size:12px;letter-spacing:.14em;color:var(--muted)}
+.title{font-family:var(--f-display);font-size:clamp(46px,15vw,64px);line-height:1;margin-top:6px;letter-spacing:-.01em;text-wrap:balance}
+.title-note{display:inline-block;margin-top:8px;font-size:14px;color:var(--red);transform:rotate(-2deg)}
+.title-sub{margin-top:12px;font-size:16px;line-height:1.45;text-wrap:balance}
+.card{background:var(--paper);color:var(--ink);border:2.5px solid var(--ink);border-radius:16px;box-shadow:0 5px 0 var(--ink);padding:14px}
+.card-head{display:flex;justify-content:space-between;align-items:center;font-size:17px;margin-bottom:12px}
+.mini-deck{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 8px;justify-items:center}
+.mini-deck .stk{width:44px;height:44px;font-size:22px}
+.mini-deck figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px}
+.rules{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;font-size:14px;line-height:1.35;color:var(--paper)}
+.rules b{font-family:var(--f-display);font-weight:400;color:var(--yellow);font-variant-numeric:tabular-nums}
+.best{display:flex;justify-content:center;align-items:baseline;gap:8px;font-size:15px}
+.best b{font-family:var(--f-display);font-weight:400;font-size:26px;color:var(--yellow)}
+.home-actions{display:grid;gap:12px}
+.big{font-size:24px;padding:16px;font-family:var(--f-display);font-weight:400;letter-spacing:.02em}
+.foot{font-size:12px;text-align:center;color:color-mix(in srgb,var(--paper) 60%,var(--desk));line-height:1.5}
+
+/* ---------- deck builder ---------- */
+.topbar{display:flex;align-items:center;gap:12px}
+.topbar h2{font-family:var(--f-display);font-weight:400;font-size:24px;flex:1}
+.topbar .sq{height:46px;width:46px}
+.hint{font-size:14px;line-height:1.45;color:color-mix(in srgb,var(--paper) 82%,var(--desk))}
+.char-grid{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;gap:10px;align-content:start;padding:4px 2px 10px}
+.cc{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;background:var(--paper);color:var(--ink);
+  border:2.5px solid var(--ink);border-radius:14px;box-shadow:0 4px 0 var(--ink);padding:12px 10px 10px;min-width:0}
+.cc:active{transform:translateY(2px);box-shadow:0 2px 0 var(--ink)}
+.cc[aria-pressed="true"]{background:var(--yellow)}
+.cc .stk{width:40px;height:40px;font-size:20px;margin:2px 0 2px 2px}
+.cc-name{font-size:17px;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
+.cc-name em{font-style:normal;font-size:11px;padding:1px 6px;border-radius:6px;background:var(--ink);color:var(--paper)}
+.cc-desc{font-size:13px;line-height:1.4}
+.cc-stat{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.cc[aria-pressed="true"] .cc-stat{color:var(--ink)}
+.cc-check{position:absolute;top:10px;right:10px;font-family:var(--f-display);font-size:13px;color:var(--red);border:2px solid var(--red);
+  border-radius:7px;padding:1px 6px;transform:rotate(8deg);opacity:0}
+.cc[aria-pressed="true"] .cc-check{opacity:1}
+
+/* ---------- battle ---------- */
+#battle{gap:8px}
+.hud{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center}
+.hud-wave{display:flex;flex-direction:column;line-height:1}
+.hud-wave .lbl{font-size:11px;letter-spacing:.16em;color:color-mix(in srgb,var(--paper) 65%,var(--desk))}
+.hud-wave b{font-family:var(--f-display);font-weight:400;font-size:28px;font-variant-numeric:tabular-nums}
+.hud-wave .time{font-size:12px;color:color-mix(in srgb,var(--paper) 70%,var(--desk));margin-top:3px;font-variant-numeric:tabular-nums}
+.hud-count{display:flex;flex-direction:column;gap:5px}
+.cnt{display:flex;align-items:baseline;justify-content:center;gap:4px;line-height:1}
+.cnt .lbl{font-size:12px;margin-right:4px;color:color-mix(in srgb,var(--paper) 70%,var(--desk))}
+.cnt b{font-family:var(--f-display);font-weight:400;font-size:26px;font-variant-numeric:tabular-nums}
+.cnt span{font-size:14px;color:color-mix(in srgb,var(--paper) 70%,var(--desk))}
+.bar{height:10px;border-radius:6px;background:var(--desk-hi);border:2px solid var(--ink);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--green);transition:width .2s}
+.hud-count[data-level="1"] .bar i{background:var(--orange)}
+.hud-count[data-level="2"] .bar i{background:var(--red)}
+.hud-count[data-level="2"] .cnt b{color:var(--red);animation:pulse .5s ease-in-out infinite alternate}
+@keyframes pulse{to{transform:scale(1.12)}}
+.hud-gold{display:flex;align-items:center;gap:6px;background:var(--paper);color:var(--ink);border:2.5px solid var(--ink);border-radius:12px;
+  padding:5px 10px;box-shadow:0 3px 0 var(--ink)}
+.hud-gold b{font-family:var(--f-display);font-weight:400;font-size:20px;min-width:2.6ch;text-align:right;font-variant-numeric:tabular-nums}
+.field{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center}
+#cv{display:block;border-radius:14px;box-shadow:0 0 0 3px var(--ink),0 7px 0 3px var(--ink);touch-action:none;background:var(--paper)}
+.tray{display:flex;flex-direction:column;gap:8px;padding-top:4px}
+.row-main{display:grid;grid-template-columns:52px 1fr 52px;gap:8px}
+.row-main .sq{height:56px}
+.summon{display:flex;align-items:center;justify-content:center;gap:12px;height:56px;padding:0 12px;background:var(--yellow)}
+.summon .s-lbl{font-family:var(--f-display);font-size:24px}
+.summon small{display:flex;align-items:center;gap:5px;font-size:18px;background:var(--paper);border:2px solid var(--ink);border-radius:999px;padding:2px 10px;font-variant-numeric:tabular-nums}
+.summon.off{background:var(--paper-2)}
+.deckbar{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.dcard{position:relative;display:flex;flex-direction:column;gap:3px;min-width:0;text-align:left;background:var(--paper);color:var(--ink);
+  border:2.5px solid var(--ink);border-radius:12px;box-shadow:0 3px 0 var(--ink);padding:5px 6px 5px}
+.dcard:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.dc-top{display:flex;align-items:center;gap:4px;min-width:0;padding-right:12px}
+.dc-emo{font-size:17px;line-height:1;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.dc-name{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dc-bot{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;font-variant-numeric:tabular-nums}
+.dc-cost{display:flex;align-items:center;gap:3px;padding:1px 5px;border-radius:7px;background:var(--yellow);border:1.5px solid var(--ink)}
+.dc-cost .coin{width:.8em;height:.8em;border-width:1.5px}
+.dcard.off .dc-cost{background:var(--paper-2);opacity:.7}
+.dc-cnt{position:absolute;top:-8px;right:-6px;min-width:22px;height:20px;padding:0 5px;border-radius:999px;background:var(--ink);color:var(--paper);
+  font-size:11.5px;display:grid;place-items:center;font-variant-numeric:tabular-nums}
+.dc-cnt[data-zero="1"]{background:var(--paper-2);color:var(--muted);border:1.5px solid var(--ink)}
+.dcard.flash{animation:flash .35s}
+@keyframes flash{0%{background:var(--yellow);transform:scale(1.06)}100%{background:var(--paper)}}
+.shake{animation:shake .3s}
+@keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+
+.pop{position:absolute;z-index:10;width:224px;background:var(--paper);color:var(--ink);border:2.5px solid var(--ink);border-radius:14px;
+  box-shadow:0 4px 0 var(--ink);padding:10px 12px 12px;transform:translate(-50%,-100%);display:flex;flex-direction:column;gap:6px}
+.pop-head{display:flex;align-items:center;gap:6px;font-size:17px}
+.pop-head .e{font-size:20px;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.pop-head .chip{margin-left:auto}
+.pop p{font-size:13px;line-height:1.4}
+.pop .pop-hint{font-size:11.5px;color:var(--muted)}
+.pop .btn{align-self:flex-start;display:flex;align-items:center;gap:5px}
+
+.toast{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);z-index:12;background:var(--ink);color:var(--paper);
+  border-radius:12px;padding:8px 14px;font-size:15px;pointer-events:none;white-space:nowrap}
+
+.ov{position:absolute;inset:0;z-index:20;display:grid;place-items:center;padding:16px;background:color-mix(in srgb,var(--ink) 66%,transparent);border-radius:16px}
+.ov-card{width:min(330px,100%);background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:18px;box-shadow:0 7px 0 var(--ink);
+  padding:22px 18px 18px;text-align:center;display:flex;flex-direction:column;gap:12px}
+.ov-card h2{font-family:var(--f-display);font-weight:400;font-size:28px;line-height:1.15;text-wrap:balance}
+.ov-card .sub{font-size:15px;color:var(--muted)}
+.ov-btns{display:grid;gap:10px;margin-top:4px}
+.go-title{color:var(--red)}
+.go-wave{font-family:var(--f-display);font-size:58px;line-height:1;font-variant-numeric:tabular-nums}
+.go-wave small{display:block;font-family:var(--f-ui);font-size:13px;letter-spacing:.16em;color:var(--muted);margin-bottom:6px}
+.go-best{font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px}
+.stamp{font-family:var(--f-display);color:var(--red);border:2.5px solid var(--red);border-radius:8px;padding:2px 8px;transform:rotate(-6deg);font-size:15px}
+.go-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:12px;color:var(--muted)}
+.go-stats b{display:block;font-family:var(--f-display);font-weight:400;font-size:20px;color:var(--ink);font-variant-numeric:tabular-nums}
+.steps{display:grid;gap:10px;text-align:left}
+.steps li{display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:center;font-size:15px;line-height:1.4}
+.steps li span{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--paper);font-family:var(--f-display)}
+.steps ol{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== 홈 ===== -->
+  <section id="home" class="screen home">
+    <div class="studio">구예준 STUDIO</div>
+    <div class="title-card">
+      <div class="eyebrow">신작 · v0.1 시제품</div>
+      <h1 class="title">이름 미정</h1>
+      <p class="title-note">← 게임 이름은 예준이가 짓는 중</p>
+      <p class="title-sub">캐릭터 8마리를 골라 전장에 나가<br>몰려오는 적을 썰어 버려라!</p>
+    </div>
+    <div class="card">
+      <div class="card-head"><span>내 덱</span><span class="chip" id="homeDeckCount">8/8</span></div>
+      <div class="mini-deck" id="homeDeck"></div>
+    </div>
+    <div class="rules">
+      <b>소환</b><span>돈을 내면 내 덱 8마리 중 하나가 랜덤으로 나와요</span>
+      <b>강화</b><span>아래 카드를 누르면 그 캐릭터가 전부 세져요</span>
+      <b>100</b><span>적이 100마리 쌓이면 패배!</span>
+    </div>
+    <div class="best">최고 기록 <b id="homeBest">-</b></div>
+    <div class="home-actions">
+      <button class="btn btn-blue big" id="bPlay" type="button">전투 시작</button>
+      <button class="btn" id="bDeck" type="button">덱 편성</button>
+    </div>
+    <p class="foot">지금 캐릭터는 임시 그림이에요. 예준이 그림이 오면 바뀌어요.</p>
+  </section>
+
+  <!-- ===== 덱 편성 ===== -->
+  <section id="deckScreen" class="screen" hidden>
+    <header class="topbar">
+      <button class="btn sq" id="bDeckBack" type="button" aria-label="뒤로">←</button>
+      <h2>덱 편성</h2>
+      <span class="chip" id="deckCount">8/8</span>
+    </header>
+    <p class="hint">전투에 데려갈 캐릭터 8마리를 골라요. 소환하면 이 8마리 중에서 랜덤으로 나와요.</p>
+    <div class="char-grid" id="charGrid"></div>
+    <button class="btn btn-blue" id="bDeckDone" type="button">이 덱으로 결정</button>
+  </section>
+
+  <!-- ===== 전투 ===== -->
+  <section id="battle" class="screen" hidden>
+    <header class="hud">
+      <div class="hud-wave"><span class="lbl">WAVE</span><b id="hWave">0</b><span class="time" id="hTime">3초</span></div>
+      <div class="hud-count" id="hCountBox" data-level="0">
+        <div class="cnt"><span class="lbl">적</span><b id="hCount">0</b><span>/ 100</span></div>
+        <div class="bar"><i id="hBar"></i></div>
+      </div>
+      <div class="hud-gold"><i class="coin"></i><b id="hGold">0</b></div>
+    </header>
+    <div class="field" id="field">
+      <canvas id="cv" aria-label="전장"></canvas>
+      <div class="pop" id="pop" hidden>
+        <div class="pop-head"><span class="e" id="popEmo"></span><span id="popName"></span><span class="chip" id="popLv"></span></div>
+        <p id="popDesc"></p>
+        <p class="pop-hint">빈 칸을 누르면 이동, 다른 캐릭터를 누르면 자리 바꾸기</p>
+        <button class="btn btn-sm" id="popSell" type="button">팔기 <i class="coin"></i>+<span id="popRefund">0</span></button>
+      </div>
+      <div class="toast" id="toast" hidden></div>
+    </div>
+    <div class="tray">
+      <div class="row-main">
+        <button class="btn sq" id="bPause" type="button" aria-label="일시정지">Ⅱ</button>
+        <button class="btn summon" id="bSummon" type="button"><span class="s-lbl">소환</span><small><i class="coin"></i><span id="sCost">20</span></small></button>
+        <button class="btn sq" id="bSpeed" type="button" aria-label="배속">×1</button>
+      </div>
+      <div class="deckbar" id="deckbar"></div>
+    </div>
+
+    <div class="ov" id="coach" hidden>
+      <div class="ov-card">
+        <h2>이렇게 해요</h2>
+        <ol class="steps">
+          <li><span>1</span>노란 <b>소환</b> 버튼을 누르면 내 덱에서 캐릭터가 나와요</li>
+          <li><span>2</span>아래 <b>카드</b>를 누르면 그 캐릭터가 전부 강해져요</li>
+          <li><span>3</span>위에서 적이 몰려와요. <b>100마리</b>가 쌓이면 져요!</li>
+        </ol>
+        <div class="ov-btns"><button class="btn btn-blue big" id="bCoachGo" type="button">알겠어, 시작!</button></div>
+      </div>
+    </div>
+
+    <div class="ov" id="pauseOv" hidden>
+      <div class="ov-card">
+        <h2>잠깐 멈춤</h2>
+        <p class="sub">적들도 얼음이 됐어요</p>
+        <div class="ov-btns">
+          <button class="btn btn-blue big" id="bResume" type="button">계속하기</button>
+          <button class="btn" id="bGiveUp" type="button">그만하고 홈으로</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="ov" id="overOv" hidden>
+      <div class="ov-card">
+        <h2 class="go-title">방어선이 무너졌어요!</h2>
+        <p class="sub" id="goReason">적이 100마리 쌓였어요</p>
+        <div class="go-wave"><small>도달한 웨이브</small><span id="goWave">0</span></div>
+        <div class="go-best" id="goBest"></div>
+        <div class="go-stats">
+          <div><b id="goSum">0</b>소환</div>
+          <div><b id="goKill">0</b>처치</div>
+          <div><b id="goUp">0</b>강화</div>
+        </div>
+        <div class="ov-btns">
+          <button class="btn btn-blue big" id="bRetry" type="button">다시 하기</button>
+          <button class="btn" id="bHome" type="button">홈으로</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = (s) => document.querySelector(s);
+const css = getComputedStyle(document.documentElement);
+const tok = (n, f) => css.getPropertyValue(n).trim() || f;
+const INK = tok('--ink', '#1B2232'), PAPER = tok('--paper', '#F4F6F1'), PAPER2 = tok('--paper-2', '#E6ECE2'),
+      GRIDC = tok('--grid', '#D3DEE6'), RED = tok('--red', '#E2463A'), BLUE = tok('--blue', '#2F6BD8'),
+      YEL = tok('--yellow', '#F7C438'), ORANGE = tok('--orange', '#F0913A');
+const EMOJI = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+const UIF = 'Jua,"Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+const DISPF = '"Black Han Sans","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+
+/* ===== 전장 크기 (논리 좌표) ===== */
+const W = 360, H = 480, WALL_Y = 262;
+const COLS = 5, ROWS = 3, CW = 64, CH = 60, GX = 20, GY = 292, SLOTS = COLS * ROWS;
+const slotXY = (i) => ({ x: GX + CW * (i % COLS + 0.5), y: GY + CH * (Math.floor(i / COLS) + 0.5) });
+
+/* ===== 밸런스 (숫자만 바꾸면 게임이 바뀌어요) ===== */
+const BAL = {
+  startGold: 100,
+  summonBase: 20, summonStep: 3,       // 소환 비용 = 20 + 3 × 소환 횟수
+  upBase: 25, upMult: 1.3,             // 강화 비용 = 25 × 레벨, 강화 1번에 공격력 ×1.3
+  waveLen: 20, spawnWindow: 13,        // 웨이브 20초, 처음 13초 동안 적이 나와요
+  hp0: 18, hpGrow: 1.115,              // 적 체력 = 18 × 1.115^(웨이브-1)
+  count: (w) => 16 + Math.floor(w * 0.6),
+  killGold: 1, bossGold: 30,
+  waveBonus: (w) => 8 + 2 * w,
+  maxEnemies: 100,
+  bossEvery: 10, bossHp: 28, bossWeight: 10,
+  dmgMul: 1,
+};
+
+/* ===== 캐릭터 (임시 — 예준이 그림이 오면 이름·그림·능력을 바꿔요) ===== */
+const CHARS = [
+  { id: 'sword',  name: '칼잡이',   emo: '🗡️', color: '#F08A7E', role: '근거리', pref: 'front', dmg: 14,  rate: 1.2,  range: 150, atk: 'slash',
+    desc: '가까운 적을 썰어요. 옆에 붙은 적도 같이 베요.' },
+  { id: 'archer', name: '궁수',     emo: '🏹', color: '#8DCF8F', role: '원거리', pref: 'back',  dmg: 9,   rate: 1.1,  range: 300, atk: 'arrow',
+    desc: '멀리서 오는 적도 화살로 맞혀요.' },
+  { id: 'bomb',   name: '폭탄병',   emo: '💣', color: '#A9AEC2', role: '광역',   pref: 'back',  dmg: 12,  rate: 0.55, range: 240, atk: 'bomb', splash: 48,
+    desc: '폭탄을 던져 뭉친 적을 한꺼번에 터뜨려요.' },
+  { id: 'ice',    name: '얼음술사', emo: '❄️', color: '#9AD3F2', role: '방해',   pref: 'back',  dmg: 5,   rate: 0.9,  range: 240, atk: 'ice', splash: 30, slow: 0.45, slowT: 2,
+    desc: '얼음에 맞은 적은 느려져요.' },
+  { id: 'bolt',   name: '번개술사', emo: '⚡', color: '#F7D774', role: '연쇄',   pref: 'back',  dmg: 10,  rate: 0.75, range: 240, atk: 'bolt', chain: 4,
+    desc: '번개가 적 4마리를 줄줄이 지나가요.' },
+  { id: 'fire',   name: '불꽃술사', emo: '🔥', color: '#F6AE6B', role: '지속',   pref: 'front', dmg: 7,   rate: 1.0,  range: 170, atk: 'fire', burn: 3,
+    desc: '불을 붙이면 3초 동안 계속 타요.' },
+  { id: 'coin',   name: '상인',     emo: '💰', color: '#EDD38A', role: '돈',     pref: 'back',  dmg: 4,   rate: 1.0,  range: 220, atk: 'coin', income: 4,
+    desc: '웨이브마다 돈을 벌어 와요. 강화하면 더 많이!' },
+  { id: 'spear',  name: '창병',     emo: '🔱', color: '#89A9E6', role: '관통',   pref: 'front', dmg: 11,  rate: 0.7,  range: 190, atk: 'spear',
+    desc: '창을 던지면 일직선에 있는 적을 모두 뚫어요.' },
+  { id: 'gun',    name: '연사수',   emo: '🔫', color: '#C7A6E6', role: '원거리', pref: 'back',  dmg: 3.2, rate: 4.0,  range: 250, atk: 'bullet',
+    desc: '약하지만 엄청 빠르게 쏴요.' },
+  { id: 'snipe',  name: '저격수',   emo: '🎯', color: '#86C7BC', role: '보스킬러', pref: 'back', dmg: 70, rate: 0.25, range: 999, atk: 'snipe',
+    desc: '체력이 제일 많은 적을 한 방에 크게 때려요.' },
+  { id: 'poison', name: '독술사',   emo: '🧪', color: '#B5DE85', role: '장판',   pref: 'back',  dmg: 6,   rate: 0.45, range: 230, atk: 'poison', pool: 42, poolT: 4,
+    desc: '독 웅덩이를 만들어 그 위의 적을 녹여요.' },
+  { id: 'hammer', name: '망치장군', emo: '🔨', color: '#D9A880', role: '근거리', pref: 'front', dmg: 32,  rate: 0.5,  range: 140, atk: 'smash', splash: 34, stun: 0.7,
+    desc: '쾅! 내려쳐서 주변 적을 기절시켜요.' },
+];
+const BY = {}; CHARS.forEach((c) => { BY[c.id] = c; });
+const TIERS = ['#A493DB', '#6DBB7D', '#E38C69', '#5FAED6', '#D7B24E', '#D57AA3'];
+const PSPEED = { arrow: 520, bomb: 300, ice: 400, fire: 380, coin: 420, bullet: 720, poison: 300 };
+
+/* ===== 저장 ===== */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 저장 못 해도 게임은 돼요 */ } },
+};
+const validDeck = (d) => Array.isArray(d) && d.length === 8 && new Set(d).size === 8 && d.every((id) => BY[id]) ? d.slice() : null;
+
+/* ===== 상태 ===== */
+const S = { screen: 'home', deck: null, best: 0, speed: 1 };
+function newBattle() {
+  Object.assign(S, {
+    wave: 0, waveT: BAL.waveLen - 3, queue: [], spawnT: 0, spawnGap: 1,
+    gold: BAL.startGold, summonN: 0, upN: 0, kills: 0, time: 0,
+    units: new Array(SLOTS).fill(null), enemies: [], projs: [], fx: [], pools: [],
+    levels: {}, count: 0, paused: false, over: false, sel: -1, banner: null,
+  });
+  S.deck.forEach((id) => { S.levels[id] = 1; });
+}
+const summonCost = () => BAL.summonBase + BAL.summonStep * S.summonN;
+const upCost = (id) => BAL.upBase * S.levels[id];
+const lvMult = (id) => Math.pow(BAL.upMult, S.levels[id] - 1);
+const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
+function segDist2(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1, l2 = dx * dx + dy * dy;
+  let t = l2 ? ((px - x1) * dx + (py - y1) * dy) / l2 : 0;
+  t = Math.max(0, Math.min(1, t));
+  return (px - x1 - t * dx) ** 2 + (py - y1 - t * dy) ** 2;
+}
+
+/* ===== 웨이브 ===== */
+function startWave() {
+  if (S.wave > 0) {
+    const b = BAL.waveBonus(S.wave);
+    S.gold += b;
+    fx({ k: 'text', x: W / 2, y: WALL_Y + 18, s: '웨이브 보상 +' + b, c: YEL, life: 1.4, size: 15 });
+  }
+  S.wave++; S.waveT = 0;
+  for (const u of S.units) {
+    if (u && u.type === 'coin') {
+      const g = BY.coin.income * S.levels.coin;
+      S.gold += g;
+      const p = slotXY(u.slot);
+      fx({ k: 'text', x: p.x, y: p.y - 26, s: '+' + g, c: YEL, life: 1.1, size: 14 });
+    }
+  }
+  const boss = S.wave % BAL.bossEvery === 0;
+  let n = BAL.count(S.wave);
+  const q = [];
+  if (boss) { q.push(true); n = Math.floor(n / 2); }
+  for (let i = 0; i < n; i++) q.push(false);
+  S.queue = q; S.spawnGap = BAL.spawnWindow / q.length; S.spawnT = 0;
+  S.banner = { s: boss ? '보스 등장!' : 'WAVE ' + S.wave, t: 0, c: boss ? RED : INK };
+}
+function makeEnemy(boss) {
+  const w = S.wave;
+  const hp = BAL.hp0 * Math.pow(BAL.hpGrow, w - 1) * (boss ? BAL.bossHp : 1);
+  const r = boss ? 20 : 8.5 + Math.random() * 1.5;
+  return {
+    x: r + Math.random() * (W - 2 * r), y: -r - Math.random() * 8, r, hp, maxHp: hp,
+    sp: (boss ? 20 : 32 + Math.min(w, 40) * 0.45) * (0.85 + Math.random() * 0.3),
+    slowT: 0, slowF: 0, stunT: 0, burnT: 0, burnDps: 0, flash: 0,
+    boss, weight: boss ? BAL.bossWeight : 1, dead: false,
+    wob: Math.random() * 6.28, tier: Math.floor((w - 1) / 5) % TIERS.length,
+  };
+}
+
+/* ===== 전투 ===== */
+function hurt(e, a, src) {
+  if (e.dead) return;
+  e.hp -= a;
+  if (a > 0.6) e.flash = 0.07;
+  if (e.hp <= 0) {
+    e.dead = true; S.kills++;
+    S.gold += (e.boss ? BAL.bossGold : BAL.killGold) + (src === 'coin' ? 1 : 0);
+    const n = e.boss ? 18 : 5;
+    if (S.fx.length < 500) {
+      for (let i = 0; i < n; i++) {
+        const a2 = Math.random() * 6.28, v = 40 + Math.random() * 90;
+        fx({ k: 'p', x: e.x, y: e.y, vx: Math.cos(a2) * v, vy: Math.sin(a2) * v - 40, c: e.boss ? RED : TIERS[e.tier], r: e.boss ? 3.5 : 2.4, life: 0.45 });
+      }
+    }
+    if (e.boss) fx({ k: 'text', x: e.x, y: e.y - 10, s: '보스 처치! +' + BAL.bossGold, c: YEL, life: 1.6, size: 17 });
+  }
+}
+function area(x, y, r, dmg, src, fn) {
+  for (const e of S.enemies) {
+    if (e.dead) continue;
+    const rr = r + e.r * 0.6;
+    if ((e.x - x) ** 2 + (e.y - y) ** 2 < rr * rr) { if (fn) fn(e); hurt(e, dmg, src); }
+  }
+}
+function findTarget(u, def) {
+  const p = slotXY(u.slot), r2 = def.range * def.range, byHp = def.atk === 'snipe';
+  let best = null, bv = -Infinity;
+  for (const e of S.enemies) {
+    if (e.dead || e.y < 2) continue;
+    const dx = e.x - p.x, dy = e.y - p.y;
+    if (dx * dx + dy * dy > r2) continue;
+    const v = byHp ? e.hp : e.y;
+    if (v > bv) { bv = v; best = e; }
+  }
+  return best;
+}
+function attack(u, def, t) {
+  const p = slotXY(u.slot);
+  const dmg = def.dmg * lvMult(def.id) * BAL.dmgMul;
+  const ang = Math.atan2(t.y - p.y, t.x - p.x);
+  u.anim = 0.12;
+  switch (def.atk) {
+    case 'slash':
+      hurt(t, dmg, def.id);
+      for (const e of S.enemies) if (e !== t && !e.dead && dist2(e, t) < 26 * 26) hurt(e, dmg * 0.6, def.id);
+      fx({ k: 'slash', x: t.x, y: t.y, a: ang, life: 0.22 });
+      u.lunge = 0.25; u.lx = Math.cos(ang); u.ly = Math.sin(ang);
+      break;
+    case 'smash':
+      area(t.x, t.y, def.splash, dmg, def.id, (e) => { e.stunT = Math.max(e.stunT, def.stun); });
+      fx({ k: 'ring', x: t.x, y: t.y, r: def.splash, c: '#B9773F', life: 0.35 });
+      u.lunge = 0.25; u.lx = Math.cos(ang); u.ly = Math.sin(ang);
+      break;
+    case 'bolt': {
+      const hit = [t]; let cur = t;
+      for (let i = 1; i < def.chain; i++) {
+        let nb = null, nd = 80 * 80;
+        for (const e of S.enemies) {
+          if (e.dead || hit.includes(e)) continue;
+          const d = dist2(e, cur);
+          if (d < nd) { nd = d; nb = e; }
+        }
+        if (!nb) break;
+        hit.push(nb); cur = nb;
+      }
+      const pts = [{ x: p.x, y: p.y - 12 }];
+      hit.forEach((e, i) => { pts.push({ x: e.x, y: e.y }); hurt(e, dmg * Math.pow(0.85, i), def.id); });
+      fx({ k: 'bolt', pts, life: 0.2 });
+      break;
+    }
+    case 'spear': {
+      const len = def.range + 60, x2 = p.x + Math.cos(ang) * len, y2 = p.y + Math.sin(ang) * len;
+      for (const e of S.enemies) if (!e.dead && segDist2(e.x, e.y, p.x, p.y, x2, y2) < (e.r + 5) ** 2) hurt(e, dmg, def.id);
+      fx({ k: 'spear', x1: p.x, y1: p.y, x2, y2, life: 0.28 });
+      break;
+    }
+    case 'snipe':
+      hurt(t, dmg, def.id);
+      fx({ k: 'snipe', x1: p.x, y1: p.y, x2: t.x, y2: t.y, life: 0.32 });
+      break;
+    default:
+      S.projs.push({ k: def.atk, x: p.x, y: p.y - 6, t, lx: t.x, ly: t.y, sp: PSPEED[def.atk], dmg, def,
+                     d0: Math.max(1, Math.hypot(t.x - p.x, t.y - p.y)), prog: 0 });
+  }
+}
+function projHit(pr) {
+  const def = pr.def, t = pr.t, alive = t && !t.dead;
+  switch (pr.k) {
+    case 'arrow': case 'bullet': if (alive) hurt(t, pr.dmg, def.id); break;
+    case 'coin': if (alive) hurt(t, pr.dmg, 'coin'); break;
+    case 'fire':
+      if (alive) {
+        t.burnDps = t.burnT > 0 ? Math.max(t.burnDps, pr.dmg * 0.9) : pr.dmg * 0.9;
+        t.burnT = def.burn;
+        hurt(t, pr.dmg, def.id);
+      }
+      fx({ k: 'boom', x: pr.x, y: pr.y, r: 12, c: ORANGE, life: 0.22 });
+      break;
+    case 'bomb':
+      area(pr.x, pr.y, def.splash, pr.dmg, def.id);
+      fx({ k: 'boom', x: pr.x, y: pr.y, r: def.splash, c: ORANGE, life: 0.32 });
+      break;
+    case 'ice':
+      area(pr.x, pr.y, def.splash, pr.dmg, def.id, (e) => {
+        e.slowF = e.slowT > 0 ? Math.max(e.slowF, def.slow) : def.slow;
+        e.slowT = Math.max(e.slowT, def.slowT);
+      });
+      fx({ k: 'boom', x: pr.x, y: pr.y, r: def.splash, c: '#9AD3F2', life: 0.3 });
+      break;
+    case 'poison':
+      S.pools.push({ x: pr.x, y: pr.y, r: def.pool, t: def.poolT, max: def.poolT, dps: pr.dmg });
+      break;
+  }
+}
+function fx(o) { o.t = 0; S.fx.push(o); }
+
+function separate() {
+  const E = S.enemies, n = E.length;
+  for (let i = 0; i < n; i++) {
+    const a = E[i];
+    for (let j = i + 1; j < n; j++) {
+      const b = E[j];
+      const m = a.r + b.r - 1, dx = b.x - a.x, dy = b.y - a.y;
+      if (dx > m || dx < -m || dy > m || dy < -m) continue;
+      const d2 = dx * dx + dy * dy;
+      if (d2 >= m * m) continue;
+      let d = Math.sqrt(d2), nx, ny;
+      if (d < 0.01) { const r = Math.random() * 6.28; nx = Math.cos(r); ny = Math.sin(r); d = 0.01; } else { nx = dx / d; ny = dy / d; }
+      const o = m - d, wa = a.boss ? 0.15 : 1, wb = b.boss ? 0.15 : 1, s = wa + wb;
+      a.x -= nx * o * wa / s; a.y -= ny * o * wa / s;
+      b.x += nx * o * wb / s; b.y += ny * o * wb / s;
+    }
+  }
+  for (const e of E) {
+    if (e.x < e.r) e.x = e.r; else if (e.x > W - e.r) e.x = W - e.r;
+    if (e.y > WALL_Y - e.r) e.y = WALL_Y - e.r;
+  }
+}
+
+function update(dt) {
+  S.time += dt; S.waveT += dt;
+  if (S.queue.length) {
+    S.spawnT -= dt;
+    while (S.queue.length && S.spawnT <= 0) { S.enemies.push(makeEnemy(S.queue.shift())); S.spawnT += S.spawnGap; }
+  }
+  if (S.waveT >= BAL.waveLen) startWave();
+
+  for (const e of S.enemies) {
+    if (e.dead) continue;
+    if (e.flash > 0) e.flash -= dt;
+    if (e.burnT > 0) { e.burnT -= dt; hurt(e, e.burnDps * dt, null); if (e.dead) continue; }
+    if (e.slowT > 0) e.slowT -= dt;
+    if (e.stunT > 0) { e.stunT -= dt; continue; }
+    e.y += e.sp * (e.slowT > 0 ? 1 - e.slowF : 1) * dt;
+  }
+  separate();
+
+  for (const p of S.pools) {
+    p.t -= dt;
+    for (const e of S.enemies) if (!e.dead && dist2(e, p) < (p.r + e.r * 0.5) ** 2) hurt(e, p.dps * dt, null);
+  }
+  S.pools = S.pools.filter((p) => p.t > 0);
+
+  for (const u of S.units) {
+    if (!u) continue;
+    u.born += dt;
+    if (u.anim > 0) u.anim -= dt;
+    if (u.lunge > 0) u.lunge -= dt;
+    u.cd -= dt;
+    if (u.cd <= 0 && u.born > 0.3) {
+      const def = BY[u.type], t = findTarget(u, def);
+      if (t) { attack(u, def, t); u.cd += 1 / def.rate; if (u.cd < 0) u.cd = 0; } else u.cd = 0.1;
+    }
+  }
+
+  for (const pr of S.projs) {
+    if (pr.t && !pr.t.dead) { pr.lx = pr.t.x; pr.ly = pr.t.y; }
+    const dx = pr.lx - pr.x, dy = pr.ly - pr.y, d = Math.hypot(dx, dy), st = pr.sp * dt;
+    pr.prog = Math.min(1, 1 - d / pr.d0);
+    if (d <= st) { pr.x = pr.lx; pr.y = pr.ly; pr.done = true; projHit(pr); }
+    else { pr.x += dx / d * st; pr.y += dy / d * st; }
+  }
+  S.projs = S.projs.filter((p) => !p.done);
+
+  for (const f of S.fx) {
+    f.t += dt;
+    if (f.k === 'p') { f.x += f.vx * dt; f.y += f.vy * dt; f.vy += 260 * dt; }
+  }
+  S.fx = S.fx.filter((f) => f.t < f.life);
+  if (S.banner) { S.banner.t += dt; if (S.banner.t > 1.8) S.banner = null; }
+
+  S.enemies = S.enemies.filter((e) => !e.dead);
+  let c = 0;
+  for (const e of S.enemies) c += e.weight;
+  S.count = c;
+  if (c >= BAL.maxEnemies) gameOver();
+}
+
+/* ===== 플레이어 행동 ===== */
+function summon() {
+  if (S.over) return;
+  const cost = summonCost();
+  const free = []; S.units.forEach((u, i) => { if (!u) free.push(i); });
+  if (!free.length) { toast('자리가 꽉 찼어요! 캐릭터를 팔거나 강화해요'); shake(bSummon); return; }
+  if (S.gold < cost) { toast('돈이 부족해요'); shake(bSummon); return; }
+  S.gold -= cost; S.summonN++;
+  const type = S.deck[Math.floor(Math.random() * S.deck.length)];
+  const rows = BY[type].pref === 'front' ? [0, 1, 2] : [2, 1, 0];
+  let slot = free[0];
+  for (const r of rows) {
+    const inRow = free.filter((i) => Math.floor(i / COLS) === r);
+    if (inRow.length) { slot = inRow[Math.floor(Math.random() * inRow.length)]; break; }
+  }
+  S.units[slot] = { type, slot, cd: 0, born: 0, anim: 0, lunge: 0, lx: 0, ly: 0, paid: cost };
+  const p = slotXY(slot);
+  fx({ k: 'pop', x: p.x, y: p.y, life: 0.45 });
+  fx({ k: 'text', x: p.x, y: p.y - 30, s: BY[type].name, c: INK, life: 1.0, size: 13 });
+}
+function upgrade(id, el) {
+  if (S.over) return;
+  const cost = upCost(id);
+  if (S.gold < cost) { toast('강화할 돈이 부족해요'); shake(el); return; }
+  S.gold -= cost; S.levels[id]++; S.upN++;
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+  for (const u of S.units) {
+    if (u && u.type === id) {
+      const p = slotXY(u.slot);
+      u.anim = 0.2;
+      fx({ k: 'text', x: p.x, y: p.y - 28, s: 'Lv.' + S.levels[id], c: BLUE, life: 0.9, size: 14 });
+    }
+  }
+  if (S.sel >= 0) showPop();
+}
+function sell() {
+  const u = S.units[S.sel];
+  if (!u) return;
+  const g = Math.floor(u.paid / 2);
+  S.gold += g;
+  const p = slotXY(u.slot);
+  fx({ k: 'text', x: p.x, y: p.y - 26, s: '+' + g, c: YEL, life: 1, size: 14 });
+  S.units[S.sel] = null;
+  select(-1);
+}
+function slotAt(x, y) {
+  for (let i = 0; i < SLOTS; i++) {
+    const p = slotXY(i);
+    if (Math.abs(x - p.x) < CW / 2 && Math.abs(y - p.y) < CH / 2) return i;
+  }
+  return -1;
+}
+function onTap(x, y) {
+  if (S.over) return;
+  const i = slotAt(x, y);
+  if (i < 0) { select(-1); return; }
+  const u = S.units[i];
+  if (S.sel >= 0) {
+    if (i === S.sel) { select(-1); return; }
+    const a = S.units[S.sel];
+    S.units[i] = a; S.units[S.sel] = u || null;
+    a.slot = i; if (u) u.slot = S.sel;
+    select(-1); return;
+  }
+  if (u) select(i);
+}
+
+/* ===== 그리기 ===== */
+const cv = $('#cv'), ctx = cv.getContext('2d'), field = $('#field');
+const bg = document.createElement('canvas'), bgx = bg.getContext('2d');
+let SC = 1, DPR = 1;
+function layout() {
+  if (S.screen !== 'battle') return;
+  const r = field.getBoundingClientRect();
+  SC = Math.max(0.4, Math.min((r.width - 8) / W, (r.height - 14) / H));
+  DPR = Math.min(window.devicePixelRatio || 1, 3);
+  cv.style.width = W * SC + 'px'; cv.style.height = H * SC + 'px';
+  cv.width = Math.round(W * SC * DPR); cv.height = Math.round(H * SC * DPR);
+  bg.width = cv.width; bg.height = cv.height;
+  bgx.setTransform(SC * DPR, 0, 0, SC * DPR, 0, 0);
+  bgx.fillStyle = PAPER; bgx.fillRect(0, 0, W, H);
+  bgx.fillStyle = PAPER2; bgx.fillRect(0, WALL_Y + 8, W, H - WALL_Y - 8);
+  bgx.strokeStyle = GRIDC; bgx.lineWidth = 0.7;
+  bgx.beginPath();
+  for (let x = 20; x < W; x += 20) { bgx.moveTo(x, 0); bgx.lineTo(x, H); }
+  for (let y = 20; y < H; y += 20) { bgx.moveTo(0, y); bgx.lineTo(W, y); }
+  bgx.stroke();
+  // 방어선
+  bgx.strokeStyle = RED; bgx.lineWidth = 3.2; bgx.lineCap = 'round'; bgx.setLineDash([12, 8]);
+  bgx.beginPath(); bgx.moveTo(8, WALL_Y + 4); bgx.lineTo(W - 8, WALL_Y + 4); bgx.stroke(); bgx.setLineDash([]);
+  bgx.fillStyle = RED; bgx.font = '12px ' + UIF; bgx.textAlign = 'left'; bgx.textBaseline = 'middle';
+  bgx.fillText('방어선', 10, WALL_Y + 18);
+  if (S.sel >= 0) showPop();
+}
+function circle(c, x, y, r) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); }
+const easeBack = (k) => { const s = 1.7; k -= 1; return k * k * ((s + 1) * k + s) + 1; };
+
+function drawEnemy(e) {
+  const c = ctx, wob = Math.sin(S.time * 9 + e.wob);
+  c.save(); c.translate(e.x, e.y);
+  c.fillStyle = 'rgba(27,34,50,.14)';
+  c.beginPath(); c.ellipse(0, e.r * 0.85, e.r * 0.9, e.r * 0.3, 0, 0, Math.PI * 2); c.fill();
+  c.save(); c.scale(1 + wob * 0.05, 1 - wob * 0.05);
+  circle(c, 0, 0, e.r);
+  c.fillStyle = e.flash > 0 ? PAPER : (e.boss ? '#C2413A' : TIERS[e.tier]); c.fill();
+  if (e.slowT > 0) { c.fillStyle = 'rgba(154,211,242,.55)'; c.fill(); }
+  c.lineWidth = e.boss ? 2.6 : 1.8; c.strokeStyle = INK; c.stroke();
+  c.restore();
+  if (e.boss) {
+    c.fillStyle = INK;
+    c.beginPath(); c.moveTo(-14, -12); c.lineTo(-9, -26); c.lineTo(-4, -16); c.fill();
+    c.beginPath(); c.moveTo(14, -12); c.lineTo(9, -26); c.lineTo(4, -16); c.fill();
+  }
+  const ex = e.r * 0.36, ey = -e.r * 0.12, er = e.r * 0.27;
+  c.fillStyle = PAPER; circle(c, -ex, ey, er); c.fill(); circle(c, ex, ey, er); c.fill();
+  c.fillStyle = INK; circle(c, -ex, ey + er * 0.35, er * 0.55); c.fill(); circle(c, ex, ey + er * 0.35, er * 0.55); c.fill();
+  if (e.burnT > 0) { c.fillStyle = ORANGE; circle(c, e.r * 0.55, -e.r * 0.7, 2.6 + Math.sin(S.time * 20) * 0.8); c.fill(); }
+  if (e.stunT > 0) { c.fillStyle = YEL; c.font = '9px ' + UIF; c.textAlign = 'center'; c.fillText('★', Math.cos(S.time * 8) * 6, -e.r - 4); }
+  if (e.boss || e.hp < e.maxHp) {
+    const bw = e.boss ? 44 : e.r * 2, by = -e.r - (e.boss ? 14 : 6);
+    c.fillStyle = INK; c.fillRect(-bw / 2 - 1, by - 1, bw + 2, e.boss ? 6 : 4);
+    c.fillStyle = e.boss ? RED : '#6BCB77'; c.fillRect(-bw / 2, by, bw * Math.max(0, e.hp / e.maxHp), e.boss ? 4 : 2);
+  }
+  c.restore();
+}
+function drawUnit(u) {
+  const c = ctx, def = BY[u.type], p = slotXY(u.slot);
+  let s = u.born < 0.3 ? Math.max(0.01, easeBack(u.born / 0.3)) : 1;
+  if (u.anim > 0) s *= 1 + u.anim * 0.9;
+  let ox = 0, oy = 0;
+  if (u.lunge > 0) { const k = Math.sin((u.lunge / 0.25) * Math.PI) * 12; ox = u.lx * k; oy = u.ly * k; }
+  c.save(); c.translate(p.x + ox, p.y + oy); c.scale(s, s);
+  c.fillStyle = 'rgba(27,34,50,.22)'; circle(c, 2, 3.5, 23); c.fill();
+  c.fillStyle = PAPER; circle(c, 0, 0, 23); c.fill();
+  c.lineWidth = 2; c.strokeStyle = INK; c.stroke();
+  c.fillStyle = def.color; circle(c, 0, 0, 18.5); c.fill();
+  c.lineWidth = 1.5; c.stroke();
+  c.font = '21px ' + EMOJI; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText(def.emo, 0, 1.5);
+  const lv = S.levels[u.type];
+  if (lv > 1) {
+    c.fillStyle = INK; circle(c, 16, 15, 9); c.fill();
+    c.fillStyle = PAPER; c.font = '11px ' + UIF; c.fillText(String(lv), 16, 15.5);
+  }
+  c.restore();
+}
+function drawProj(pr) {
+  const c = ctx, a = Math.atan2(pr.ly - pr.y, pr.lx - pr.x);
+  const arc = pr.k === 'bomb' || pr.k === 'poison' ? -Math.sin(Math.PI * Math.max(0, pr.prog)) * 30 : 0;
+  c.save(); c.translate(pr.x, pr.y + arc);
+  switch (pr.k) {
+    case 'arrow':
+      c.rotate(a); c.strokeStyle = INK; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(-12, 0); c.lineTo(2, 0); c.stroke();
+      c.fillStyle = INK; c.beginPath(); c.moveTo(6, 0); c.lineTo(0, -3.5); c.lineTo(0, 3.5); c.fill();
+      break;
+    case 'bullet': c.fillStyle = '#9C6BD6'; circle(c, 0, 0, 2.6); c.fill(); break;
+    case 'bomb':
+      c.fillStyle = INK; circle(c, 0, 0, 5.5); c.fill();
+      c.fillStyle = ORANGE; circle(c, 3, -5, 2 + Math.sin(S.time * 30)); c.fill();
+      break;
+    case 'ice': c.fillStyle = '#9AD3F2'; circle(c, 0, 0, 5); c.fill(); c.strokeStyle = INK; c.lineWidth = 1.2; c.stroke(); c.fillStyle = PAPER; circle(c, -1.5, -1.5, 1.6); c.fill(); break;
+    case 'fire': c.fillStyle = ORANGE; circle(c, 0, 0, 5.5); c.fill(); c.fillStyle = YEL; circle(c, 0, 0, 2.8); c.fill(); break;
+    case 'coin': c.fillStyle = YEL; circle(c, 0, 0, 4.5); c.fill(); c.strokeStyle = INK; c.lineWidth = 1.3; c.stroke(); break;
+    case 'poison': c.fillStyle = '#8BC34A'; circle(c, 0, 0, 5); c.fill(); c.strokeStyle = INK; c.lineWidth = 1.3; c.stroke(); break;
+  }
+  c.restore();
+}
+function drawFx(f) {
+  const c = ctx, k = f.t / f.life, a = 1 - k;
+  c.save(); c.globalAlpha = Math.max(0, a);
+  switch (f.k) {
+    case 'slash':
+      c.translate(f.x, f.y); c.rotate(f.a + Math.PI / 2);
+      c.lineCap = 'round';
+      c.strokeStyle = PAPER; c.lineWidth = 7 * a + 2;
+      c.beginPath(); c.arc(0, 4, 17, Math.PI * 1.05, Math.PI * (1.05 + 0.9 * Math.min(1, k * 3))); c.stroke();
+      c.strokeStyle = INK; c.lineWidth = 2.4 * a + 0.6;
+      c.beginPath(); c.arc(0, 4, 17, Math.PI * 1.05, Math.PI * (1.05 + 0.9 * Math.min(1, k * 3))); c.stroke();
+      break;
+    case 'ring':
+      c.strokeStyle = f.c; c.lineWidth = 4 * a + 1;
+      circle(c, f.x, f.y, f.r * (0.35 + 0.65 * k)); c.stroke();
+      break;
+    case 'boom':
+      c.fillStyle = f.c; c.globalAlpha = a * 0.55;
+      circle(c, f.x, f.y, f.r * (0.5 + 0.5 * k)); c.fill();
+      c.globalAlpha = a; c.strokeStyle = INK; c.lineWidth = 1.5; c.stroke();
+      break;
+    case 'bolt':
+      c.lineJoin = 'round';
+      for (const [col, lw] of [[YEL, 5], [PAPER, 1.8]]) {
+        c.strokeStyle = col; c.lineWidth = lw; c.beginPath();
+        f.pts.forEach((p, i) => {
+          if (!i) { c.moveTo(p.x, p.y); return; }
+          const q = f.pts[i - 1], mx = (p.x + q.x) / 2 + (Math.random() - 0.5) * 14, my = (p.y + q.y) / 2 + (Math.random() - 0.5) * 14;
+          c.lineTo(mx, my); c.lineTo(p.x, p.y);
+        });
+        c.stroke();
+      }
+      break;
+    case 'spear': {
+      const pk = Math.min(1, k * 2.2), x = f.x1 + (f.x2 - f.x1) * pk, y = f.y1 + (f.y2 - f.y1) * pk;
+      c.strokeStyle = BLUE; c.lineWidth = 3; c.globalAlpha = a * 0.5;
+      c.beginPath(); c.moveTo(f.x1, f.y1); c.lineTo(x, y); c.stroke();
+      c.globalAlpha = a; c.translate(x, y); c.rotate(Math.atan2(f.y2 - f.y1, f.x2 - f.x1));
+      c.fillStyle = INK; c.beginPath(); c.moveTo(10, 0); c.lineTo(-4, -5); c.lineTo(-4, 5); c.fill();
+      break;
+    }
+    case 'snipe':
+      c.strokeStyle = RED; c.lineWidth = 1.6;
+      c.beginPath(); c.moveTo(f.x1, f.y1); c.lineTo(f.x2, f.y2); c.stroke();
+      c.lineWidth = 2; circle(c, f.x2, f.y2, 9 + k * 6); c.stroke();
+      c.beginPath(); c.moveTo(f.x2 - 15, f.y2); c.lineTo(f.x2 + 15, f.y2); c.moveTo(f.x2, f.y2 - 15); c.lineTo(f.x2, f.y2 + 15); c.stroke();
+      break;
+    case 'p': c.fillStyle = f.c; circle(c, f.x, f.y, f.r); c.fill(); break;
+    case 'pop':
+      c.strokeStyle = YEL; c.lineWidth = 3;
+      for (let i = 0; i < 8; i++) {
+        const an = i * Math.PI / 4, r1 = 18 + k * 14, r2 = r1 + 7 * a;
+        c.beginPath(); c.moveTo(f.x + Math.cos(an) * r1, f.y + Math.sin(an) * r1); c.lineTo(f.x + Math.cos(an) * r2, f.y + Math.sin(an) * r2); c.stroke();
+      }
+      break;
+    case 'text':
+      c.font = (f.size || 13) + 'px ' + UIF; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.lineWidth = 3.5; c.strokeStyle = INK; c.lineJoin = 'round';
+      c.strokeText(f.s, f.x, f.y - k * 18); c.fillStyle = f.c === INK ? PAPER : f.c; c.fillText(f.s, f.x, f.y - k * 18);
+      break;
+  }
+  c.restore();
+}
+function render() {
+  const c = ctx;
+  c.setTransform(SC * DPR, 0, 0, SC * DPR, 0, 0);
+  c.drawImage(bg, 0, 0, W, H);
+  if (S.count >= 70) {
+    const g = c.createLinearGradient(0, WALL_Y - 90, 0, WALL_Y + 6);
+    g.addColorStop(0, 'rgba(226,70,58,0)');
+    g.addColorStop(1, 'rgba(226,70,58,' + (0.16 + 0.1 * Math.sin(S.time * 8)).toFixed(3) + ')');
+    c.fillStyle = g; c.fillRect(0, WALL_Y - 90, W, 96);
+  }
+  for (const p of S.pools) {
+    c.save(); c.globalAlpha = 0.25 + 0.35 * (p.t / p.max);
+    c.fillStyle = '#9BD45A'; circle(c, p.x, p.y, p.r); c.fill();
+    c.globalAlpha = 0.8 * (p.t / p.max); c.strokeStyle = '#5E9A2C'; c.lineWidth = 1.5; c.setLineDash([4, 4]); c.stroke();
+    c.restore();
+  }
+  // 칸
+  for (let i = 0; i < SLOTS; i++) {
+    if (S.units[i]) continue;
+    const p = slotXY(i);
+    c.save();
+    c.strokeStyle = S.sel >= 0 ? BLUE : 'rgba(27,34,50,.2)';
+    c.lineWidth = S.sel >= 0 ? 2 : 1.4; c.setLineDash([5, 5]);
+    c.beginPath(); c.roundRect ? c.roundRect(p.x - 25, p.y - 24, 50, 48, 10) : c.rect(p.x - 25, p.y - 24, 50, 48); c.stroke();
+    c.restore();
+  }
+  if (S.sel >= 0 && S.units[S.sel]) {
+    const p = slotXY(S.sel), r = Math.min(BY[S.units[S.sel].type].range, 520);
+    c.save(); c.fillStyle = 'rgba(47,107,216,.07)'; c.strokeStyle = BLUE; c.lineWidth = 1.6; c.setLineDash([6, 5]);
+    circle(c, p.x, p.y, r); c.fill(); c.stroke(); c.restore();
+  }
+  for (const e of S.enemies) drawEnemy(e);
+  for (const u of S.units) if (u) drawUnit(u);
+  if (S.sel >= 0 && S.units[S.sel]) {
+    const p = slotXY(S.sel);
+    c.save(); c.strokeStyle = BLUE; c.lineWidth = 3; circle(c, p.x, p.y, 27); c.stroke(); c.restore();
+  }
+  for (const pr of S.projs) drawProj(pr);
+  for (const f of S.fx) drawFx(f);
+  if (S.banner) {
+    const t = S.banner.t, a = t < 0.25 ? t / 0.25 : t > 1.4 ? Math.max(0, (1.8 - t) / 0.4) : 1;
+    const sc = t < 0.25 ? 0.7 + 0.3 * easeBack(t / 0.25) : 1;
+    c.save(); c.globalAlpha = a; c.translate(W / 2, 118); c.scale(sc, sc);
+    c.font = '40px ' + DISPF; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.lineJoin = 'round'; c.lineWidth = 8; c.strokeStyle = PAPER; c.strokeText(S.banner.s, 0, 0);
+    c.fillStyle = S.banner.c; c.fillText(S.banner.s, 0, 0);
+    c.restore();
+  }
+}
+
+/* ===== 화면 / UI ===== */
+const screens = { home: $('#home'), deck: $('#deckScreen'), battle: $('#battle') };
+function show(name) {
+  S.screen = name;
+  for (const k in screens) screens[k].hidden = k !== name;
+  if (name === 'home') renderHome();
+  if (name === 'battle') layout();
+}
+function stickerHTML(def, size) {
+  return '<span class="stk" style="--c:' + def.color + ';width:' + size + 'px;height:' + size + 'px;font-size:' + Math.round(size * 0.5) + 'px">' + def.emo + '</span>';
+}
+function renderHome() {
+  $('#homeDeck').innerHTML = S.deck.map((id) => '<figure>' + stickerHTML(BY[id], 44) + '<figcaption>' + BY[id].name + '</figcaption></figure>').join('');
+  $('#homeDeckCount').textContent = S.deck.length + '/8';
+  $('#homeBest').textContent = S.best ? 'WAVE ' + S.best : '아직 없음';
+}
+
+let draft = [];
+function openDeck() { draft = S.deck.slice(); renderDeck(); show('deck'); }
+function renderDeck() {
+  const g = $('#charGrid');
+  g.innerHTML = CHARS.map((d) => {
+    const on = draft.includes(d.id);
+    const range = d.range >= 999 ? '전체' : d.range;
+    return '<button class="cc" type="button" data-id="' + d.id + '" aria-pressed="' + on + '">' +
+      stickerHTML(d, 40) +
+      '<span class="cc-name">' + d.name + ' <em>' + d.role + '</em></span>' +
+      '<span class="cc-desc">' + d.desc + '</span>' +
+      '<span class="cc-stat">공격 ' + d.dmg + ' · 공속 ' + d.rate + ' · 사거리 ' + range + '</span>' +
+      '<span class="cc-check">출전</span></button>';
+  }).join('');
+  $('#deckCount').textContent = draft.length + '/8';
+  $('#bDeckDone').disabled = draft.length !== 8;
+  $('#bDeckDone').textContent = draft.length === 8 ? '이 덱으로 결정' : (8 - draft.length > 0 ? (8 - draft.length) + '마리 더 골라요' : (draft.length - 8) + '마리 빼야 해요');
+}
+$('#charGrid').addEventListener('click', (e) => {
+  const b = e.target.closest('.cc'); if (!b) return;
+  const id = b.dataset.id, i = draft.indexOf(id);
+  if (i >= 0) draft.splice(i, 1);
+  else if (draft.length < 8) draft.push(id);
+  else { toast('8마리까지만 데려갈 수 있어요. 먼저 하나를 빼요'); }
+  renderDeck();
+});
+$('#bDeckDone').addEventListener('click', () => { if (draft.length !== 8) return; S.deck = draft.slice(); store.set('yj2.deck', S.deck); show('home'); });
+$('#bDeckBack').addEventListener('click', () => show('home'));
+$('#bDeck').addEventListener('click', openDeck);
+
+const deckbar = $('#deckbar');
+function buildDeckBar() {
+  deckbar.innerHTML = S.deck.map((id) => {
+    const d = BY[id];
+    return '<button class="dcard" type="button" data-id="' + id + '" aria-label="' + d.name + ' 강화">' +
+      '<span class="dc-top"><span class="dc-emo">' + d.emo + '</span><span class="dc-name">' + d.name + '</span></span>' +
+      '<span class="dc-bot"><span class="dc-lv">Lv.1</span><span class="dc-cost"><i class="coin"></i><span>25</span></span></span>' +
+      '<span class="dc-cnt" data-zero="1">0</span></button>';
+  }).join('');
+  deckEls = [...deckbar.children].map((el) => ({
+    el, id: el.dataset.id, lv: el.querySelector('.dc-lv'), cost: el.querySelector('.dc-cost span'), cnt: el.querySelector('.dc-cnt'), k: '',
+  }));
+}
+let deckEls = [];
+deckbar.addEventListener('click', (e) => { const b = e.target.closest('.dcard'); if (b) upgrade(b.dataset.id, b); });
+
+const hWave = $('#hWave'), hTime = $('#hTime'), hCount = $('#hCount'), hBar = $('#hBar'), hCountBox = $('#hCountBox'),
+      hGold = $('#hGold'), sCost = $('#sCost'), bSummon = $('#bSummon');
+const ui = {};
+function setT(el, key, v) { if (ui[key] !== v) { ui[key] = v; el.textContent = v; } }
+function syncHUD() {
+  setT(hWave, 'w', String(S.wave));
+  setT(hTime, 't', Math.max(0, Math.ceil(BAL.waveLen - S.waveT)) + '초');
+  setT(hCount, 'c', String(S.count));
+  const pct = Math.round(Math.min(100, S.count / BAL.maxEnemies * 100));
+  if (ui.pct !== pct) { ui.pct = pct; hBar.style.width = pct + '%'; }
+  const lvl = S.count >= 70 ? '2' : S.count >= 40 ? '1' : '0';
+  if (ui.lvl !== lvl) { ui.lvl = lvl; hCountBox.dataset.level = lvl; }
+  const g = Math.floor(S.gold);
+  setT(hGold, 'g', String(g));
+  const cost = summonCost(), full = S.units.every(Boolean);
+  setT(sCost, 'sc', full ? '꽉 참' : String(cost));
+  const off = full || g < cost;
+  if (ui.off !== off) { ui.off = off; bSummon.classList.toggle('off', off); }
+  const counts = {};
+  for (const u of S.units) if (u) counts[u.type] = (counts[u.type] || 0) + 1;
+  for (const d of deckEls) {
+    const lv = S.levels[d.id], c = upCost(d.id), n = counts[d.id] || 0, k = lv + ':' + n + ':' + (g >= c);
+    if (d.k === k) continue;
+    d.k = k;
+    d.lv.textContent = 'Lv.' + lv; d.cost.textContent = c;
+    d.cnt.textContent = n; d.cnt.dataset.zero = n ? '0' : '1';
+    d.el.classList.toggle('off', g < c);
+  }
+}
+
+const pop = $('#pop');
+function select(i) { S.sel = i; if (i >= 0) showPop(); else pop.hidden = true; }
+function showPop() {
+  const u = S.units[S.sel];
+  if (!u) { pop.hidden = true; return; }
+  const d = BY[u.type], p = slotXY(u.slot);
+  $('#popEmo').textContent = d.emo; $('#popName').textContent = d.name;
+  $('#popLv').textContent = 'Lv.' + S.levels[u.type]; $('#popDesc').textContent = d.desc;
+  $('#popRefund').textContent = Math.floor(u.paid / 2);
+  pop.hidden = false;
+  const fw = field.clientWidth, pw = pop.offsetWidth;
+  let left = cv.offsetLeft + p.x * SC;
+  left = Math.max(pw / 2 + 2, Math.min(fw - pw / 2 - 2, left));
+  pop.style.left = left + 'px';
+  pop.style.top = (cv.offsetTop + (p.y - 30) * SC) + 'px';
+}
+$('#popSell').addEventListener('click', sell);
+
+const toastEl = $('#toast'); let toastTimer = 0;
+function toast(msg) {
+  toastEl.textContent = msg;
+  const host = S.screen === 'battle' ? field : screens[S.screen];
+  if (toastEl.parentNode !== host) host.appendChild(toastEl);
+  toastEl.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { toastEl.hidden = true; }, 1300);
+}
+function shake(el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
+
+function setPaused(p) {
+  if (S.over) return;
+  S.paused = p; $('#pauseOv').hidden = !p;
+}
+function startBattle() {
+  newBattle();
+  for (const k in ui) delete ui[k];
+  buildDeckBar();
+  $('#overOv').hidden = true; $('#pauseOv').hidden = true; pop.hidden = true;
+  $('#bSpeed').textContent = '×' + S.speed;
+  show('battle');
+  if (!store.get('yj2.coach', false)) { S.paused = true; $('#coach').hidden = false; }
+}
+function gameOver() {
+  if (S.over) return;
+  S.over = true; select(-1);
+  const w = S.wave, nb = w > S.best;
+  if (nb) { S.best = w; store.set('yj2.best', w); }
+  $('#goWave').textContent = w;
+  $('#goBest').innerHTML = nb ? '<span class="stamp">신기록!</span>' : '최고 기록 WAVE ' + S.best;
+  $('#goSum').textContent = S.summonN; $('#goKill').textContent = S.kills; $('#goUp').textContent = S.upN;
+  $('#overOv').hidden = false;
+}
+$('#bPlay').addEventListener('click', startBattle);
+$('#bRetry').addEventListener('click', startBattle);
+$('#bHome').addEventListener('click', () => show('home'));
+$('#bSummon').addEventListener('click', summon);
+$('#bPause').addEventListener('click', () => setPaused(true));
+$('#bResume').addEventListener('click', () => setPaused(false));
+$('#bGiveUp').addEventListener('click', () => { S.paused = false; $('#pauseOv').hidden = true; gameOver(); });
+$('#bSpeed').addEventListener('click', () => { S.speed = S.speed === 1 ? 2 : 1; $('#bSpeed').textContent = '×' + S.speed; });
+$('#bCoachGo').addEventListener('click', () => { store.set('yj2.coach', true); $('#coach').hidden = true; S.paused = false; });
+cv.addEventListener('pointerdown', (e) => {
+  const r = cv.getBoundingClientRect();
+  onTap((e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H);
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && S.screen === 'battle' && !S.over && $('#coach').hidden) setPaused(true);
+});
+window.addEventListener('resize', layout);
+if (window.ResizeObserver) new ResizeObserver(() => layout()).observe(field);
+
+let last = 0;
+function frame(t) {
+  const dt = Math.min(0.05, (t - last) / 1000 || 0); last = t;
+  if (S.screen === 'battle') {
+    if (!S.paused && !S.over) for (let i = 0; i < S.speed && !S.over; i++) update(dt);
+    render(); syncHUD();
+  }
+  requestAnimationFrame(frame);
+}
+
+function start(data) {
+  S.deck = validDeck(data && data.deck) || validDeck(store.get('yj2.deck', null)) || CHARS.slice(0, 8).map((c) => c.id);
+  S.best = store.get('yj2.best', 0) || 0;
+  show('home');
+  if (document.fonts && document.fonts.load) { document.fonts.load('12px Jua').then(() => { if (S.screen === 'battle') layout(); }).catch(() => {}); }
+  requestAnimationFrame(frame);
+}
+window.claude?.hot?.snapshot?.(() => ({ deck: S.deck }));
+window.__td = { S, BAL, CHARS, summon, upgrade: (id) => upgrade(id, deckbar.querySelector('[data-id="' + id + '"]')), startBattle };
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
+</body>
+</html>
