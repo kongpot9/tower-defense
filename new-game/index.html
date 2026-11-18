@@ -72,6 +72,7 @@ h1,h2,p{margin:0}
 .card-head{display:flex;justify-content:space-between;align-items:center;font-size:17px;margin-bottom:12px}
 .mini-deck{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 8px;justify-items:center}
 .mini-deck .stk{width:44px;height:44px;font-size:22px}
+.stk img{width:auto;display:block}
 .mini-deck figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px}
 .rules{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;font-size:14px;line-height:1.35;color:var(--paper)}
 .rules b{font-family:var(--f-display);font-weight:400;color:var(--yellow);font-variant-numeric:tabular-nums}
@@ -94,6 +95,8 @@ h1,h2,p{margin:0}
 .cc .stk{width:40px;height:40px;font-size:20px;margin:2px 0 2px 2px}
 .cc-name{font-size:17px;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
 .cc-name em{font-style:normal;font-size:11px;padding:1px 6px;border-radius:6px;background:var(--ink);color:var(--paper)}
+.cc-name em.grade{background:var(--blue)}
+.cc-name em.tmp{background:transparent;color:var(--muted);border:1.5px dashed var(--muted)}
 .cc-desc{font-size:13px;line-height:1.4}
 .cc-stat{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
 .cc[aria-pressed="true"] .cc-stat{color:var(--ink)}
@@ -137,6 +140,7 @@ h1,h2,p{margin:0}
 .dcard:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
 .dc-top{display:flex;align-items:center;gap:4px;min-width:0;padding-right:12px}
 .dc-emo{font-size:17px;line-height:1;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.dc-emo img{height:21px;width:auto;display:block;margin:-2px 0}
 .dc-name{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dc-bot{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;font-variant-numeric:tabular-nums}
 .dc-cost{display:flex;align-items:center;gap:3px;padding:1px 5px;border-radius:7px;background:var(--yellow);border:1.5px solid var(--ink)}
@@ -154,6 +158,7 @@ h1,h2,p{margin:0}
   box-shadow:0 4px 0 var(--ink);padding:10px 12px 12px;transform:translate(-50%,-100%);display:flex;flex-direction:column;gap:6px}
 .pop-head{display:flex;align-items:center;gap:6px;font-size:17px}
 .pop-head .e{font-size:20px;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.pop-head .e img{height:30px;width:auto;display:block;margin:-4px 0}
 .pop-head .chip{margin-left:auto}
 .pop p{font-size:13px;line-height:1.4}
 .pop .pop-hint{font-size:11.5px;color:var(--muted)}
@@ -209,7 +214,7 @@ h1,h2,p{margin:0}
       <button class="btn btn-blue big" id="bPlay" type="button">전투 시작</button>
       <button class="btn" id="bDeck" type="button">덱 편성</button>
     </div>
-    <p class="foot">지금 캐릭터는 임시 그림이에요. 예준이 그림이 오면 바뀌어요.</p>
+    <p class="foot">⚔️ 전사는 예준이 그림! 나머지는 임시 그림이라 예준이 그림이 오면 바뀌어요.</p>
   </section>
 
   <!-- ===== 덱 편성 ===== -->
@@ -320,7 +325,7 @@ const BAL = {
   summonBase: 20, summonStep: 3,       // 소환 비용 = 20 + 3 × 소환 횟수
   upBase: 25, upMult: 1.3,             // 강화 비용 = 25 × 레벨, 강화 1번에 공격력 ×1.3
   waveLen: 20, spawnWindow: 13,        // 웨이브 20초, 처음 13초 동안 적이 나와요
-  hp0: 18, hpGrow: 1.115,              // 적 체력 = 18 × 1.115^(웨이브-1)
+  hp0: 270, hpGrow: 1.115,             // 적 체력 = 270 × 1.115^(웨이브-1)  (전사 데미지 200에 맞춘 크기)
   count: (w) => 16 + Math.floor(w * 0.6),
   killGold: 1, bossGold: 30,
   waveBonus: (w) => 8 + 2 * w,
@@ -331,32 +336,40 @@ const BAL = {
 
 /* ===== 캐릭터 (임시 — 예준이 그림이 오면 이름·그림·능력을 바꿔요) ===== */
 const CHARS = [
-  { id: 'sword',  name: '칼잡이',   emo: '🗡️', color: '#F08A7E', role: '근거리', pref: 'front', dmg: 14,  rate: 1.2,  range: 150, atk: 'slash',
-    desc: '가까운 적을 썰어요. 옆에 붙은 적도 같이 베요.' },
-  { id: 'archer', name: '궁수',     emo: '🏹', color: '#8DCF8F', role: '원거리', pref: 'back',  dmg: 9,   rate: 1.1,  range: 300, atk: 'arrow',
+  // ★ 예준이 캐릭터 — img가 있으면 그림으로 나와요
+  { id: 'sword',  name: '전사',     emo: '⚔️', img: 'art/warrior.png', grade: '일반', color: '#F0B95A', role: '근거리', pref: 'front',
+    dmg: 200, rate: 1 / 1, range: 150, atk: 'slash',
+    desc: '칼로 앞에 있는 적을 썰어 버려요.' },
+  // ↓ 임시 캐릭터 (예준이 그림이 오면 바꿔요)
+  { id: 'archer', name: '궁수',     emo: '🏹', color: '#8DCF8F', role: '원거리', pref: 'back',  dmg: 135,  rate: 1.1,  range: 300, atk: 'arrow',
     desc: '멀리서 오는 적도 화살로 맞혀요.' },
-  { id: 'bomb',   name: '폭탄병',   emo: '💣', color: '#A9AEC2', role: '광역',   pref: 'back',  dmg: 12,  rate: 0.55, range: 240, atk: 'bomb', splash: 48,
+  { id: 'bomb',   name: '폭탄병',   emo: '💣', color: '#A9AEC2', role: '광역',   pref: 'back',  dmg: 180,  rate: 0.55, range: 240, atk: 'bomb', splash: 48,
     desc: '폭탄을 던져 뭉친 적을 한꺼번에 터뜨려요.' },
-  { id: 'ice',    name: '얼음술사', emo: '❄️', color: '#9AD3F2', role: '방해',   pref: 'back',  dmg: 5,   rate: 0.9,  range: 240, atk: 'ice', splash: 30, slow: 0.45, slowT: 2,
+  { id: 'ice',    name: '얼음술사', emo: '❄️', color: '#9AD3F2', role: '방해',   pref: 'back',  dmg: 75,   rate: 0.9,  range: 240, atk: 'ice', splash: 30, slow: 0.45, slowT: 2,
     desc: '얼음에 맞은 적은 느려져요.' },
-  { id: 'bolt',   name: '번개술사', emo: '⚡', color: '#F7D774', role: '연쇄',   pref: 'back',  dmg: 10,  rate: 0.75, range: 240, atk: 'bolt', chain: 4,
+  { id: 'bolt',   name: '번개술사', emo: '⚡', color: '#F7D774', role: '연쇄',   pref: 'back',  dmg: 150,  rate: 0.75, range: 240, atk: 'bolt', chain: 4,
     desc: '번개가 적 4마리를 줄줄이 지나가요.' },
-  { id: 'fire',   name: '불꽃술사', emo: '🔥', color: '#F6AE6B', role: '지속',   pref: 'front', dmg: 7,   rate: 1.0,  range: 170, atk: 'fire', burn: 3,
+  { id: 'fire',   name: '불꽃술사', emo: '🔥', color: '#F6AE6B', role: '지속',   pref: 'front', dmg: 105,  rate: 1.0,  range: 170, atk: 'fire', burn: 3,
     desc: '불을 붙이면 3초 동안 계속 타요.' },
-  { id: 'coin',   name: '상인',     emo: '💰', color: '#EDD38A', role: '돈',     pref: 'back',  dmg: 4,   rate: 1.0,  range: 220, atk: 'coin', income: 4,
+  { id: 'coin',   name: '상인',     emo: '💰', color: '#EDD38A', role: '돈',     pref: 'back',  dmg: 60,   rate: 1.0,  range: 220, atk: 'coin', income: 4,
     desc: '웨이브마다 돈을 벌어 와요. 강화하면 더 많이!' },
-  { id: 'spear',  name: '창병',     emo: '🔱', color: '#89A9E6', role: '관통',   pref: 'front', dmg: 11,  rate: 0.7,  range: 190, atk: 'spear',
+  { id: 'spear',  name: '창병',     emo: '🔱', color: '#89A9E6', role: '관통',   pref: 'front', dmg: 165,  rate: 0.7,  range: 190, atk: 'spear',
     desc: '창을 던지면 일직선에 있는 적을 모두 뚫어요.' },
-  { id: 'gun',    name: '연사수',   emo: '🔫', color: '#C7A6E6', role: '원거리', pref: 'back',  dmg: 3.2, rate: 4.0,  range: 250, atk: 'bullet',
+  { id: 'gun',    name: '연사수',   emo: '🔫', color: '#C7A6E6', role: '원거리', pref: 'back',  dmg: 48,   rate: 4.0,  range: 250, atk: 'bullet',
     desc: '약하지만 엄청 빠르게 쏴요.' },
-  { id: 'snipe',  name: '저격수',   emo: '🎯', color: '#86C7BC', role: '보스킬러', pref: 'back', dmg: 70, rate: 0.25, range: 999, atk: 'snipe',
+  { id: 'snipe',  name: '저격수',   emo: '🎯', color: '#86C7BC', role: '보스킬러', pref: 'back', dmg: 1050, rate: 0.25, range: 999, atk: 'snipe',
     desc: '체력이 제일 많은 적을 한 방에 크게 때려요.' },
-  { id: 'poison', name: '독술사',   emo: '🧪', color: '#B5DE85', role: '장판',   pref: 'back',  dmg: 6,   rate: 0.45, range: 230, atk: 'poison', pool: 42, poolT: 4,
+  { id: 'poison', name: '독술사',   emo: '🧪', color: '#B5DE85', role: '장판',   pref: 'back',  dmg: 90,   rate: 0.45, range: 230, atk: 'poison', pool: 42, poolT: 4,
     desc: '독 웅덩이를 만들어 그 위의 적을 녹여요.' },
-  { id: 'hammer', name: '망치장군', emo: '🔨', color: '#D9A880', role: '근거리', pref: 'front', dmg: 32,  rate: 0.5,  range: 140, atk: 'smash', splash: 34, stun: 0.7,
+  { id: 'hammer', name: '망치장군', emo: '🔨', color: '#D9A880', role: '근거리', pref: 'front', dmg: 480,  rate: 0.5,  range: 140, atk: 'smash', splash: 34, stun: 0.7,
     desc: '쾅! 내려쳐서 주변 적을 기절시켜요.' },
 ];
 const BY = {}; CHARS.forEach((c) => { BY[c.id] = c; });
+const IMGS = {};
+CHARS.forEach((c) => { if (c.img) { const im = new Image(); im.src = c.img; IMGS[c.id] = im; } });
+const imgReady = (id) => { const im = IMGS[id]; return im && im.complete && im.naturalWidth > 0 ? im : null; };
+const faceHTML = (d, px) => d.img ? '<img src="' + d.img + '" alt=""' + (px ? ' style="height:' + px + 'px"' : '') + '>' : d.emo;
+const every = (d) => String(Math.round(100 / d.rate) / 100) + '초마다';
 const TIERS = ['#A493DB', '#6DBB7D', '#E38C69', '#5FAED6', '#D7B24E', '#D57AA3'];
 const PSPEED = { arrow: 520, bomb: 300, ice: 400, fire: 380, coin: 420, bullet: 720, poison: 300 };
 
@@ -471,7 +484,7 @@ function attack(u, def, t) {
   switch (def.atk) {
     case 'slash':
       hurt(t, dmg, def.id);
-      for (const e of S.enemies) if (e !== t && !e.dead && dist2(e, t) < 26 * 26) hurt(e, dmg * 0.6, def.id);
+      if (def.cleave) for (const e of S.enemies) if (e !== t && !e.dead && dist2(e, t) < 26 * 26) hurt(e, dmg * def.cleave, def.id);
       fx({ k: 'slash', x: t.x, y: t.y, a: ang, life: 0.22 });
       u.lunge = 0.25; u.lx = Math.cos(ang); u.ly = Math.sin(ang);
       break;
@@ -750,12 +763,33 @@ function drawEnemy(e) {
   }
   c.restore();
 }
+function drawSprite(u, def, im, p, s, ox, oy) {
+  const c = ctx, SH = 64, sw = SH * im.naturalWidth / im.naturalHeight;
+  const br = Math.sin((S.time + u.slot * 0.37) * 3.2);        // 숨쉬기
+  let sx = 1 - br * 0.015, sy = 1 + br * 0.03, rot = 0;
+  if (u.lunge > 0) {                                           // 공격: 적 쪽으로 기울며 달려들기
+    const k = Math.sin((u.lunge / 0.25) * Math.PI);
+    rot = u.lx * 0.4 * k; sy *= 1 - 0.07 * k; sx *= 1 + 0.07 * k;
+  }
+  c.save(); c.translate(p.x + ox, p.y + 27 + oy);
+  c.fillStyle = 'rgba(27,34,50,.2)'; c.beginPath(); c.ellipse(0, 0, sw * 0.55, 4.5, 0, 0, Math.PI * 2); c.fill();
+  c.rotate(rot); c.scale(s * sx, s * sy);
+  c.drawImage(im, -sw / 2, -SH, sw, SH);
+  c.restore();
+  const lv = S.levels[u.type];
+  if (lv > 1) {
+    c.fillStyle = INK; circle(c, p.x + 18, p.y + 17, 9); c.fill();
+    c.fillStyle = PAPER; c.font = '11px ' + UIF; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(lv), p.x + 18, p.y + 17.5);
+  }
+}
 function drawUnit(u) {
   const c = ctx, def = BY[u.type], p = slotXY(u.slot);
   let s = u.born < 0.3 ? Math.max(0.01, easeBack(u.born / 0.3)) : 1;
   if (u.anim > 0) s *= 1 + u.anim * 0.9;
   let ox = 0, oy = 0;
   if (u.lunge > 0) { const k = Math.sin((u.lunge / 0.25) * Math.PI) * 12; ox = u.lx * k; oy = u.ly * k; }
+  const im = imgReady(u.type);
+  if (im) { drawSprite(u, def, im, p, s, ox, oy); return; }
   c.save(); c.translate(p.x + ox, p.y + oy); c.scale(s, s);
   c.fillStyle = 'rgba(27,34,50,.22)'; circle(c, 2, 3.5, 23); c.fill();
   c.fillStyle = PAPER; circle(c, 0, 0, 23); c.fill();
@@ -915,7 +949,7 @@ function show(name) {
   if (name === 'battle') layout();
 }
 function stickerHTML(def, size) {
-  return '<span class="stk" style="--c:' + def.color + ';width:' + size + 'px;height:' + size + 'px;font-size:' + Math.round(size * 0.5) + 'px">' + def.emo + '</span>';
+  return '<span class="stk" style="--c:' + def.color + ';width:' + size + 'px;height:' + size + 'px;font-size:' + Math.round(size * 0.5) + 'px">' + faceHTML(def, Math.round(size * 0.86)) + '</span>';
 }
 function renderHome() {
   $('#homeDeck').innerHTML = S.deck.map((id) => '<figure>' + stickerHTML(BY[id], 44) + '<figcaption>' + BY[id].name + '</figcaption></figure>').join('');
@@ -932,9 +966,9 @@ function renderDeck() {
     const range = d.range >= 999 ? '전체' : d.range;
     return '<button class="cc" type="button" data-id="' + d.id + '" aria-pressed="' + on + '">' +
       stickerHTML(d, 40) +
-      '<span class="cc-name">' + d.name + ' <em>' + d.role + '</em></span>' +
+      '<span class="cc-name">' + d.name + ' <em>' + d.role + '</em>' + (d.grade ? '<em class="grade">' + d.grade + '</em>' : '<em class="tmp">임시</em>') + '</span>' +
       '<span class="cc-desc">' + d.desc + '</span>' +
-      '<span class="cc-stat">공격 ' + d.dmg + ' · 공속 ' + d.rate + ' · 사거리 ' + range + '</span>' +
+      '<span class="cc-stat">데미지 ' + d.dmg + ' · ' + every(d) + ' · 사거리 ' + range + '</span>' +
       '<span class="cc-check">출전</span></button>';
   }).join('');
   $('#deckCount').textContent = draft.length + '/8';
@@ -958,7 +992,7 @@ function buildDeckBar() {
   deckbar.innerHTML = S.deck.map((id) => {
     const d = BY[id];
     return '<button class="dcard" type="button" data-id="' + id + '" aria-label="' + d.name + ' 강화">' +
-      '<span class="dc-top"><span class="dc-emo">' + d.emo + '</span><span class="dc-name">' + d.name + '</span></span>' +
+      '<span class="dc-top"><span class="dc-emo">' + faceHTML(d) + '</span><span class="dc-name">' + d.name + '</span></span>' +
       '<span class="dc-bot"><span class="dc-lv">Lv.1</span><span class="dc-cost"><i class="coin"></i><span>25</span></span></span>' +
       '<span class="dc-cnt" data-zero="1">0</span></button>';
   }).join('');
@@ -1005,8 +1039,9 @@ function showPop() {
   const u = S.units[S.sel];
   if (!u) { pop.hidden = true; return; }
   const d = BY[u.type], p = slotXY(u.slot);
-  $('#popEmo').textContent = d.emo; $('#popName').textContent = d.name;
-  $('#popLv').textContent = 'Lv.' + S.levels[u.type]; $('#popDesc').textContent = d.desc;
+  $('#popEmo').innerHTML = faceHTML(d); $('#popName').textContent = d.name;
+  $('#popLv').textContent = 'Lv.' + S.levels[u.type];
+  $('#popDesc').textContent = d.desc + ' (데미지 ' + Math.round(d.dmg * lvMult(d.id)) + ' · ' + every(d) + ')';
   $('#popRefund').textContent = Math.floor(u.paid / 2);
   pop.hidden = false;
   const fw = field.clientWidth, pw = pop.offsetWidth;
