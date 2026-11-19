@@ -163,7 +163,7 @@ h1,h2,p{margin:0}
 .dcard:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
 .dc-top{display:flex;align-items:center;gap:4px;min-width:0;padding-right:12px}
 .dc-emo{font-size:17px;line-height:1;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
-.dc-emo img{height:21px;width:auto;display:block;margin:-2px 0}
+.dc-emo img{max-height:21px;max-width:26px;display:block;margin:-2px 0}
 .dc-name{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dc-bot{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;font-variant-numeric:tabular-nums}
 .dc-cost{display:flex;align-items:center;gap:3px;padding:1px 5px;border-radius:7px;background:var(--yellow);border:1.5px solid var(--ink)}
@@ -181,7 +181,7 @@ h1,h2,p{margin:0}
   box-shadow:0 4px 0 var(--ink);padding:10px 12px 12px;transform:translate(-50%,-100%);display:flex;flex-direction:column;gap:6px}
 .pop-head{display:flex;align-items:center;gap:6px;font-size:17px}
 .pop-head .e{font-size:20px;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
-.pop-head .e img{height:30px;width:auto;display:block;margin:-4px 0}
+.pop-head .e img{max-height:30px;max-width:40px;display:block;margin:-4px 0}
 .pop-head .chip{margin-left:auto}
 .pop p{font-size:13px;line-height:1.4}
 .pop .pop-hint{font-size:11.5px;color:var(--muted)}
@@ -238,7 +238,7 @@ h1,h2,p{margin:0}
       <button class="btn btn-blue big" id="bPlay" type="button">전투 시작</button>
       <button class="btn" id="bDeck" type="button">덱 편성</button>
     </div>
-    <p class="foot">⚔️ 전사는 예준이 그림! 나머지 캐릭터·버프템·터렛은 임시라서 예준이 그림이 오면 바뀌어요.</p>
+    <p class="foot">캐릭터 16명 전원 예준이 그림! 버프템과 터렛은 아직 임시예요.</p>
   </section>
 
   <!-- ===== 덱 편성 ===== -->
@@ -379,42 +379,51 @@ const TURRET = { name: '임시 터렛', emo: '🗼', dmg: 120, rate: 1, range: 2
 
 /* ===== 캐릭터 (임시 — 예준이 그림이 오면 이름·그림·능력을 바꿔요) ===== */
 const CHARS = [
-  // ★ 예준이 캐릭터 — img가 있으면 그림으로 나와요
-  { id: 'sword',  name: '전사',     emo: '⚔️', img: 'art/warrior.png', grade: '일반', color: '#F0B95A', role: '근거리', pref: 'front',
-    dmg: 200, rate: 1 / 1, range: 150, atk: 'slash',
-    desc: '칼로 앞에 있는 적을 썰어 버려요.' },
-  // ↓ 임시 캐릭터 (예준이 그림이 오면 바꿔요)
-  { id: 'archer', name: '궁수',     emo: '🏹', color: '#8DCF8F', role: '원거리', pref: 'back',  dmg: 135,  rate: 1.1,  range: 300, atk: 'arrow',
-    desc: '멀리서 오는 적도 화살로 맞혀요.' },
-  { id: 'bomb',   name: '폭탄병',   emo: '💣', color: '#A9AEC2', role: '광역',   pref: 'back',  dmg: 180,  rate: 0.55, range: 240, atk: 'bomb', splash: 48,
-    desc: '폭탄을 던져 뭉친 적을 한꺼번에 터뜨려요.' },
-  { id: 'ice',    name: '얼음술사', emo: '❄️', color: '#9AD3F2', role: '방해',   pref: 'back',  dmg: 75,   rate: 0.9,  range: 240, atk: 'ice', splash: 30, slow: 0.45, slowT: 2,
-    desc: '얼음에 맞은 적은 느려져요.' },
-  { id: 'bolt',   name: '번개술사', emo: '⚡', color: '#F7D774', role: '연쇄',   pref: 'back',  dmg: 150,  rate: 0.75, range: 240, atk: 'bolt', chain: 4,
-    desc: '번개가 적 4마리를 줄줄이 지나가요.' },
-  { id: 'fire',   name: '불꽃술사', emo: '🔥', color: '#F6AE6B', role: '지속',   pref: 'front', dmg: 105,  rate: 1.0,  range: 170, atk: 'fire', burn: 3,
-    desc: '불을 붙이면 3초 동안 계속 타요.' },
-  { id: 'coin',   name: '상인',     emo: '💰', color: '#EDD38A', role: '돈',     pref: 'back',  dmg: 60,   rate: 1.0,  range: 220, atk: 'coin', income: 4,
-    desc: '웨이브마다 돈을 벌어 와요. 강화하면 더 많이!' },
-  { id: 'spear',  name: '창병',     emo: '🔱', color: '#89A9E6', role: '관통',   pref: 'front', dmg: 165,  rate: 0.7,  range: 190, atk: 'spear',
-    desc: '창을 던지면 일직선에 있는 적을 모두 뚫어요.' },
-  { id: 'gun',    name: '연사수',   emo: '🔫', color: '#C7A6E6', role: '원거리', pref: 'back',  dmg: 48,   rate: 4.0,  range: 250, atk: 'bullet',
-    desc: '약하지만 엄청 빠르게 쏴요.' },
-  { id: 'snipe',  name: '저격수',   emo: '🎯', color: '#86C7BC', role: '보스킬러', pref: 'back', dmg: 1050, rate: 0.25, range: 999, atk: 'snipe',
-    desc: '체력이 제일 많은 적을 한 방에 크게 때려요.' },
-  { id: 'poison', name: '독술사',   emo: '🧪', color: '#B5DE85', role: '장판',   pref: 'back',  dmg: 90,   rate: 0.45, range: 230, atk: 'poison', pool: 42, poolT: 4,
-    desc: '독 웅덩이를 만들어 그 위의 적을 녹여요.' },
-  { id: 'hammer', name: '망치장군', emo: '🔨', color: '#D9A880', role: '근거리', pref: 'front', dmg: 480,  rate: 0.5,  range: 140, atk: 'smash', splash: 34, stun: 0.7,
-    desc: '쾅! 내려쳐서 주변 적을 기절시켜요.' },
+  // 전원 예준이 그림 · 전사는 777 검사의 성형 버전 · 나머지는 777 근본라인에서 입국 (2026-11-19)
+  { id: 'sword',    name: '전사',         img: 'art/warrior.png',  grade: '일반', color: '#F0B95A', role: '근거리', pref: 'front',
+    dmg: 200,  rate: 1 / 1,    range: 150, melee: 'slash', desc: '칼로 앞에 있는 적을 썰어 버려요.' },
+  { id: 'archer',   name: '궁수',         img: 'art/archer.png',   grade: '일반', color: '#8DCF8F', role: '원거리', pref: 'back',
+    dmg: 150,  rate: 1 / 0.85, range: 300, proj: 'arrow', desc: '멀리 있는 적도 화살로 맞혀요.' },
+  { id: 'farmer',   name: '농부',         img: 'art/farmer.png',   grade: '일반', color: '#E9D27A', role: '근거리', pref: 'front',
+    dmg: 140,  rate: 1 / 0.8,  range: 160, melee: 'slash', splash: 26, desc: '낫을 휘둘러 앞에 모인 적을 같이 베요.' },
+  { id: 'jura',     name: '쥬라사우르스', img: 'art/jura.png',     grade: '희귀', color: '#B5DE85', role: '근거리', pref: 'front',
+    dmg: 50,   rate: 1 / 0.15, range: 140, melee: 'bite', desc: '공룡이 엄청 빠르게 물어뜯어요.' },
+  { id: 'taein',    name: '원까태인',     img: 'art/taein.png',    grade: '희귀', color: '#9EC3F0', role: '원거리', pref: 'back',
+    dmg: 55,   rate: 1 / 0.3,  range: 260, proj: 'ball', critP: 0.25, critX: 4, critName: '불꽃공!', desc: '야구공을 던져요. 4번에 1번은 불꽃공 (4배)!' },
+  { id: 'tank',     name: '탱크보이',     img: 'art/tank.png',     grade: '희귀', color: '#A8C98A', role: '광역',   pref: 'back',
+    dmg: 400,  rate: 1 / 1.6,  range: 250, proj: 'shell', arc: true, splash: 50, desc: '포탄으로 뭉친 적을 한꺼번에 날려요.' },
+  { id: 'stein',    name: '데스슈타인',   img: 'art/stein.png',    grade: '영웅', color: '#C2E07A', role: '감전',   pref: 'back',
+    dmg: 300,  rate: 1 / 0.8,  range: 210, proj: 'punch', chainP: 0.3, chainN: 3, desc: '주먹을 날려요. 30% 확률로 감전돼서 옆에 있는 적 3명도 같은 피해!' },
+  { id: 'lumber',   name: '나무꾼',       img: 'art/lumber.png',   grade: '영웅', color: '#D9A880', role: '근거리', pref: 'front',
+    dmg: 520,  rate: 1 / 1,    range: 150, melee: 'slash', desc: '도끼로 앞에 있는 적을 세게 찍어요.' },
+  { id: 'rider',    name: '다크라이더',   img: 'art/rider.png',    grade: '영웅', color: '#B9BCC8', role: '연사',   pref: 'back',
+    dmg: 100,  rate: 1 / 0.22, range: 260, proj: 'shuriken', desc: '수리검을 아주 빠르게 던져요.' },
+  { id: 'miner',    name: '능력자광부',   img: 'art/miner.png',    grade: '신화', color: '#F2B76B', role: '광역',   pref: 'back',
+    dmg: 380,  rate: 1 / 0.9,  range: 230, proj: 'bomb', arc: true, splash: 45, desc: '폭탄을 던져 주변 적을 터뜨려요.' },
+  { id: 'ricecake', name: '떡장수',       img: 'art/ricecake.png', grade: '신화', color: '#F5B7C5', role: '4연발',  pref: 'back',
+    dmg: 220,  rate: 1 / 0.75, range: 270, proj: 'songpyeon', multi: 4, noBoss: true, desc: '송편 4개를 적 4명에게 한꺼번에 던져요. 보스는 안 노려요.' },
+  { id: 'ronin',    name: '낭인',         img: 'art/ronin.png',    grade: '신화', color: '#9CC79A', role: '근거리', pref: 'front',
+    dmg: 800,  rate: 1 / 1.1,  range: 160, melee: 'slash', critP: 0.25, critX: 3, critSplash: 50, critName: '발도술!',
+    desc: '칼로 베요. 4번에 1번은 발도술: 3배 피해로 주변까지 베요.' },
+  { id: 'angel',    name: '천사 도베르만', img: 'art/angel.png',   grade: '신화', color: '#FFF1B8', role: '즉사',   pref: 'back',
+    dmg: 250,  rate: 1 / 0.6,  range: 260, proj: 'holy', smiteP: 0.08, desc: '빛으로 공격해요. 8% 확률로 적을 바로 데려가요 (보스 제외).' },
+  { id: 'dragon',   name: '레드드래곤',   img: 'art/dragon.png',   grade: '전설', color: '#F08A7E', role: '광역',   pref: 'back',
+    dmg: 1300, rate: 1 / 1.7,  range: 480, proj: 'breath', splash: 70, desc: '전장 끝까지 닿는 불꽃 브레스로 넓게 태워요.' },
+  { id: 'dosa',     name: '도사',         img: 'art/dosa.png',     grade: '전설', color: '#A9D8F0', role: '원거리', pref: 'back',
+    dmg: 900,  rate: 1 / 0.8,  range: 300, proj: 'fan', desc: '부채를 던지면 적을 끝까지 따라가 맞혀요.' },
+  { id: 'catmachine', name: '캣머신',     img: 'art/catmachine.png', grade: '전설', color: '#F4C7A1', role: '광역', pref: 'back',
+    dmg: 600,  rate: 1 / 0.5,  range: 200, proj: 'missile', splash: 30, desc: '미사일을 빠르게 쏴서 주변까지 터뜨려요.' },
 ];
 const BY = {}; CHARS.forEach((c) => { BY[c.id] = c; });
 const IMGS = {};
 CHARS.forEach((c) => { if (c.img) { const im = new Image(); im.src = c.img; IMGS[c.id] = im; } });
 const imgReady = (id) => { const im = IMGS[id]; return im && im.complete && im.naturalWidth > 0 ? im : null; };
-const faceHTML = (d, px) => d.img ? '<img src="' + d.img + '" alt=""' + (px ? ' style="height:' + px + 'px"' : '') + '>' : d.emo;
+const faceHTML = (d, px) => d.img ? '<img src="' + d.img + '" alt=""' + (px ? ' style="max-height:' + px + 'px;max-width:' + px + 'px"' : '') + '>' : d.emo;
 const every = (d) => String(Math.round(100 / d.rate) / 100) + '초마다';
 const TIERS = ['#A493DB', '#6DBB7D', '#E38C69', '#5FAED6', '#D7B24E', '#D57AA3'];
-const PSPEED = { arrow: 520, bomb: 300, ice: 400, fire: 380, coin: 420, bullet: 720, poison: 300 };
+const PSPEED = { arrow: 520, ball: 460, shell: 340, punch: 420, shuriken: 640, bomb: 300, songpyeon: 420, holy: 460, breath: 360, fan: 380, missile: 480 };
+const GRADE_C = { '일반': '#7D8597', '희귀': '#3E9B5E', '영웅': '#2F6BD8', '신화': '#8E4CC4', '전설': '#D98A1C' };
+const GRADE_W = { '일반': 6, '희귀': 4, '영웅': 3, '신화': 2, '전설': 1 };   // 선물 카드에 나올 확률 (전설이 제일 드물어요)
 
 /* ===== 저장 ===== */
 const store = {
@@ -454,14 +463,6 @@ function startWave() {
     fx({ k: 'text', x: W / 2, y: WALL_Y + 18, s: '웨이브 보상 +' + b, c: YEL, life: 1.4, size: 15 });
   }
   S.wave++; S.waveT = 0;
-  for (const u of S.units) {
-    if (u && u.type === 'coin') {
-      const g = BY.coin.income * S.levels.coin;
-      S.gold += g;
-      const p = slotXY(u.slot);
-      fx({ k: 'text', x: p.x, y: p.y - 26, s: '+' + g, c: YEL, life: 1.1, size: 14 });
-    }
-  }
   const boss = S.wave % BAL.bossEvery === 0;
   let n = BAL.count(S.wave);
   const q = [];
@@ -490,7 +491,7 @@ function hurt(e, a, src) {
   if (a > 0.6) e.flash = 0.07;
   if (e.hp <= 0) {
     e.dead = true; S.kills++;
-    S.gold += (e.boss ? BAL.bossGold : BAL.killGold) + (src === 'coin' ? 1 : 0) + S.buff.gold;
+    S.gold += (e.boss ? BAL.bossGold : BAL.killGold) + S.buff.gold;
     const n = e.boss ? 18 : 5;
     if (S.fx.length < 500) {
       for (let i = 0; i < n; i++) {
@@ -510,13 +511,13 @@ function area(x, y, r, dmg, src, fn) {
 }
 function findTarget(u, def) {
   const p = slotXY(u.slot);
-  return findTargetAt(p.x, p.y, def.range + S.buff.rng, def.atk === 'snipe');
+  return findTargetAt(p.x, p.y, def.range + S.buff.rng, def.byHp, def.noBoss);
 }
-function findTargetAt(px, py, range, byHp) {
+function findTargetAt(px, py, range, byHp, noBoss) {
   const p = { x: px, y: py }, r2 = range * range;
   let best = null, bv = -Infinity;
   for (const e of S.enemies) {
-    if (e.dead || e.y < 2) continue;
+    if (e.dead || e.y < 2 || (noBoss && e.boss)) continue;
     const dx = e.x - p.x, dy = e.y - p.y;
     if (dx * dx + dy * dy > r2) continue;
     const v = byHp ? e.hp : e.y;
@@ -529,80 +530,49 @@ function attack(u, def, t) {
   const dmg = def.dmg * lvMult(def.id) * BAL.dmgMul * (1 + S.buff.dmg);
   const ang = Math.atan2(t.y - p.y, t.x - p.x);
   u.anim = 0.12;
-  switch (def.atk) {
-    case 'slash':
-      hurt(t, dmg, def.id);
-      if (def.cleave) for (const e of S.enemies) if (e !== t && !e.dead && dist2(e, t) < 26 * 26) hurt(e, dmg * def.cleave, def.id);
-      fx({ k: 'slash', x: t.x, y: t.y, a: ang, life: 0.22 });
-      u.lunge = 0.25; u.lx = Math.cos(ang); u.ly = Math.sin(ang);
-      break;
-    case 'smash':
-      area(t.x, t.y, def.splash, dmg, def.id, (e) => { e.stunT = Math.max(e.stunT, def.stun); });
-      fx({ k: 'ring', x: t.x, y: t.y, r: def.splash, c: '#B9773F', life: 0.35 });
-      u.lunge = 0.25; u.lx = Math.cos(ang); u.ly = Math.sin(ang);
-      break;
-    case 'bolt': {
-      const hit = [t]; let cur = t;
-      for (let i = 1; i < def.chain; i++) {
-        let nb = null, nd = 80 * 80;
-        for (const e of S.enemies) {
-          if (e.dead || hit.includes(e)) continue;
-          const d = dist2(e, cur);
-          if (d < nd) { nd = d; nb = e; }
-        }
-        if (!nb) break;
-        hit.push(nb); cur = nb;
-      }
-      const pts = [{ x: p.x, y: p.y - 12 }];
-      hit.forEach((e, i) => { pts.push({ x: e.x, y: e.y }); hurt(e, dmg * Math.pow(0.85, i), def.id); });
-      fx({ k: 'bolt', pts, life: 0.2 });
-      break;
-    }
-    case 'spear': {
-      const len = def.range + 60, x2 = p.x + Math.cos(ang) * len, y2 = p.y + Math.sin(ang) * len;
-      for (const e of S.enemies) if (!e.dead && segDist2(e.x, e.y, p.x, p.y, x2, y2) < (e.r + 5) ** 2) hurt(e, dmg, def.id);
-      fx({ k: 'spear', x1: p.x, y1: p.y, x2, y2, life: 0.28 });
-      break;
-    }
-    case 'snipe':
-      hurt(t, dmg, def.id);
-      fx({ k: 'snipe', x1: p.x, y1: p.y, x2: t.x, y2: t.y, life: 0.32 });
-      break;
-    default:
-      S.projs.push({ k: def.atk, x: p.x, y: p.y - 6, t, lx: t.x, ly: t.y, sp: PSPEED[def.atk], dmg, def,
-                     d0: Math.max(1, Math.hypot(t.x - p.x, t.y - p.y)), prog: 0 });
+  if (def.melee) {
+    u.lunge = 0.25; u.lx = Math.cos(ang); u.ly = Math.sin(ang);
+    fx({ k: def.melee === 'bite' ? 'bite' : 'slash', x: t.x, y: t.y, a: ang, life: 0.22 });
+    hitTarget(def, t, dmg, t.x, t.y);
+    return;
+  }
+  let targets = [t];
+  if (def.multi) {
+    const r2 = (def.range + S.buff.rng) ** 2;
+    targets = S.enemies.filter((e) => !e.dead && e.y >= 2 && !(def.noBoss && e.boss) && (e.x - p.x) ** 2 + (e.y - p.y) ** 2 <= r2)
+      .sort((a, b) => b.y - a.y).slice(0, def.multi);
+  }
+  for (const tg of targets) {
+    S.projs.push({ k: def.proj, x: p.x, y: p.y - 8, t: tg, lx: tg.x, ly: tg.y, sp: PSPEED[def.proj] || 450, dmg, def,
+                   d0: Math.max(1, Math.hypot(tg.x - p.x, tg.y - p.y)), prog: 0, spin: Math.random() * 6 });
   }
 }
-function projHit(pr) {
-  const def = pr.def, t = pr.t, alive = t && !t.dead;
-  switch (pr.k) {
-    case 'arrow': case 'bullet': if (alive) hurt(t, pr.dmg, def.id); break;
-    case 'shell': if (alive) hurt(t, pr.dmg, 'turret'); fx({ k: 'boom', x: pr.x, y: pr.y, r: 10, c: '#C9CDDA', life: 0.2 }); break;
-    case 'coin': if (alive) hurt(t, pr.dmg, 'coin'); break;
-    case 'fire':
-      if (alive) {
-        t.burnDps = t.burnT > 0 ? Math.max(t.burnDps, pr.dmg * 0.9) : pr.dmg * 0.9;
-        t.burnT = def.burn;
-        hurt(t, pr.dmg, def.id);
-      }
-      fx({ k: 'boom', x: pr.x, y: pr.y, r: 12, c: ORANGE, life: 0.22 });
-      break;
-    case 'bomb':
-      area(pr.x, pr.y, def.splash, pr.dmg, def.id);
-      fx({ k: 'boom', x: pr.x, y: pr.y, r: def.splash, c: ORANGE, life: 0.32 });
-      break;
-    case 'ice':
-      area(pr.x, pr.y, def.splash, pr.dmg, def.id, (e) => {
-        e.slowF = e.slowT > 0 ? Math.max(e.slowF, def.slow) : def.slow;
-        e.slowT = Math.max(e.slowT, def.slowT);
-      });
-      fx({ k: 'boom', x: pr.x, y: pr.y, r: def.splash, c: '#9AD3F2', life: 0.3 });
-      break;
-    case 'poison':
-      S.pools.push({ x: pr.x, y: pr.y, r: def.pool, t: def.poolT, max: def.poolT, dps: pr.dmg });
-      break;
+// 맞았을 때: 즉사 → 크리티컬 → 범위/단일 → 감전 순서
+function hitTarget(def, t, dmg, x, y) {
+  const alive = t && !t.dead;
+  if (def.smiteP && alive && !t.boss && Math.random() < def.smiteP) {
+    hurt(t, t.hp + 1, def.id);
+    fx({ k: 'ring', x, y, r: 22, c: YEL, life: 0.4 });
+    fx({ k: 'text', x, y: y - 14, s: '즉사!', c: YEL, life: 0.9, size: 13 });
+    return;
+  }
+  let r = def.splash || 0;
+  if (def.critP && Math.random() < def.critP) {
+    dmg *= def.critX; if (def.critSplash) r = def.critSplash;
+    fx({ k: 'text', x, y: y - 16, s: def.critName, c: ORANGE, life: 0.8, size: 13 });
+  }
+  if (r) { area(x, y, r, dmg, def.id); fx({ k: 'boom', x, y, r, c: ORANGE, life: 0.3 }); }
+  else if (alive) hurt(t, dmg, def.id);
+  if (def.chainP && Math.random() < def.chainP) {
+    const d2 = (e) => (e.x - x) ** 2 + (e.y - y) ** 2;
+    const near = S.enemies.filter((e) => !e.dead && e !== t && d2(e) < 80 * 80).sort((a, b) => d2(a) - d2(b)).slice(0, def.chainN);
+    if (near.length) {
+      near.forEach((e) => hurt(e, dmg, def.id));
+      fx({ k: 'bolt', pts: [{ x, y }].concat(near.map((e) => ({ x: e.x, y: e.y }))), life: 0.22 });
+    }
   }
 }
+function projHit(pr) { hitTarget(pr.def, pr.t, pr.dmg, pr.x, pr.y); }
 function fx(o) { o.t = 0; S.fx.push(o); }
 
 function separate() {
@@ -728,7 +698,7 @@ const eul = (w) => { const c = w.charCodeAt(w.length - 1) - 0xAC00; return w + (
 function rollOffer() {
   const free = S.units.some((u) => !u);
   const pool = [];
-  for (const id of S.deck) pool.push(free ? { k: 'char', id, w: 4 } : { k: 'up', id, w: 2 });
+  for (const id of S.deck) pool.push(free ? { k: 'char', id, w: GRADE_W[BY[id].grade] } : { k: 'up', id, w: 2 });
   for (const b of BUFFS) if (!b.max || (S.stacks[b.id] || 0) < b.max) pool.push({ k: 'buff', id: b.id, w: 3 });
   pool.push({ k: 'turret', w: 5 });
   const out = [];
@@ -755,7 +725,7 @@ function offerHTML(o, i) {
     const d = BY[o.id], n = S.units.filter((u) => u && u.type === o.id).length;
     ico = stickerHTML(d, 50);
     name = d.name + (o.k === 'char' ? ' 소환' : ' 무료 강화');
-    tag = '<span class="rc-tag char">캐릭터</span>';
+    tag = '<span class="rc-tag" style="background:' + GRADE_C[d.grade] + '">' + d.grade + '</span>';
     desc = o.k === 'char' ? d.desc : '자리가 꽉 찼어요. 대신 ' + eul(d.name) + ' 공짜로 1번 강화해요';
     note = '데미지 ' + d.dmg + ' · ' + every(d) + (n ? ' · 지금 ' + n + '마리' : '');
   } else if (o.k === 'buff') {
@@ -903,7 +873,7 @@ function drawEnemy(e) {
   c.restore();
 }
 function drawSprite(u, def, im, p, s, ox, oy) {
-  const c = ctx, SH = 64, sw = SH * im.naturalWidth / im.naturalHeight;
+  const c = ctx, k0 = Math.min(64 / im.naturalHeight, 62 / im.naturalWidth), SH = im.naturalHeight * k0, sw = im.naturalWidth * k0;
   const br = Math.sin((S.time + u.slot * 0.37) * 3.2);        // 숨쉬기
   let sx = 1 - br * 0.015, sy = 1 + br * 0.03, rot = 0;
   if (u.lunge > 0) {                                           // 공격: 적 쪽으로 기울며 달려들기
@@ -960,24 +930,40 @@ function drawUnit(u) {
 }
 function drawProj(pr) {
   const c = ctx, a = Math.atan2(pr.ly - pr.y, pr.lx - pr.x);
-  const arc = pr.k === 'bomb' || pr.k === 'poison' ? -Math.sin(Math.PI * Math.max(0, pr.prog)) * 30 : 0;
+  const arc = pr.def.arc ? -Math.sin(Math.PI * Math.max(0, pr.prog)) * 30 : 0;
+  pr.spin = (pr.spin || 0) + 0.35;
   c.save(); c.translate(pr.x, pr.y + arc);
+  c.strokeStyle = INK; c.lineWidth = 1.4;
   switch (pr.k) {
     case 'arrow':
-      c.rotate(a); c.strokeStyle = INK; c.lineWidth = 2;
+      c.rotate(a); c.lineWidth = 2;
       c.beginPath(); c.moveTo(-12, 0); c.lineTo(2, 0); c.stroke();
       c.fillStyle = INK; c.beginPath(); c.moveTo(6, 0); c.lineTo(0, -3.5); c.lineTo(0, 3.5); c.fill();
       break;
-    case 'bullet': c.fillStyle = '#9C6BD6'; circle(c, 0, 0, 2.6); c.fill(); break;
-    case 'shell': c.fillStyle = INK; circle(c, 0, 0, 3.6); c.fill(); break;
+    case 'ball': c.fillStyle = PAPER; circle(c, 0, 0, 3.8); c.fill(); c.stroke(); break;
+    case 'shell': c.fillStyle = INK; circle(c, 0, 0, pr.def.id === 'turret' ? 3.6 : 5.5); c.fill(); break;
+    case 'punch': c.fillStyle = '#F2C9A0'; circle(c, 0, 0, 5.5); c.fill(); c.stroke(); break;
+    case 'shuriken':
+      c.rotate(pr.spin); c.fillStyle = INK; c.beginPath();
+      for (let i = 0; i < 8; i++) { const r = i % 2 ? 2 : 6.5, an = i * Math.PI / 4; c.lineTo(Math.cos(an) * r, Math.sin(an) * r); }
+      c.closePath(); c.fill();
+      break;
     case 'bomb':
       c.fillStyle = INK; circle(c, 0, 0, 5.5); c.fill();
       c.fillStyle = ORANGE; circle(c, 3, -5, 2 + Math.sin(S.time * 30)); c.fill();
       break;
-    case 'ice': c.fillStyle = '#9AD3F2'; circle(c, 0, 0, 5); c.fill(); c.strokeStyle = INK; c.lineWidth = 1.2; c.stroke(); c.fillStyle = PAPER; circle(c, -1.5, -1.5, 1.6); c.fill(); break;
-    case 'fire': c.fillStyle = ORANGE; circle(c, 0, 0, 5.5); c.fill(); c.fillStyle = YEL; circle(c, 0, 0, 2.8); c.fill(); break;
-    case 'coin': c.fillStyle = YEL; circle(c, 0, 0, 4.5); c.fill(); c.strokeStyle = INK; c.lineWidth = 1.3; c.stroke(); break;
-    case 'poison': c.fillStyle = '#8BC34A'; circle(c, 0, 0, 5); c.fill(); c.strokeStyle = INK; c.lineWidth = 1.3; c.stroke(); break;
+    case 'songpyeon':
+      c.rotate(a); c.fillStyle = '#F7EBD5'; c.beginPath(); c.arc(0, 0, 5.5, Math.PI, 0); c.closePath(); c.fill(); c.stroke();
+      break;
+    case 'holy': c.fillStyle = '#FFF6C2'; circle(c, 0, 0, 5); c.fill(); c.strokeStyle = YEL; c.lineWidth = 2; c.stroke(); break;
+    case 'breath': c.fillStyle = ORANGE; circle(c, 0, 0, 8); c.fill(); c.fillStyle = YEL; circle(c, 0, 0, 4); c.fill(); break;
+    case 'fan':
+      c.rotate(pr.spin); c.fillStyle = YEL; c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, 8, -0.9, 0.9); c.closePath(); c.fill(); c.stroke();
+      break;
+    case 'missile':
+      c.rotate(a); c.fillStyle = '#C9CDDA'; c.fillRect(-7, -2.5, 12, 5); c.strokeRect(-7, -2.5, 12, 5);
+      c.fillStyle = ORANGE; circle(c, -9, 0, 2.5); c.fill();
+      break;
   }
   c.restore();
 }
@@ -1028,6 +1014,13 @@ function drawFx(f) {
       c.lineWidth = 2; circle(c, f.x2, f.y2, 9 + k * 6); c.stroke();
       c.beginPath(); c.moveTo(f.x2 - 15, f.y2); c.lineTo(f.x2 + 15, f.y2); c.moveTo(f.x2, f.y2 - 15); c.lineTo(f.x2, f.y2 + 15); c.stroke();
       break;
+    case 'bite': {
+      const g = 7 * (1 - Math.min(1, k * 2.5));
+      c.strokeStyle = INK; c.lineWidth = 2.5;
+      c.beginPath(); c.arc(f.x, f.y - g, 10, Math.PI * 1.1, Math.PI * 1.9); c.stroke();
+      c.beginPath(); c.arc(f.x, f.y + g, 10, Math.PI * 0.1, Math.PI * 0.9); c.stroke();
+      break;
+    }
     case 'p': c.fillStyle = f.c; circle(c, f.x, f.y, f.r); c.fill(); break;
     case 'pop':
       c.strokeStyle = YEL; c.lineWidth = 3;
@@ -1121,7 +1114,7 @@ function renderDeck() {
     const range = d.range >= 999 ? '전체' : d.range;
     return '<button class="cc" type="button" data-id="' + d.id + '" aria-pressed="' + on + '">' +
       stickerHTML(d, 40) +
-      '<span class="cc-name">' + d.name + ' <em>' + d.role + '</em>' + (d.grade ? '<em class="grade">' + d.grade + '</em>' : '<em class="tmp">임시</em>') + '</span>' +
+      '<span class="cc-name">' + d.name + ' <em>' + d.role + '</em><em class="grade" style="background:' + GRADE_C[d.grade] + '">' + d.grade + '</em></span>' +
       '<span class="cc-desc">' + d.desc + '</span>' +
       '<span class="cc-stat">데미지 ' + d.dmg + ' · ' + every(d) + ' · 사거리 ' + range + '</span>' +
       '<span class="cc-check">' + (d.id === 'sword' ? '시작' : '출전') + '</span></button>';
