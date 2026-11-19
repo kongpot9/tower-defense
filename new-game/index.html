@@ -130,10 +130,33 @@ h1,h2,p{margin:0}
 .tray{display:flex;flex-direction:column;gap:8px;padding-top:4px}
 .row-main{display:grid;grid-template-columns:52px 1fr 52px;gap:8px}
 .row-main .sq{height:56px}
-.summon{display:flex;align-items:center;justify-content:center;gap:12px;height:56px;padding:0 12px;background:var(--yellow)}
-.summon .s-lbl{font-family:var(--f-display);font-size:24px}
-.summon small{display:flex;align-items:center;gap:5px;font-size:18px;background:var(--paper);border:2px solid var(--ink);border-radius:999px;padding:2px 10px;font-variant-numeric:tabular-nums}
-.summon.off{background:var(--paper-2)}
+.next{height:56px;display:flex;flex-direction:column;justify-content:center;gap:7px;padding:0 14px;background:var(--paper);color:var(--ink);
+  border:2.5px solid var(--ink);border-radius:14px;box-shadow:0 4px 0 var(--ink)}
+.next-lbl{font-size:15px;font-variant-numeric:tabular-nums}
+.next-bar{height:9px;border-radius:5px;background:var(--paper-2);border:1.5px solid var(--ink);overflow:hidden}
+.next-bar i{display:block;height:100%;width:0;background:var(--yellow);transition:width .25s linear}
+.rw{width:min(360px,100%);display:flex;flex-direction:column;gap:12px}
+.rw-head{text-align:center;display:flex;flex-direction:column;gap:4px;color:var(--paper)}
+.rw-head b{font-family:var(--f-display);font-weight:400;font-size:30px;color:var(--yellow)}
+.rw-head span{font-size:16px}
+.rw-cards{display:grid;gap:10px}
+.rc{display:grid;grid-template-columns:56px 1fr;gap:12px;align-items:center;text-align:left;background:var(--paper);color:var(--ink);
+  border:2.5px solid var(--ink);border-radius:16px;box-shadow:0 5px 0 var(--ink);padding:12px;animation:deal .3s backwards}
+.rc:nth-child(2){animation-delay:.07s}
+.rc:nth-child(3){animation-delay:.14s}
+@keyframes deal{from{transform:translateY(16px) rotate(-2deg);opacity:0}}
+.rc:active{transform:translateY(3px);box-shadow:0 2px 0 var(--ink)}
+.rc .stk{width:50px;height:50px;font-size:26px;margin:3px}
+.rc-ico{width:54px;height:54px;display:grid;place-items:center;border-radius:14px;background:var(--c,var(--paper-2));border:2.5px solid var(--ink);
+  font-size:28px;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.rc-body{display:flex;flex-direction:column;gap:4px;min-width:0}
+.rc-name{font-size:18px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.rc-tag{font-size:11px;padding:1px 7px;border-radius:6px;color:var(--paper);background:var(--ink)}
+.rc-tag.char{background:var(--blue)}
+.rc-tag.buff{background:var(--green)}
+.rc-tag.turret{background:var(--red)}
+.rc-desc{font-size:13.5px;line-height:1.4}
+.rc-note{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .deckbar{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .dcard{position:relative;display:flex;flex-direction:column;gap:3px;min-width:0;text-align:left;background:var(--paper);color:var(--ink);
   border:2.5px solid var(--ink);border-radius:12px;box-shadow:0 3px 0 var(--ink);padding:5px 6px 5px}
@@ -198,15 +221,16 @@ h1,h2,p{margin:0}
       <div class="eyebrow">신작 · v0.1 시제품</div>
       <h1 class="title">이름 미정</h1>
       <p class="title-note">← 게임 이름은 예준이가 짓는 중</p>
-      <p class="title-sub">캐릭터 8마리를 골라 전장에 나가<br>몰려오는 적을 썰어 버려라!</p>
+      <p class="title-sub">전사 혼자 시작해서 웨이브마다 강해져라!<br>몰려오는 적을 썰어 버리는 성장형 디펜스</p>
     </div>
     <div class="card">
       <div class="card-head"><span>내 덱</span><span class="chip" id="homeDeckCount">8/8</span></div>
       <div class="mini-deck" id="homeDeck"></div>
     </div>
     <div class="rules">
-      <b>소환</b><span>돈을 내면 내 덱 8마리 중 하나가 랜덤으로 나와요</span>
-      <b>강화</b><span>아래 카드를 누르면 그 캐릭터가 전부 세져요</span>
+      <b>시작</b><span>전사 혼자 전장에 나가요</span>
+      <b>선물</b><span>웨이브가 끝나면 카드 3장 중 1장을 골라요. 캐릭터·버프템·터렛!</span>
+      <b>강화</b><span>돈으로 아래 카드를 눌러 캐릭터를 강화해요</span>
       <b>100</b><span>적이 100마리 쌓이면 패배!</span>
     </div>
     <div class="best">최고 기록 <b id="homeBest">-</b></div>
@@ -214,7 +238,7 @@ h1,h2,p{margin:0}
       <button class="btn btn-blue big" id="bPlay" type="button">전투 시작</button>
       <button class="btn" id="bDeck" type="button">덱 편성</button>
     </div>
-    <p class="foot">⚔️ 전사는 예준이 그림! 나머지는 임시 그림이라 예준이 그림이 오면 바뀌어요.</p>
+    <p class="foot">⚔️ 전사는 예준이 그림! 나머지 캐릭터·버프템·터렛은 임시라서 예준이 그림이 오면 바뀌어요.</p>
   </section>
 
   <!-- ===== 덱 편성 ===== -->
@@ -224,7 +248,7 @@ h1,h2,p{margin:0}
       <h2>덱 편성</h2>
       <span class="chip" id="deckCount">8/8</span>
     </header>
-    <p class="hint">전투에 데려갈 캐릭터 8마리를 골라요. 소환하면 이 8마리 중에서 랜덤으로 나와요.</p>
+    <p class="hint">전사는 언제나 함께 시작해요. 나머지 7마리를 골라요. 웨이브가 끝나면 이 8마리가 선물 카드로 나와요.</p>
     <div class="char-grid" id="charGrid"></div>
     <button class="btn btn-blue" id="bDeckDone" type="button">이 덱으로 결정</button>
   </section>
@@ -245,14 +269,13 @@ h1,h2,p{margin:0}
         <div class="pop-head"><span class="e" id="popEmo"></span><span id="popName"></span><span class="chip" id="popLv"></span></div>
         <p id="popDesc"></p>
         <p class="pop-hint">빈 칸을 누르면 이동, 다른 캐릭터를 누르면 자리 바꾸기</p>
-        <button class="btn btn-sm" id="popSell" type="button">팔기 <i class="coin"></i>+<span id="popRefund">0</span></button>
       </div>
       <div class="toast" id="toast" hidden></div>
     </div>
     <div class="tray">
       <div class="row-main">
         <button class="btn sq" id="bPause" type="button" aria-label="일시정지">Ⅱ</button>
-        <button class="btn summon" id="bSummon" type="button"><span class="s-lbl">소환</span><small><i class="coin"></i><span id="sCost">20</span></small></button>
+        <div class="next" id="nextBox"><span class="next-lbl" id="nextLbl">곧 시작</span><span class="next-bar"><i id="nextBar"></i></span></div>
         <button class="btn sq" id="bSpeed" type="button" aria-label="배속">×1</button>
       </div>
       <div class="deckbar" id="deckbar"></div>
@@ -262,11 +285,19 @@ h1,h2,p{margin:0}
       <div class="ov-card">
         <h2>이렇게 해요</h2>
         <ol class="steps">
-          <li><span>1</span>노란 <b>소환</b> 버튼을 누르면 내 덱에서 캐릭터가 나와요</li>
-          <li><span>2</span>아래 <b>카드</b>를 누르면 그 캐릭터가 전부 강해져요</li>
-          <li><span>3</span>위에서 적이 몰려와요. <b>100마리</b>가 쌓이면 져요!</li>
+          <li><span>1</span>처음엔 <b>전사</b> 혼자 싸워요</li>
+          <li><span>2</span>웨이브가 끝나면 <b>선물 카드</b> 3장 중 1장을 골라요</li>
+          <li><span>3</span>모은 돈으로 아래 <b>카드</b>를 눌러 강화해요</li>
+          <li><span>4</span>위에서 몰려온 적이 <b>100마리</b> 쌓이면 져요!</li>
         </ol>
         <div class="ov-btns"><button class="btn btn-blue big" id="bCoachGo" type="button">알겠어, 시작!</button></div>
+      </div>
+    </div>
+
+    <div class="ov" id="rewardOv" hidden>
+      <div class="rw">
+        <div class="rw-head"><b id="rwTitle">웨이브 1 끝!</b><span>선물을 하나 골라요</span></div>
+        <div class="rw-cards" id="rwCards"></div>
       </div>
     </div>
 
@@ -288,7 +319,7 @@ h1,h2,p{margin:0}
         <div class="go-wave"><small>도달한 웨이브</small><span id="goWave">0</span></div>
         <div class="go-best" id="goBest"></div>
         <div class="go-stats">
-          <div><b id="goSum">0</b>소환</div>
+          <div><b id="goSum">0</b>선물</div>
           <div><b id="goKill">0</b>처치</div>
           <div><b id="goUp">0</b>강화</div>
         </div>
@@ -321,18 +352,30 @@ const slotXY = (i) => ({ x: GX + CW * (i % COLS + 0.5), y: GY + CH * (Math.floor
 
 /* ===== 밸런스 (숫자만 바꾸면 게임이 바뀌어요) ===== */
 const BAL = {
-  startGold: 100,
-  summonBase: 20, summonStep: 3,       // 소환 비용 = 20 + 3 × 소환 횟수
-  upBase: 25, upMult: 1.3,             // 강화 비용 = 25 × 레벨, 강화 1번에 공격력 ×1.3
+  startGold: 50,
+  upBase: 25, upMult: 1.3,             // 강화 비용 = 25 × 레벨, 강화 1번에 데미지 ×1.3
   waveLen: 20, spawnWindow: 13,        // 웨이브 20초, 처음 13초 동안 적이 나와요
-  hp0: 270, hpGrow: 1.115,             // 적 체력 = 270 × 1.115^(웨이브-1)  (전사 데미지 200에 맞춘 크기)
-  count: (w) => 16 + Math.floor(w * 0.6),
+  hp0: 150, hpGrow: 1.125,             // 적 체력 = 150 × 1.125^(웨이브-1)  (전사 데미지 200 기준)
+  count: (w) => 8 + Math.floor(w * 1.2),
   killGold: 1, bossGold: 30,
-  waveBonus: (w) => 8 + 2 * w,
+  waveBonus: (w) => 10 + 2 * w,
   maxEnemies: 100,
-  bossEvery: 10, bossHp: 28, bossWeight: 10,
+  bossEvery: 10, bossHp: 25, bossWeight: 10,
   dmgMul: 1,
+  turretSpots: [135, 225, 45, 315],    // 방어선 위 터렛 자리 4개
 };
+
+/* ===== 웨이브 선물: 버프템 · 터렛 (임시 — 예준이가 바꿀 예정) ===== */
+const BUFFS = [
+  { id: 'dmg',   name: '힘의 물약',   emo: '💪', color: '#F08A7E', desc: '아군 전체 데미지 +15%' },
+  { id: 'spd',   name: '번개 장갑',   emo: '🧤', color: '#F7D774', desc: '아군 전체 공격 속도 +12%' },
+  { id: 'rng',   name: '망원경',      emo: '🔭', color: '#9AD3F2', desc: '아군 전체 사거리 +25 (최대 4번)', max: 4 },
+  { id: 'gold',  name: '황금 주머니', emo: '👛', color: '#EDD38A', desc: '적을 처치할 때마다 돈 +1 (최대 5번)', max: 5 },
+  { id: 'thorn', name: '가시 방어선', emo: '🌵', color: '#B5DE85', desc: '방어선에 붙은 적이 1초마다 체력의 2%를 잃어요 (보스는 0.5%, 최대 3번)', max: 3 },
+  { id: 'chest', name: '보물 상자',   emo: '🎁', color: '#C7A6E6', desc: '돈을 바로 받아요' },
+];
+const BUFF_BY = {}; BUFFS.forEach((b) => { BUFF_BY[b.id] = b; });
+const TURRET = { name: '임시 터렛', emo: '🗼', dmg: 120, rate: 1, range: 220 };
 
 /* ===== 캐릭터 (임시 — 예준이 그림이 오면 이름·그림·능력을 바꿔요) ===== */
 const CHARS = [
@@ -378,20 +421,21 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 저장 못 해도 게임은 돼요 */ } },
 };
-const validDeck = (d) => Array.isArray(d) && d.length === 8 && new Set(d).size === 8 && d.every((id) => BY[id]) ? d.slice() : null;
+const validDeck = (d) => Array.isArray(d) && d.length === 8 && new Set(d).size === 8 && d.every((id) => BY[id]) && d.includes('sword') ? d.slice() : null;
 
 /* ===== 상태 ===== */
 const S = { screen: 'home', deck: null, best: 0, speed: 1 };
 function newBattle() {
   Object.assign(S, {
     wave: 0, waveT: BAL.waveLen - 3, queue: [], spawnT: 0, spawnGap: 1,
-    gold: BAL.startGold, summonN: 0, upN: 0, kills: 0, time: 0,
+    gold: BAL.startGold, picks: 0, upN: 0, kills: 0, time: 0,
     units: new Array(SLOTS).fill(null), enemies: [], projs: [], fx: [], pools: [],
-    levels: {}, count: 0, paused: false, over: false, sel: -1, banner: null,
+    levels: {}, count: 0, paused: false, over: false, choosing: false, offer: null, sel: -1, banner: null,
+    buff: { dmg: 0, spd: 0, rng: 0, gold: 0, thorn: 0 }, stacks: {}, turrets: [], turretLv: 1,
   });
   S.deck.forEach((id) => { S.levels[id] = 1; });
+  placeUnit('sword', 2);
 }
-const summonCost = () => BAL.summonBase + BAL.summonStep * S.summonN;
 const upCost = (id) => BAL.upBase * S.levels[id];
 const lvMult = (id) => Math.pow(BAL.upMult, S.levels[id] - 1);
 const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
@@ -446,7 +490,7 @@ function hurt(e, a, src) {
   if (a > 0.6) e.flash = 0.07;
   if (e.hp <= 0) {
     e.dead = true; S.kills++;
-    S.gold += (e.boss ? BAL.bossGold : BAL.killGold) + (src === 'coin' ? 1 : 0);
+    S.gold += (e.boss ? BAL.bossGold : BAL.killGold) + (src === 'coin' ? 1 : 0) + S.buff.gold;
     const n = e.boss ? 18 : 5;
     if (S.fx.length < 500) {
       for (let i = 0; i < n; i++) {
@@ -465,7 +509,11 @@ function area(x, y, r, dmg, src, fn) {
   }
 }
 function findTarget(u, def) {
-  const p = slotXY(u.slot), r2 = def.range * def.range, byHp = def.atk === 'snipe';
+  const p = slotXY(u.slot);
+  return findTargetAt(p.x, p.y, def.range + S.buff.rng, def.atk === 'snipe');
+}
+function findTargetAt(px, py, range, byHp) {
+  const p = { x: px, y: py }, r2 = range * range;
   let best = null, bv = -Infinity;
   for (const e of S.enemies) {
     if (e.dead || e.y < 2) continue;
@@ -478,7 +526,7 @@ function findTarget(u, def) {
 }
 function attack(u, def, t) {
   const p = slotXY(u.slot);
-  const dmg = def.dmg * lvMult(def.id) * BAL.dmgMul;
+  const dmg = def.dmg * lvMult(def.id) * BAL.dmgMul * (1 + S.buff.dmg);
   const ang = Math.atan2(t.y - p.y, t.x - p.x);
   u.anim = 0.12;
   switch (def.atk) {
@@ -529,6 +577,7 @@ function projHit(pr) {
   const def = pr.def, t = pr.t, alive = t && !t.dead;
   switch (pr.k) {
     case 'arrow': case 'bullet': if (alive) hurt(t, pr.dmg, def.id); break;
+    case 'shell': if (alive) hurt(t, pr.dmg, 'turret'); fx({ k: 'boom', x: pr.x, y: pr.y, r: 10, c: '#C9CDDA', life: 0.2 }); break;
     case 'coin': if (alive) hurt(t, pr.dmg, 'coin'); break;
     case 'fire':
       if (alive) {
@@ -585,7 +634,7 @@ function update(dt) {
     S.spawnT -= dt;
     while (S.queue.length && S.spawnT <= 0) { S.enemies.push(makeEnemy(S.queue.shift())); S.spawnT += S.spawnGap; }
   }
-  if (S.waveT >= BAL.waveLen) startWave();
+  if (S.waveT >= BAL.waveLen) { if (S.wave === 0) startWave(); else { endWave(); return; } }
 
   for (const e of S.enemies) {
     if (e.dead) continue;
@@ -596,6 +645,9 @@ function update(dt) {
     e.y += e.sp * (e.slowT > 0 ? 1 - e.slowF : 1) * dt;
   }
   separate();
+  if (S.buff.thorn) {
+    for (const e of S.enemies) if (!e.dead && e.y >= WALL_Y - e.r - 2) hurt(e, e.maxHp * S.buff.thorn * (e.boss ? 0.25 : 1) * dt, null);
+  }
 
   for (const p of S.pools) {
     p.t -= dt;
@@ -611,8 +663,21 @@ function update(dt) {
     u.cd -= dt;
     if (u.cd <= 0 && u.born > 0.3) {
       const def = BY[u.type], t = findTarget(u, def);
-      if (t) { attack(u, def, t); u.cd += 1 / def.rate; if (u.cd < 0) u.cd = 0; } else u.cd = 0.1;
+      if (t) { attack(u, def, t); u.cd += 1 / (def.rate * (1 + S.buff.spd)); if (u.cd < 0) u.cd = 0; } else u.cd = 0.1;
     }
+  }
+
+  for (const tu of S.turrets) {
+    tu.born += dt; if (tu.anim > 0) tu.anim -= dt;
+    tu.cd -= dt;
+    if (tu.cd > 0) continue;
+    const tg = findTargetAt(tu.x, tu.y, TURRET.range + S.buff.rng, false);
+    if (tg) {
+      tu.a = Math.atan2(tg.y - tu.y, tg.x - tu.x); tu.anim = 0.12;
+      S.projs.push({ k: 'shell', x: tu.x, y: tu.y, t: tg, lx: tg.x, ly: tg.y, sp: 480, def: { id: 'turret' }, d0: 1, prog: 0,
+                     dmg: TURRET.dmg * Math.pow(BAL.upMult, S.turretLv - 1) * (1 + S.buff.dmg) });
+      tu.cd = 1 / (TURRET.rate * (1 + S.buff.spd));
+    } else tu.cd = 0.1;
   }
 
   for (const pr of S.projs) {
@@ -639,24 +704,108 @@ function update(dt) {
 }
 
 /* ===== 플레이어 행동 ===== */
-function summon() {
-  if (S.over) return;
-  const cost = summonCost();
+function placeUnit(type, slot) {
   const free = []; S.units.forEach((u, i) => { if (!u) free.push(i); });
-  if (!free.length) { toast('자리가 꽉 찼어요! 캐릭터를 팔거나 강화해요'); shake(bSummon); return; }
-  if (S.gold < cost) { toast('돈이 부족해요'); shake(bSummon); return; }
-  S.gold -= cost; S.summonN++;
-  const type = S.deck[Math.floor(Math.random() * S.deck.length)];
-  const rows = BY[type].pref === 'front' ? [0, 1, 2] : [2, 1, 0];
-  let slot = free[0];
-  for (const r of rows) {
-    const inRow = free.filter((i) => Math.floor(i / COLS) === r);
-    if (inRow.length) { slot = inRow[Math.floor(Math.random() * inRow.length)]; break; }
+  if (!free.length) return false;
+  if (slot == null || S.units[slot]) {
+    const rows = BY[type].pref === 'front' ? [0, 1, 2] : [2, 1, 0];
+    slot = free[0];
+    for (const r of rows) {
+      const inRow = free.filter((i) => Math.floor(i / COLS) === r);
+      if (inRow.length) { slot = inRow[Math.floor(Math.random() * inRow.length)]; break; }
+    }
   }
-  S.units[slot] = { type, slot, cd: 0, born: 0, anim: 0, lunge: 0, lx: 0, ly: 0, paid: cost };
+  S.units[slot] = { type, slot, cd: 0, born: 0, anim: 0, lunge: 0, lx: 0, ly: 0 };
   const p = slotXY(slot);
   fx({ k: 'pop', x: p.x, y: p.y, life: 0.45 });
-  fx({ k: 'text', x: p.x, y: p.y - 30, s: BY[type].name, c: INK, life: 1.0, size: 13 });
+  fx({ k: 'text', x: p.x, y: p.y - 36, s: BY[type].name, c: INK, life: 1.0, size: 13 });
+  return true;
+}
+
+/* ===== 웨이브 선물 ===== */
+const chestGold = () => 100 + 10 * S.wave;
+const eul = (w) => { const c = w.charCodeAt(w.length - 1) - 0xAC00; return w + (c >= 0 && c <= 11171 && c % 28 ? '을' : '를'); };
+function rollOffer() {
+  const free = S.units.some((u) => !u);
+  const pool = [];
+  for (const id of S.deck) pool.push(free ? { k: 'char', id, w: 4 } : { k: 'up', id, w: 2 });
+  for (const b of BUFFS) if (!b.max || (S.stacks[b.id] || 0) < b.max) pool.push({ k: 'buff', id: b.id, w: 3 });
+  pool.push({ k: 'turret', w: 5 });
+  const out = [];
+  while (out.length < 3 && pool.length) {
+    let r = Math.random() * pool.reduce((a, o) => a + o.w, 0), i = 0;
+    while ((r -= pool[i].w) > 0 && i < pool.length - 1) i++;
+    out.push(pool.splice(i, 1)[0]);
+  }
+  if (free && !out.some((o) => o.k === 'char')) {
+    const chars = pool.filter((o) => o.k === 'char');
+    if (chars.length) out[2] = chars[Math.floor(Math.random() * chars.length)];
+  }
+  return out;
+}
+function buffNote(id) {
+  const b = S.buff;
+  const now = { dmg: b.dmg ? '+' + Math.round(b.dmg * 100) + '%' : '', spd: b.spd ? '+' + Math.round(b.spd * 100) + '%' : '',
+                rng: b.rng ? '+' + b.rng : '', gold: b.gold ? '+' + b.gold : '', thorn: b.thorn ? Math.round(b.thorn * 100) + '% (' + (S.stacks.thorn || 0) + '/3)' : '' }[id];
+  return now ? '지금 ' + now : '';
+}
+function offerHTML(o, i) {
+  let ico, name, tag, desc, note = '';
+  if (o.k === 'char' || o.k === 'up') {
+    const d = BY[o.id], n = S.units.filter((u) => u && u.type === o.id).length;
+    ico = stickerHTML(d, 50);
+    name = d.name + (o.k === 'char' ? ' 소환' : ' 무료 강화');
+    tag = '<span class="rc-tag char">캐릭터</span>';
+    desc = o.k === 'char' ? d.desc : '자리가 꽉 찼어요. 대신 ' + eul(d.name) + ' 공짜로 1번 강화해요';
+    note = '데미지 ' + d.dmg + ' · ' + every(d) + (n ? ' · 지금 ' + n + '마리' : '');
+  } else if (o.k === 'buff') {
+    const b = BUFF_BY[o.id];
+    ico = '<span class="rc-ico" style="--c:' + b.color + '">' + b.emo + '</span>';
+    name = b.name; tag = '<span class="rc-tag buff">버프템</span>';
+    desc = b.id === 'chest' ? '돈 ' + chestGold() + '을 바로 받아요' : b.desc;
+    note = buffNote(b.id);
+  } else {
+    const full = S.turrets.length >= BAL.turretSpots.length;
+    ico = '<span class="rc-ico" style="--c:#C9CDDA">' + TURRET.emo + '</span>';
+    name = TURRET.name + (full ? ' 강화' : ' 설치'); tag = '<span class="rc-tag turret">터렛</span>';
+    desc = full ? '모든 터렛 데미지 ×1.3' : '방어선 위에 터렛을 세워요. 다가오는 적을 자동으로 쏴요';
+    note = '터렛 ' + S.turrets.length + '/' + BAL.turretSpots.length + (S.turretLv > 1 ? ' · Lv.' + S.turretLv : '');
+  }
+  return '<button class="rc" type="button" data-i="' + i + '">' + ico +
+    '<span class="rc-body"><span class="rc-name">' + name + ' ' + tag + '</span><span class="rc-desc">' + desc + '</span>' +
+    (note ? '<span class="rc-note">' + note + '</span>' : '') + '</span></button>';
+}
+function endWave() {
+  S.choosing = true; select(-1);
+  S.offer = rollOffer();
+  $('#rwTitle').textContent = '웨이브 ' + S.wave + ' 끝!';
+  $('#rwCards').innerHTML = S.offer.map(offerHTML).join('');
+  $('#rewardOv').hidden = false;
+}
+function pick(i) {
+  const o = S.offer && S.offer[i];
+  if (!o) return;
+  S.picks++;
+  if (o.k === 'char') placeUnit(o.id);
+  else if (o.k === 'up') {
+    S.levels[o.id]++;
+    for (const u of S.units) if (u && u.type === o.id) { const p = slotXY(u.slot); u.anim = 0.2; fx({ k: 'text', x: p.x, y: p.y - 30, s: 'Lv.' + S.levels[o.id], c: BLUE, life: 0.9, size: 14 }); }
+  } else if (o.k === 'buff') {
+    const b = S.buff;
+    if (o.id === 'dmg') b.dmg += 0.15; else if (o.id === 'spd') b.spd += 0.12; else if (o.id === 'rng') b.rng += 25;
+    else if (o.id === 'gold') b.gold += 1; else if (o.id === 'thorn') b.thorn += 0.02; else if (o.id === 'chest') S.gold += chestGold();
+    S.stacks[o.id] = (S.stacks[o.id] || 0) + 1;
+    fx({ k: 'text', x: W / 2, y: WALL_Y + 24, s: BUFF_BY[o.id].name + '!', c: YEL, life: 1.4, size: 16 });
+  } else if (S.turrets.length < BAL.turretSpots.length) {
+    const x = BAL.turretSpots[S.turrets.length];
+    S.turrets.push({ x, y: WALL_Y + 4, cd: 0.4, a: -Math.PI / 2, anim: 0, born: 0 });
+    fx({ k: 'pop', x, y: WALL_Y + 4, life: 0.45 });
+  } else {
+    S.turretLv++;
+    for (const tu of S.turrets) { tu.anim = 0.25; fx({ k: 'text', x: tu.x, y: tu.y - 22, s: 'Lv.' + S.turretLv, c: BLUE, life: 0.9, size: 14 }); }
+  }
+  S.offer = null; S.choosing = false; $('#rewardOv').hidden = true;
+  startWave();
 }
 function upgrade(id, el) {
   if (S.over) return;
@@ -672,16 +821,6 @@ function upgrade(id, el) {
     }
   }
   if (S.sel >= 0) showPop();
-}
-function sell() {
-  const u = S.units[S.sel];
-  if (!u) return;
-  const g = Math.floor(u.paid / 2);
-  S.gold += g;
-  const p = slotXY(u.slot);
-  fx({ k: 'text', x: p.x, y: p.y - 26, s: '+' + g, c: YEL, life: 1, size: 14 });
-  S.units[S.sel] = null;
-  select(-1);
 }
 function slotAt(x, y) {
   for (let i = 0; i < SLOTS; i++) {
@@ -782,6 +921,20 @@ function drawSprite(u, def, im, p, s, ox, oy) {
     c.fillStyle = PAPER; c.font = '11px ' + UIF; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(lv), p.x + 18, p.y + 17.5);
   }
 }
+function drawTurret(tu) {
+  const c = ctx, s = tu.born < 0.3 ? Math.max(0.01, easeBack(tu.born / 0.3)) : 1;
+  c.save(); c.translate(tu.x, tu.y); c.scale(s, s);
+  c.fillStyle = 'rgba(27,34,50,.2)'; c.beginPath(); c.ellipse(1.5, 8, 16, 5, 0, 0, Math.PI * 2); c.fill();
+  c.fillStyle = '#A9AEC2'; c.strokeStyle = INK; c.lineWidth = 2;
+  c.beginPath(); if (c.roundRect) c.roundRect(-14, -6, 28, 15, 5); else c.rect(-14, -6, 28, 15); c.fill(); c.stroke();
+  c.save(); c.rotate(tu.a); c.fillStyle = INK; c.fillRect(tu.anim > 0 ? -1 : 2, -3.5, 17, 7); c.restore();
+  c.fillStyle = '#D6D9E3'; circle(c, 0, 0, 8.5); c.fill(); c.stroke();
+  c.restore();
+  if (S.turretLv > 1) {
+    c.fillStyle = INK; circle(c, tu.x + 14, tu.y + 9, 8); c.fill();
+    c.fillStyle = PAPER; c.font = '10px ' + UIF; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(S.turretLv), tu.x + 14, tu.y + 9.5);
+  }
+}
 function drawUnit(u) {
   const c = ctx, def = BY[u.type], p = slotXY(u.slot);
   let s = u.born < 0.3 ? Math.max(0.01, easeBack(u.born / 0.3)) : 1;
@@ -816,6 +969,7 @@ function drawProj(pr) {
       c.fillStyle = INK; c.beginPath(); c.moveTo(6, 0); c.lineTo(0, -3.5); c.lineTo(0, 3.5); c.fill();
       break;
     case 'bullet': c.fillStyle = '#9C6BD6'; circle(c, 0, 0, 2.6); c.fill(); break;
+    case 'shell': c.fillStyle = INK; circle(c, 0, 0, 3.6); c.fill(); break;
     case 'bomb':
       c.fillStyle = INK; circle(c, 0, 0, 5.5); c.fill();
       c.fillStyle = ORANGE; circle(c, 3, -5, 2 + Math.sin(S.time * 30)); c.fill();
@@ -917,11 +1071,12 @@ function render() {
     c.restore();
   }
   if (S.sel >= 0 && S.units[S.sel]) {
-    const p = slotXY(S.sel), r = Math.min(BY[S.units[S.sel].type].range, 520);
+    const p = slotXY(S.sel), r = Math.min(BY[S.units[S.sel].type].range + S.buff.rng, 520);
     c.save(); c.fillStyle = 'rgba(47,107,216,.07)'; c.strokeStyle = BLUE; c.lineWidth = 1.6; c.setLineDash([6, 5]);
     circle(c, p.x, p.y, r); c.fill(); c.stroke(); c.restore();
   }
   for (const e of S.enemies) drawEnemy(e);
+  for (const tu of S.turrets) drawTurret(tu);
   for (const u of S.units) if (u) drawUnit(u);
   if (S.sel >= 0 && S.units[S.sel]) {
     const p = slotXY(S.sel);
@@ -969,7 +1124,7 @@ function renderDeck() {
       '<span class="cc-name">' + d.name + ' <em>' + d.role + '</em>' + (d.grade ? '<em class="grade">' + d.grade + '</em>' : '<em class="tmp">임시</em>') + '</span>' +
       '<span class="cc-desc">' + d.desc + '</span>' +
       '<span class="cc-stat">데미지 ' + d.dmg + ' · ' + every(d) + ' · 사거리 ' + range + '</span>' +
-      '<span class="cc-check">출전</span></button>';
+      '<span class="cc-check">' + (d.id === 'sword' ? '시작' : '출전') + '</span></button>';
   }).join('');
   $('#deckCount').textContent = draft.length + '/8';
   $('#bDeckDone').disabled = draft.length !== 8;
@@ -978,6 +1133,7 @@ function renderDeck() {
 $('#charGrid').addEventListener('click', (e) => {
   const b = e.target.closest('.cc'); if (!b) return;
   const id = b.dataset.id, i = draft.indexOf(id);
+  if (id === 'sword') { toast('전사는 언제나 함께 시작해요'); return; }
   if (i >= 0) draft.splice(i, 1);
   else if (draft.length < 8) draft.push(id);
   else { toast('8마리까지만 데려갈 수 있어요. 먼저 하나를 빼요'); }
@@ -1004,7 +1160,7 @@ let deckEls = [];
 deckbar.addEventListener('click', (e) => { const b = e.target.closest('.dcard'); if (b) upgrade(b.dataset.id, b); });
 
 const hWave = $('#hWave'), hTime = $('#hTime'), hCount = $('#hCount'), hBar = $('#hBar'), hCountBox = $('#hCountBox'),
-      hGold = $('#hGold'), sCost = $('#sCost'), bSummon = $('#bSummon');
+      hGold = $('#hGold'), nextLbl = $('#nextLbl'), nextBar = $('#nextBar');
 const ui = {};
 function setT(el, key, v) { if (ui[key] !== v) { ui[key] = v; el.textContent = v; } }
 function syncHUD() {
@@ -1017,10 +1173,10 @@ function syncHUD() {
   if (ui.lvl !== lvl) { ui.lvl = lvl; hCountBox.dataset.level = lvl; }
   const g = Math.floor(S.gold);
   setT(hGold, 'g', String(g));
-  const cost = summonCost(), full = S.units.every(Boolean);
-  setT(sCost, 'sc', full ? '꽉 참' : String(cost));
-  const off = full || g < cost;
-  if (ui.off !== off) { ui.off = off; bSummon.classList.toggle('off', off); }
+  const left = Math.max(0, Math.ceil(BAL.waveLen - S.waveT));
+  setT(nextLbl, 'nl', S.wave === 0 ? '곧 웨이브 시작 · ' + left + '초' : '🎁 선물까지 ' + left + '초');
+  const np = Math.round(Math.min(1, S.waveT / BAL.waveLen) * 100);
+  if (ui.np !== np) { ui.np = np; nextBar.style.width = np + '%'; }
   const counts = {};
   for (const u of S.units) if (u) counts[u.type] = (counts[u.type] || 0) + 1;
   for (const d of deckEls) {
@@ -1042,7 +1198,6 @@ function showPop() {
   $('#popEmo').innerHTML = faceHTML(d); $('#popName').textContent = d.name;
   $('#popLv').textContent = 'Lv.' + S.levels[u.type];
   $('#popDesc').textContent = d.desc + ' (데미지 ' + Math.round(d.dmg * lvMult(d.id)) + ' · ' + every(d) + ')';
-  $('#popRefund').textContent = Math.floor(u.paid / 2);
   pop.hidden = false;
   const fw = field.clientWidth, pw = pop.offsetWidth;
   let left = cv.offsetLeft + p.x * SC;
@@ -1050,7 +1205,6 @@ function showPop() {
   pop.style.left = left + 'px';
   pop.style.top = (cv.offsetTop + (p.y - 30) * SC) + 'px';
 }
-$('#popSell').addEventListener('click', sell);
 
 const toastEl = $('#toast'); let toastTimer = 0;
 function toast(msg) {
@@ -1070,7 +1224,7 @@ function startBattle() {
   newBattle();
   for (const k in ui) delete ui[k];
   buildDeckBar();
-  $('#overOv').hidden = true; $('#pauseOv').hidden = true; pop.hidden = true;
+  $('#overOv').hidden = true; $('#pauseOv').hidden = true; $('#rewardOv').hidden = true; pop.hidden = true;
   $('#bSpeed').textContent = '×' + S.speed;
   show('battle');
   if (!store.get('yj2.coach', false)) { S.paused = true; $('#coach').hidden = false; }
@@ -1082,13 +1236,13 @@ function gameOver() {
   if (nb) { S.best = w; store.set('yj2.best', w); }
   $('#goWave').textContent = w;
   $('#goBest').innerHTML = nb ? '<span class="stamp">신기록!</span>' : '최고 기록 WAVE ' + S.best;
-  $('#goSum').textContent = S.summonN; $('#goKill').textContent = S.kills; $('#goUp').textContent = S.upN;
+  $('#goSum').textContent = S.picks; $('#goKill').textContent = S.kills; $('#goUp').textContent = S.upN;
   $('#overOv').hidden = false;
 }
 $('#bPlay').addEventListener('click', startBattle);
 $('#bRetry').addEventListener('click', startBattle);
 $('#bHome').addEventListener('click', () => show('home'));
-$('#bSummon').addEventListener('click', summon);
+$('#rwCards').addEventListener('click', (e) => { const b = e.target.closest('.rc'); if (b) pick(+b.dataset.i); });
 $('#bPause').addEventListener('click', () => setPaused(true));
 $('#bResume').addEventListener('click', () => setPaused(false));
 $('#bGiveUp').addEventListener('click', () => { S.paused = false; $('#pauseOv').hidden = true; gameOver(); });
@@ -1108,7 +1262,7 @@ let last = 0;
 function frame(t) {
   const dt = Math.min(0.05, (t - last) / 1000 || 0); last = t;
   if (S.screen === 'battle') {
-    if (!S.paused && !S.over) for (let i = 0; i < S.speed && !S.over; i++) update(dt);
+    if (!S.paused && !S.over && !S.choosing) for (let i = 0; i < S.speed && !S.over && !S.choosing; i++) update(dt);
     render(); syncHUD();
   }
   requestAnimationFrame(frame);
@@ -1122,7 +1276,7 @@ function start(data) {
   requestAnimationFrame(frame);
 }
 window.claude?.hot?.snapshot?.(() => ({ deck: S.deck }));
-window.__td = { S, BAL, CHARS, summon, upgrade: (id) => upgrade(id, deckbar.querySelector('[data-id="' + id + '"]')), startBattle };
+window.__td = { S, BAL, CHARS, pick, upgrade: (id) => upgrade(id, deckbar.querySelector('[data-id="' + id + '"]')), startBattle };
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
 </script>
