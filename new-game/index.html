@@ -404,7 +404,7 @@ const AWAKE = {
             h: 46, tip: { x: 119 / 121, y: 132 / 200 }, ratio: 121 / 200 },
   trap:   { name: '각성 트랩', img: 'art/trap-awake.png', dmg: 5000, every: 1, halfP: 0.03,          // 3%: 보스 빼고 체력 절반 + 맹독
             h: 40, ratio: 167 / 160 },
-  cannon: { name: '각성 캐논', img: 'art/cannon-awake.png', dmg: 7000, every: 1, meteorP: 0.05,           // 5%: 메테오로 적 전부 파괴
+  cannon: { name: '각성 캐논', img: 'art/cannon-awake.png', dmg: 7000, every: 1,                         // 메테오는 예준이가 삭제 (2026-11-20)
             h: 34, ratio: 183 / 120, tip: { x: 181 / 183, y: 59 / 120 } },
 };
 // 캐논 (그림·설정: 구예준, 2026-11-20) — 거북선 대포처럼 처음부터 성벽에 1대 · Lv.5 다음에 각성
@@ -509,7 +509,7 @@ function newBattle() {
     wave: 0, waveT: BAL.waveLen - 3, queue: [], spawnT: 0, spawnGap: 1,
     gold: BAL.startGold, picks: 0, upN: 0, kills: 0, time: 0,
     units: new Array(SLOTS).fill(null), enemies: [], projs: [], fx: [], pools: [],
-    levels: {}, count: 0, weakT: 0, shake: 0, meteor: null, drag: null, merges: 0, paused: false, over: false, choosing: false, offer: null, sel: -1, banner: null,
+    levels: {}, count: 0, weakT: 0, shake: 0, drag: null, merges: 0, paused: false, over: false, choosing: false, offer: null, sel: -1, banner: null,
     buff: { dmg: 0, spd: 0, rng: 0, gold: 0, thorn: 0 }, stacks: {}, turrets: [], turretLv: 1, traps: [], trapLv: 1, lv: 1, xp: 0,
   });
   S.deck.forEach((id) => { S.levels[id] = 1; });
@@ -805,22 +805,9 @@ function update(dt) {
         S.projs.push({ k: 'cannonball', x: m.x, y: m.y, t: tg, lx: tg.x, ly: tg.y, sp: 420, d0: Math.max(1, Math.hypot(tg.x - m.x, tg.y - m.y)), prog: 0,
                        def: { id: 'cannon', arc: true }, dmg: L.dmg * (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1) });
         fx({ k: 'boom', x: m.x, y: m.y, r: 8, c: ORANGE, life: 0.15 });
-        if (cn.awake && !S.meteor && Math.random() < AWAKE.cannon.meteorP) {      // ☄️ 공룡 멸종 메테오
-          S.meteor = { t: 0 };
-          S.banner = { s: '메테오!', t: 0, c: RED };
-        }
         cn.cd = L.every / (1 + S.buff.spd);
       } else cn.cd = 0.1;
     }
-  }
-  if (S.meteor) {
-    S.meteor.t += dt;
-    if (!S.meteor.hit && S.meteor.t >= 0.75) {             // 떨어지는 순간 적 전부 파괴
-      S.meteor.hit = true; S.shake = 0.7;
-      for (const e of S.enemies) if (!e.dead) hurt(e, e.hp + 1, null);
-      for (let i = 0; i < 14; i++) fx({ k: 'boom', x: 20 + Math.random() * (W - 40), y: 20 + Math.random() * (WALL_Y - 40), r: 26 + Math.random() * 30, c: i % 2 ? ORANGE : RED, life: 0.5 + Math.random() * 0.4 });
-    }
-    if (S.meteor.t > 1.6) S.meteor = null;
   }
   if (S.shake > 0) S.shake -= dt;
 
@@ -918,8 +905,8 @@ function offerHTML(o, i) {
     if (cn.lv >= CANNON.maxLv) {
       ico = '<span class="rc-ico" style="--c:#C9D6F5"><img src="' + AWAKE.cannon.img + '" alt="" style="max-width:46px;max-height:34px"></span>';
       name = '캐논 각성!';
-      desc = '데미지 ' + L.dmg + ' → <b>' + AWAKE.cannon.dmg + '</b> · 쏠 때 5% 확률로 <b>메테오</b>: 적을 전부 파괴해요';
-      note = '공룡이 멸종했던 그 메테오처럼 양갈래로 펑펑!';
+      desc = '데미지 ' + L.dmg + ' → <b>' + AWAKE.cannon.dmg + '</b> · 1초마다';
+      note = '파란 각성 캐논으로 바뀌어요';
     } else {
       ico = '<span class="rc-ico" style="--c:#DDE0E7"><img src="' + CANNON.img + '" alt="" style="max-width:44px;max-height:36px"></span>';
       name = '캐논 레벨업';
@@ -1419,18 +1406,6 @@ function render() {
     c.save(); c.strokeStyle = BLUE; c.lineWidth = 3; circle(c, p.x, p.y, 27); c.stroke(); c.restore();
   }
   for (const pr of S.projs) drawProj(pr);
-  if (S.meteor && S.meteor.t < 0.8) {                       // ☄️ 양갈래로 떨어지는 메테오 두 개
-    const k = Math.min(1, S.meteor.t / 0.75);
-    for (const [x0, x1] of [[-30, 110], [W + 30, 250]]) {
-      const x = x0 + (x1 - x0) * k, y = -40 + (WALL_Y * 0.55 + 40) * k;
-      const g = c.createLinearGradient(x0, -40, x, y); g.addColorStop(0, 'rgba(240,145,58,0)'); g.addColorStop(1, 'rgba(240,145,58,.85)');
-      c.save(); c.strokeStyle = g; c.lineWidth = 14; c.lineCap = 'round';
-      c.beginPath(); c.moveTo(x0 + (x1 - x0) * Math.max(0, k - 0.35), -40 + (WALL_Y * 0.55 + 40) * Math.max(0, k - 0.35)); c.lineTo(x, y); c.stroke();
-      c.fillStyle = '#8B3A1E'; circle(c, x, y, 16); c.fill(); c.strokeStyle = INK; c.lineWidth = 2.5; c.stroke();
-      c.fillStyle = ORANGE; circle(c, x - 4, y - 4, 5); c.fill();
-      c.restore();
-    }
-  }
   if (S.weakT > 0) {
     c.save(); c.fillStyle = 'rgba(155,93,229,.14)'; c.fillRect(0, WALL_Y, W, H - WALL_Y);
     c.font = '14px ' + UIF; c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineJoin = 'round';
