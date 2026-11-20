@@ -404,11 +404,24 @@ const AWAKE = {
             h: 46, tip: { x: 119 / 121, y: 132 / 200 }, ratio: 121 / 200 },
   trap:   { name: '각성 트랩', img: 'art/trap-awake.png', dmg: 5000, every: 1, halfP: 0.03,          // 3%: 보스 빼고 체력 절반 + 맹독
             h: 40, ratio: 167 / 160 },
+  cannon: { name: '각성 캐논', img: 'art/cannon-awake.png', dmg: 7000, every: 1, meteorP: 0.05,           // 5%: 메테오로 적 전부 파괴
+            h: 34, ratio: 183 / 120, tip: { x: 181 / 183, y: 59 / 120 } },
 };
+// 캐논 (그림·설정: 구예준, 2026-11-20) — 거북선 대포처럼 처음부터 성벽에 1대 · Lv.5 다음에 각성
+const CANNON = { name: '캐논', img: 'art/cannon.png', range: 320, maxLv: 5, h: 30, ratio: 135 / 120, tip: { x: 133 / 135, y: 38 / 120 } };
+const CANNON_LV = [null,
+  { dmg: 200,  every: 2 },     // Lv.1
+  { dmg: 200,  every: 1 },     // Lv.2
+  { dmg: 400,  every: 1 },     // Lv.3
+  { dmg: 600,  every: 1 },     // Lv.4
+  { dmg: 1900, every: 1 },     // Lv.5
+];
+const CANNON_IMG = new Image(); CANNON_IMG.src = CANNON.img;
 const POISON = { time: 6, tick: 0.5, step: 0.03 };   // 맹독: 777 콜드나이퍼 맹독탄과 같아요 (갈수록 아파짐)
 const TRAP_IMG = new Image(); TRAP_IMG.src = TRAP.img;
 const AWAKE_IMG = { turret: new Image(), trap: new Image() };
 AWAKE_IMG.turret.src = AWAKE.turret.img; AWAKE_IMG.trap.src = AWAKE.trap.img;
+AWAKE_IMG.cannon = new Image(); AWAKE_IMG.cannon.src = AWAKE.cannon.img;
 const TURRET_H = 30;           // 성가퀴 위에서 보이는 높이
 
 /* ===== 캐릭터 (임시 — 예준이 그림이 오면 이름·그림·능력을 바꿔요) ===== */
@@ -497,12 +510,13 @@ function newBattle() {
     wave: 0, waveT: BAL.waveLen - 3, queue: [], spawnT: 0, spawnGap: 1,
     gold: BAL.startGold, picks: 0, upN: 0, kills: 0, time: 0,
     units: new Array(SLOTS).fill(null), enemies: [], projs: [], fx: [], pools: [],
-    levels: {}, count: 0, weakT: 0, drag: null, merges: 0, paused: false, over: false, choosing: false, offer: null, sel: -1, banner: null,
+    levels: {}, count: 0, weakT: 0, shake: 0, meteor: null, drag: null, merges: 0, paused: false, over: false, choosing: false, offer: null, sel: -1, banner: null,
     buff: { dmg: 0, spd: 0, rng: 0, gold: 0, thorn: 0 }, stacks: {}, turrets: [], turretLv: 1, traps: [], trapLv: 1, lv: 1, xp: 0,
   });
   S.deck.forEach((id) => { S.levels[id] = 1; });
   placeUnit('sword', 2);
   S.traps.push({ x: W / 2, y: WALL_Y + BAL.trapY, cd: 1, anim: 0, born: 0 });   // 트랩은 처음부터
+  S.cannon = { x: 222, y: WALL_Y + 16, lv: 1, awake: false, cd: 1.5, face: 1, anim: 0, born: 0 };   // 캐논도 처음부터
 }
 const xpNeed = () => 10 + 5 * (S.lv - 1);   // 적 1마리 = 경험치 1, 보스 = 10
 const upCost = (id) => BAL.upBase * S.levels[id];
@@ -779,6 +793,38 @@ function update(dt) {
     if (hit) tr.anim = 0.25;
   }
 
+  const cn = S.cannon;                                     // 💣 캐논
+  if (cn) {
+    cn.born += dt; if (cn.anim > 0) cn.anim -= dt;
+    cn.cd -= dt;
+    if (cn.cd <= 0) {
+      const tg = findTargetAt(cn.x, cn.y - 15, CANNON.range + S.buff.rng, false);
+      if (tg) {
+        const L = cn.awake ? AWAKE.cannon : CANNON_LV[cn.lv];
+        cn.face = tg.x < cn.x ? -1 : 1; cn.anim = 0.18;
+        const m = cannonMuzzle(cn);
+        S.projs.push({ k: 'cannonball', x: m.x, y: m.y, t: tg, lx: tg.x, ly: tg.y, sp: 420, d0: Math.max(1, Math.hypot(tg.x - m.x, tg.y - m.y)), prog: 0,
+                       def: { id: 'cannon', arc: true }, dmg: L.dmg * (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1) });
+        fx({ k: 'boom', x: m.x, y: m.y, r: 8, c: ORANGE, life: 0.15 });
+        if (cn.awake && !S.meteor && Math.random() < AWAKE.cannon.meteorP) {      // ☄️ 공룡 멸종 메테오
+          S.meteor = { t: 0 };
+          S.banner = { s: '메테오!', t: 0, c: RED };
+        }
+        cn.cd = L.every / (1 + S.buff.spd);
+      } else cn.cd = 0.1;
+    }
+  }
+  if (S.meteor) {
+    S.meteor.t += dt;
+    if (!S.meteor.hit && S.meteor.t >= 0.75) {             // 떨어지는 순간 적 전부 파괴
+      S.meteor.hit = true; S.shake = 0.7;
+      for (const e of S.enemies) if (!e.dead) hurt(e, e.hp + 1, null);
+      for (let i = 0; i < 14; i++) fx({ k: 'boom', x: 20 + Math.random() * (W - 40), y: 20 + Math.random() * (WALL_Y - 40), r: 26 + Math.random() * 30, c: i % 2 ? ORANGE : RED, life: 0.5 + Math.random() * 0.4 });
+    }
+    if (S.meteor.t > 1.6) S.meteor = null;
+  }
+  if (S.shake > 0) S.shake -= dt;
+
   for (const pr of S.projs) {
     if (pr.t && !pr.t.dead) { pr.lx = pr.t.x; pr.ly = pr.t.y; }
     const dx = pr.lx - pr.x, dy = pr.ly - pr.y, d = Math.hypot(dx, dy), st = pr.sp * dt;
@@ -832,6 +878,7 @@ function rollOffer() {
   if (freeSpot(BAL.turretSpots, S.turrets) != null) pool.push({ k: 'turret', w: 4 });
   if (S.turrets.some((t) => !t.awake) && S.turretLv < TURRET.maxLv) pool.push({ k: 'turretUp', w: 4 });
   if (S.trapLv < TRAP.maxLv) pool.push({ k: 'trapUp', w: 3 });
+  if (S.cannon && !S.cannon.awake) pool.push({ k: 'cannonUp', w: 3 });
   const out = [];
   while (out.length < 3 && pool.length) {
     let r = Math.random() * pool.reduce((a, o) => a + o.w, 0), i = 0;
@@ -866,6 +913,20 @@ function offerHTML(o, i) {
     name = b.name; tag = '<span class="rc-tag buff">버프템</span>';
     desc = b.d(buffVal(b));
     note = buffNote(b);
+  } else if (o.k === 'cannonUp') {
+    const cn = S.cannon, L = CANNON_LV[cn.lv], N = CANNON_LV[cn.lv + 1];
+    tag = '<span class="rc-tag turret">캐논</span>';
+    if (cn.lv >= CANNON.maxLv) {
+      ico = '<span class="rc-ico" style="--c:#C9D6F5"><img src="' + AWAKE.cannon.img + '" alt="" style="max-width:46px;max-height:34px"></span>';
+      name = '캐논 각성!';
+      desc = '데미지 ' + L.dmg + ' → <b>' + AWAKE.cannon.dmg + '</b> · 쏠 때 5% 확률로 <b>메테오</b>: 적을 전부 파괴해요';
+      note = '공룡이 멸종했던 그 메테오처럼 양갈래로 펑펑!';
+    } else {
+      ico = '<span class="rc-ico" style="--c:#DDE0E7"><img src="' + CANNON.img + '" alt="" style="max-width:44px;max-height:36px"></span>';
+      name = '캐논 레벨업';
+      desc = 'Lv.' + cn.lv + ' → Lv.' + (cn.lv + 1) + ': 데미지 ' + L.dmg + ' → ' + N.dmg + ' · ' + L.every + '초 → ' + N.every + '초마다';
+      note = '성벽의 캐논이 세져요 · Lv.5 다음엔 각성 캐논!';
+    }
   } else if (o.k === 'trap' || o.k === 'trapUp') {
     const L = TRAP_LV[S.trapLv], N = TRAP_LV[S.trapLv + 1];
     ico = '<span class="rc-ico" style="--c:#DDE0E7"><img src="' + TRAP.img + '" alt="" style="max-width:46px;max-height:30px"></span>';
@@ -938,6 +999,10 @@ function pick(i) {
     if (o.id === 'chest') S.gold += v; else S.buff[o.id] += v;
     S.stacks[o.id] = (S.stacks[o.id] || 0) + 1;
     fx({ k: 'text', x: W / 2, y: WALL_Y - 60, s: BUFF_BY[o.id].name + '!', c: YEL, life: 1.4, size: 16 });
+  } else if (o.k === 'cannonUp') {
+    const cn = S.cannon;
+    if (cn.lv >= CANNON.maxLv) { cn.awake = true; cn.born = 0; S.banner = { s: AWAKE.cannon.name + '!', t: 0, c: '#2F4FB8' }; }
+    else { cn.lv++; fx({ k: 'text', x: cn.x, y: cn.y - 40, s: '캐논 Lv.' + cn.lv, c: BLUE, life: 1.1, size: 15 }); }
   } else if (o.k === 'trapUp') {
     S.trapLv = Math.min(TRAP.maxLv, S.trapLv + 1);
     for (const tr of S.traps) fx({ k: 'text', x: tr.x, y: tr.y - 22, s: '트랩 Lv.' + S.trapLv, c: BLUE, life: 1.1, size: 15 });
@@ -1137,6 +1202,19 @@ function drawTurret(tu) {
   c.fillStyle = tu.awake ? '#7A3FC4' : INK; circle(c, tu.x - 13, tu.y - 4, tu.awake ? 10 : 7.5); c.fill();
   c.fillStyle = PAPER; c.font = (tu.awake ? 8 : 10) + 'px ' + UIF; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(label, tu.x - 13, tu.y - 3.5);
 }
+function cannonSize(cn) { const z = cn.awake ? AWAKE.cannon : CANNON; return { h: z.h, w: z.h * z.ratio, tip: z.tip }; }
+function cannonMuzzle(cn) { const z = cannonSize(cn); return { x: cn.x + cn.face * (z.tip.x - 0.5) * z.w, y: cn.y - z.h + z.tip.y * z.h }; }
+function drawCannon(cn) {
+  const c = ctx, z = cannonSize(cn), im = cn.awake ? AWAKE_IMG.cannon : CANNON_IMG;
+  const s = cn.born < 0.3 ? Math.max(0.01, easeBack(cn.born / 0.3)) : 1, kick = cn.anim > 0 ? -4 * cn.anim / 0.18 : 0;
+  c.save(); c.translate(cn.x, cn.y); c.scale(s * cn.face, s);
+  c.fillStyle = 'rgba(27,34,50,.22)'; c.beginPath(); c.ellipse(0, 0, z.w * 0.42, 4, 0, 0, Math.PI * 2); c.fill();
+  if (im.complete && im.naturalWidth) c.drawImage(im, -z.w / 2 + kick, -z.h, z.w, z.h);
+  c.restore();
+  const label = cn.awake ? '각성' : String(cn.lv);
+  c.fillStyle = cn.awake ? '#2F4FB8' : INK; circle(c, cn.x - z.w / 2 - 2, cn.y - 6, cn.awake ? 10 : 8); c.fill();
+  c.fillStyle = PAPER; c.font = (cn.awake ? 8 : 10) + 'px ' + UIF; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(label, cn.x - z.w / 2 - 2, cn.y - 5.5);
+}
 function drawTrap(tr) {                                    // 한 줄로 쭉: 그림을 나란히 이어 붙여요
   const c = ctx, im = tr.awake ? AWAKE_IMG.trap : TRAP_IMG;
   const h = tr.awake ? 26 : 16, w = tr.awake ? h * AWAKE.trap.ratio : h * 162 / 60;
@@ -1187,6 +1265,7 @@ function drawProj(pr) {
       break;
     case 'ball': c.fillStyle = PAPER; circle(c, 0, 0, 3.8); c.fill(); c.stroke(); break;
     case 'shell': c.fillStyle = INK; circle(c, 0, 0, pr.def.id === 'turret' ? 3.6 : 5.5); c.fill(); break;
+    case 'cannonball': c.fillStyle = INK; circle(c, 0, 0, 5); c.fill(); c.fillStyle = '#6B7280'; circle(c, -1.5, -1.5, 1.6); c.fill(); break;
     case 'punch': c.fillStyle = '#F2C9A0'; circle(c, 0, 0, 5.5); c.fill(); c.stroke(); break;
     case 'shuriken':
       c.rotate(pr.spin); c.fillStyle = INK; c.beginPath();
@@ -1290,7 +1369,8 @@ function drawFx(f) {
 }
 function render() {
   const c = ctx;
-  c.setTransform(SC * DPR, 0, 0, SC * DPR, 0, 0);
+  const sh = S.shake > 0 ? S.shake * 8 : 0;
+  c.setTransform(SC * DPR, 0, 0, SC * DPR, (Math.random() - 0.5) * sh * SC * DPR, (Math.random() - 0.5) * sh * SC * DPR);
   c.drawImage(bg, 0, 0, W, H);
   if (S.count >= 70) {
     const g = c.createLinearGradient(0, WALL_Y - 90, 0, WALL_Y + 6);
@@ -1322,6 +1402,7 @@ function render() {
   for (const tr of S.traps) drawTrap(tr);
   for (const e of S.enemies) drawEnemy(e);
   for (const tu of S.turrets) drawTurret(tu);
+  if (S.cannon) drawCannon(S.cannon);
   const holding = S.drag ? S.units[S.drag.from] : S.sel >= 0 ? S.units[S.sel] : null;
   if (holding) {
     c.save(); c.strokeStyle = YEL; c.lineWidth = 3; c.setLineDash([5, 4]);
@@ -1339,6 +1420,18 @@ function render() {
     c.save(); c.strokeStyle = BLUE; c.lineWidth = 3; circle(c, p.x, p.y, 27); c.stroke(); c.restore();
   }
   for (const pr of S.projs) drawProj(pr);
+  if (S.meteor && S.meteor.t < 0.8) {                       // ☄️ 양갈래로 떨어지는 메테오 두 개
+    const k = Math.min(1, S.meteor.t / 0.75);
+    for (const [x0, x1] of [[-30, 110], [W + 30, 250]]) {
+      const x = x0 + (x1 - x0) * k, y = -40 + (WALL_Y * 0.55 + 40) * k;
+      const g = c.createLinearGradient(x0, -40, x, y); g.addColorStop(0, 'rgba(240,145,58,0)'); g.addColorStop(1, 'rgba(240,145,58,.85)');
+      c.save(); c.strokeStyle = g; c.lineWidth = 14; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(x0 + (x1 - x0) * Math.max(0, k - 0.35), -40 + (WALL_Y * 0.55 + 40) * Math.max(0, k - 0.35)); c.lineTo(x, y); c.stroke();
+      c.fillStyle = '#8B3A1E'; circle(c, x, y, 16); c.fill(); c.strokeStyle = INK; c.lineWidth = 2.5; c.stroke();
+      c.fillStyle = ORANGE; circle(c, x - 4, y - 4, 5); c.fill();
+      c.restore();
+    }
+  }
   if (S.weakT > 0) {
     c.save(); c.fillStyle = 'rgba(155,93,229,.14)'; c.fillRect(0, WALL_Y, W, H - WALL_Y);
     c.font = '14px ' + UIF; c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineJoin = 'round';
