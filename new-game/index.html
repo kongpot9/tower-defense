@@ -239,7 +239,7 @@ h1,h2,p{margin:0}
       <button class="btn btn-blue big" id="bPlay" type="button">전투 시작</button>
       <button class="btn" id="bDeck" type="button">덱 편성</button>
     </div>
-    <p class="foot">캐릭터 29명 · 적 4종 · 터렛 · 트랩 · 성까지 전부 예준이 그림! 버프템만 아직 임시예요.</p>
+    <p class="foot">캐릭터 31명 · 적 4종 · 터렛 · 트랩 · 성까지 전부 예준이 그림! 버프템만 아직 임시예요.</p>
   </section>
 
   <!-- ===== 덱 편성 ===== -->
@@ -453,6 +453,13 @@ const CHARS = [
     dmg: 520,  rate: 1 / 1,    range: 150, melee: 'slash', desc: '도끼로 앞에 있는 적을 세게 찍어요.' },
   // 🥷 다크라이더: 다른 게임(냥코 대전쟁)의 다크라이더와 닮아서 입국 실패 (2026-11-20, 구예준 결정)
   // ⛏️ 능력자광부 · 🗡️ 낭인: 결별 (2026-11-20, 구예준 결정)
+  // ↓ 3차 입국 (2026-11-20): 영웅 등급은 다크라이더 빼고 전부
+  { id: 'wolf',     name: '울프수강생',   img: 'art/wolf.png',     grade: '영웅', color: '#C9B48A', role: '근거리', pref: 'front',
+    dmg: 500,  rate: 1 / 1.1,  range: 150, melee: 'bite', bites: 2, weakSpot: { p: 0.3, time: 15, team: 0.3 },
+    desc: '발톱으로 두 번 긁어요. 30% 확률로 급소를 찾으면 15초 동안 아군 전체 공격력 +30%!' },
+  { id: 'railey',   name: '레일리',       img: 'art/railey.png',   grade: '영웅', color: '#F7D774', role: '기절',   pref: 'back',
+    dmg: 600,  rate: 1 / 1.5,  range: 260, proj: 'zap', splash: 60, stunHit: 0.8,
+    desc: '번개로 주변 적을 때리고 0.8초 묶어요. 풀린 적은 0.8초 동안 다시 안 묶여요 (레일리 사태 방지).' },
   { id: 'jeff',     name: '제프',         img: 'art/jeff.png',     grade: '영웅', color: '#B9C4D8', role: '회사원', pref: 'back',
     dmg: 350,  rate: 1 / 0.8,  range: 250, proj: 'orb', party: { every: 5, self: 2, team: 0.2 },
     desc: '평소엔 근무 모드. 5웨이브마다 파티 모드! 그 웨이브 동안 제프는 2배, 아군 전체 공격력 +20%.' },
@@ -540,7 +547,7 @@ const imgReady = (id) => { const im = IMGS[id]; return im && im.complete && im.n
 const faceHTML = (d, px) => d.img ? '<img src="' + d.img + '" alt=""' + (px ? ' style="max-height:' + px + 'px;max-width:' + px + 'px"' : '') + '>' : d.emo;
 const every = (d) => String(Math.round(100 / d.rate) / 100) + '초마다';
 const TIERS = ['#A493DB', '#6DBB7D', '#E38C69', '#5FAED6', '#D7B24E', '#D57AA3'];
-const PSPEED = { paper: 600, orb: 420, tube: 400, dagger: 700, straw: 480, arrow: 520, ball: 460, shell: 340, punch: 420, shuriken: 640, bomb: 300, songpyeon: 420, holy: 460, breath: 360, fan: 380, missile: 480 };
+const PSPEED = { zap: 620, paper: 600, orb: 420, tube: 400, dagger: 700, straw: 480, arrow: 520, ball: 460, shell: 340, punch: 420, shuriken: 640, bomb: 300, songpyeon: 420, holy: 460, breath: 360, fan: 380, missile: 480 };
 const GRADE_C = { '일반': '#7D8597', '희귀': '#3E9B5E', '영웅': '#2F6BD8', '신화': '#8E4CC4', '전설': '#D98A1C' };
 const GRADE_SIZE = { '일반': 1, '희귀': 1, '영웅': 1.15, '신화': 1.3, '전설': 1.45 };   // 영웅부터 캐릭터가 커져요 (예준이 요청)
 const GRADE_W = { '일반': 6, '희귀': 4, '영웅': 3, '신화': 2, '전설': 1 };   // 선물 카드에 나올 확률 (전설이 제일 드물어요)
@@ -747,7 +754,11 @@ function attack(u, def, t) {   // def는 드릴차·27살일 때 잠깐 바뀌�
   if (def.sunin && sunMode() && Math.random() < def.sunin.luckyP) {                   // 🎭 선인 모드 럭키샷
     own *= def.sunin.luckyX; fx({ k: 'text', x: t.x, y: t.y - 18, s: '럭키샷!', c: ORANGE, life: 0.8, size: 13 });
   }
-  if (def.steal) u.lastT = t;                                                         // 👊 가일: 누구를 노렸는지 기억
+  if (def.steal) u.lastT = t;
+  if (def.weakSpot && Math.random() < def.weakSpot.p) {                               // 🐺 급소 발견 → 아군 전체 +30%
+    if (!(S.tDmgT > 0)) fx({ k: 'text', x: p.x, y: p.y - 50, s: '🐺 급소 발견! 아군 +30%', c: '#8B5A2B', life: 1.3, size: 14 });
+    S.tDmgT = Math.max(S.tDmgT, def.weakSpot.time); S.tDmgV = Math.max(S.tDmgV, def.weakSpot.team);
+  }                                                         // 👊 가일: 누구를 노렸는지 기억
   const dmg = base * lvMult(def.id) * BAL.dmgMul * (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1) * own * teamMul();
   const ang = Math.atan2(t.y - p.y, t.x - p.x);
   u.anim = 0.12;
@@ -799,7 +810,7 @@ function hitTarget(def, t, dmg, x, y) {
     dmg *= def.critX; if (def.critSplash) r = def.critSplash;
     fx({ k: 'text', x, y: y - 16, s: def.critName, c: ORANGE, life: 0.8, size: 13 });
   }
-  if (r) { area(x, y, r, dmg, def.id, def.stunHit ? (e) => { e.stunT = Math.max(e.stunT, def.stunHit); } : null); fx({ k: 'boom', x, y, r, c: ORANGE, life: 0.3 }); }
+  if (r) { area(x, y, r, dmg, def.id, def.stunHit ? (e) => { if (S.time >= (e.stunFree || 0)) { e.stunT = Math.max(e.stunT, def.stunHit); e.stunFree = S.time + def.stunHit + 0.8; } } : null); fx({ k: 'boom', x, y, r, c: ORANGE, life: 0.3 }); }
   else if (alive) hurt(t, dmg, def.id);
   if (def.chainP && Math.random() < def.chainP) {
     const d2 = (e) => (e.x - x) ** 2 + (e.y - y) ** 2;
@@ -1426,6 +1437,7 @@ function drawProj(pr) {
       c.fillStyle = INK; c.beginPath(); c.moveTo(6, 0); c.lineTo(0, -3.5); c.lineTo(0, 3.5); c.fill();
       break;
     case 'ball': c.fillStyle = PAPER; circle(c, 0, 0, 3.8); c.fill(); c.stroke(); break;
+    case 'zap': c.fillStyle = YEL; circle(c, 0, 0, 4.5); c.fill(); c.strokeStyle = INK; c.lineWidth = 1.2; c.stroke(); break;
     case 'paper': c.rotate(pr.spin); c.fillStyle = PAPER; c.fillRect(-4, -4, 8, 8); c.strokeRect(-4, -4, 8, 8); break;
     case 'orb': c.fillStyle = '#9B86D6'; circle(c, 0, 0, 5); c.fill(); c.stroke(); break;
     case 'tube': c.strokeStyle = ORANGE; c.lineWidth = 3; circle(c, 0, 0, 5); c.stroke(); break;
