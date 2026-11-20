@@ -457,6 +457,11 @@ const CHARS = [
   { id: 'bakbak',   name: '빡빡공룡 삼형제', img: 'art/bakbak.png', grade: '신화', color: '#B9A8F5', role: '근거리', pref: 'front',
     dmg: 800,  rate: 1 / 0.7,  range: 150, melee: 'bite', bites: 3, bitePassive: { every: 300, min: 0.2, max: 0.4 },
     desc: '블루·보라돌이·분홍이가 한 번씩 물어요 (공격 한 번 = 물기 3회, 셋이 합쳐 800). 패시브 물기: 300번 물 때마다 공격력이 20~40%씩 계속 올라요.' },
+  // 신작 오리지널 (2026-11-20, 그림·설정: 구예준) — 로봇 콩뚝이 + 닥터 대두 2명이 한 조
+  { id: 'kongttuk', name: '콩뚝이 & 닥터 대두', img: 'art/kongttuk.png', imgDuo: 'art/kongttuk-duo.png', grade: '전설', color: '#DDF2B8', role: '로봇', pref: 'back',
+    dmg: 1400, rate: 1 / 2.5, range: 240, proj: 'punch',
+    doctor: { hits: 30, waves: 6, dmg: 1000, every: 1, chain: 4, range: 280, at: { x: 0.80, y: 0.24 } },   // 닥터 대두 숫자는 Claude가 정함
+    desc: '평소엔 로봇 콩뚝이가 때려요. 콩뚝이가 30번 때리면 닥터 대두가 나와서 6웨이브 동안 강한 전기 연쇄 공격을 같이 해요!' },
   { id: 'dragon',   name: '레드드래곤',   img: 'art/dragon.png',   grade: '전설', color: '#F08A7E', role: '광역',   pref: 'back',
     dmg: 1300, rate: 1 / 1.7,  range: 480, proj: 'breath', splash: 70, desc: '전장 끝까지 닿는 불꽃 브레스로 넓게 태워요.' },
   { id: 'dosa',     name: '도사',         img: 'art/dosa.png',     grade: '전설', color: '#A9D8F0', role: '원거리', pref: 'back',
@@ -485,7 +490,11 @@ FOES.concat(BOSSES).forEach((f) => {
   if (f.skillImg) { const sk = new Image(); sk.src = f.skillImg; FOE_IMG[f.id + ':skill'] = sk; }
 });
 const IMGS = {};
-CHARS.forEach((c) => { if (c.img) { const im = new Image(); im.src = c.img; IMGS[c.id] = im; } });
+CHARS.forEach((c) => {
+  if (c.img) { const im = new Image(); im.src = c.img; IMGS[c.id] = im; }
+  if (c.imgDuo) { const im = new Image(); im.src = c.imgDuo; IMGS[c.id + ':duo'] = im; }
+});
+const doctorOn = (u) => u.drUntil != null && S.wave < u.drUntil;
 const imgReady = (id) => { const im = IMGS[id]; return im && im.complete && im.naturalWidth > 0 ? im : null; };
 const faceHTML = (d, px) => d.img ? '<img src="' + d.img + '" alt=""' + (px ? ' style="max-height:' + px + 'px;max-width:' + px + 'px"' : '') + '>' : d.emo;
 const every = (d) => String(Math.round(100 / d.rate) / 100) + '초마다';
@@ -613,6 +622,13 @@ function findTargetAt(px, py, range, byHp, noBoss) {
 }
 function attack(u, def, t) {
   const p = slotXY(u.slot);
+  if (def.doctor && !doctorOn(u)) {                       // 콩뚝이가 30번 때리면 닥터 대두 출동
+    u.dHits = (u.dHits || 0) + 1;
+    if (u.dHits >= def.doctor.hits) {
+      u.dHits = 0; u.drUntil = S.wave + def.doctor.waves; u.drCd = 0.4;
+      fx({ k: 'text', x: p.x, y: p.y - 56, s: '닥터 대두 출동!', c: '#C0392B', life: 1.6, size: 16 });
+    }
+  }
   if (def.bitePassive) {                                   // 빡빡공룡 패시브 물기
     const before = u.hits || 0;
     u.hits = before + (def.bites || 1);                    // 셋이 한 번씩 = 물기 3회
@@ -753,6 +769,28 @@ function update(dt) {
     if (u.cd <= 0 && u.born > 0.3) {
       const def = BY[u.type], t = findTarget(u, def);
       if (t) { attack(u, def, t); u.cd += 1 / (def.rate * (1 + S.buff.spd)); if (u.cd < 0) u.cd = 0; } else u.cd = 0.1;
+    }
+    const dd = BY[u.type];
+    if (dd.doctor && doctorOn(u)) {                        // ⚡ 닥터 대두의 전기 연쇄 (콩뚝이도 계속 때려요)
+      u.drCd -= dt;
+      if (u.drCd <= 0) {
+        const D = dd.doctor, p = slotXY(u.slot), gs = GRADE_SIZE[dd.grade] || 1;
+        const ox = p.x + (D.at.x - 0.5) * 62 * gs * 0.9, oy = p.y + 27 - 64 * gs * (1 - D.at.y);
+        let cur = findTargetAt(ox, oy, D.range + S.buff.rng, false);
+        if (cur) {
+          const dmg = D.dmg * lvMult(dd.id) * (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1);
+          const pts = [{ x: ox, y: oy }], hit = [];
+          while (cur && hit.length < D.chain) {
+            hit.push(cur); pts.push({ x: cur.x, y: cur.y });
+            let nb = null, nd = 90 * 90;
+            for (const e of S.enemies) { if (e.dead || hit.includes(e)) continue; const d = dist2(e, cur); if (d < nd) { nd = d; nb = e; } }
+            cur = nb;
+          }
+          hit.forEach((e) => hurt(e, dmg, dd.id));
+          fx({ k: 'bolt', pts, life: 0.25 });
+          u.drCd = D.every / (1 + S.buff.spd);
+        } else u.drCd = 0.1;
+      }
     }
   }
 
@@ -1220,7 +1258,8 @@ function drawUnit(u, at) {
   if (u.anim > 0) s *= 1 + u.anim * 0.9;
   let ox = 0, oy = 0;
   if (u.lunge > 0) { const k = Math.sin((u.lunge / 0.25) * Math.PI) * 12; ox = u.lx * k; oy = u.ly * k; }
-  const im = imgReady(u.type);
+  const duo = def.doctor && doctorOn(u) && IMGS[u.type + ':duo'];
+  const im = duo && duo.complete && duo.naturalWidth ? duo : imgReady(u.type);
   if (im) { drawSprite(u, def, im, p, s, ox, oy); return; }
   c.save(); c.translate(p.x + ox, p.y + oy); c.scale(s, s);
   c.fillStyle = 'rgba(27,34,50,.22)'; circle(c, 2, 3.5, 23); c.fill();
@@ -1530,6 +1569,7 @@ function showPop() {
   $('#popEmo').innerHTML = faceHTML(d); $('#popName').textContent = d.name;
   $('#popLv').textContent = 'Lv.' + S.levels[u.type];
   $('#popDesc').textContent = d.desc + ' (데미지 ' + Math.round(d.dmg * lvMult(d.id) * (1 + (u.bonus || 0))) + ' · ' + every(d) + ')' +
+    (d.doctor ? (doctorOn(u) ? ' · ⚡ 닥터 대두 출동 중! ' + (u.drUntil - S.wave) + '웨이브 남음' : ' · 닥터 대두까지 ' + (u.dHits || 0) + '/' + d.doctor.hits + '번') : '') +
     (d.bitePassive ? ' · 물기 ' + ((u.hits || 0) % d.bitePassive.every) + '/' + d.bitePassive.every + '번, 지금까지 +' + Math.round((u.bonus || 0) * 100) + '%' : '');
   pop.hidden = false;
   pop.style.top = (cv.offsetTop + 8) + 'px';            // 성 밖(전장 맨 위)에 띄워서 아군을 안 가려요
