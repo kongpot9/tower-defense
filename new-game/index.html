@@ -239,7 +239,7 @@ h1,h2,p{margin:0}
       <button class="btn btn-blue big" id="bPlay" type="button">전투 시작</button>
       <button class="btn" id="bDeck" type="button">덱 편성</button>
     </div>
-    <p class="foot">캐릭터 17명 · 적 4종 · 터렛 · 트랩 · 성까지 전부 예준이 그림! 버프템만 아직 임시예요.</p>
+    <p class="foot">캐릭터 29명 · 적 4종 · 터렛 · 트랩 · 성까지 전부 예준이 그림! 버프템만 아직 임시예요.</p>
   </section>
 
   <!-- ===== 덱 편성 ===== -->
@@ -272,6 +272,7 @@ h1,h2,p{margin:0}
         <div class="pop-head"><span class="e" id="popEmo"></span><span id="popName"></span><span class="chip" id="popLv"></span></div>
         <p id="popDesc"></p>
         <p class="pop-hint">빈 칸 → 이동 · 다른 캐릭터 → 자리 바꾸기 · <b>같은 캐릭터 → 합성!</b><br>꾹 눌러서 끌어 옮겨도 돼요</p>
+        <button class="btn btn-sm" id="popSkill" type="button" hidden></button>
         <button class="btn btn-sm" id="popSell" type="button">팔기 <i class="coin"></i>+<span id="popRefund">0</span></button>
       </div>
       <div class="toast" id="toast" hidden></div>
@@ -440,20 +441,56 @@ const CHARS = [
     dmg: 55,   rate: 1 / 0.3,  range: 260, proj: 'ball', critP: 0.25, critX: 4, critName: '불꽃공!', desc: '야구공을 던져요. 4번에 1번은 불꽃공 (4배)!' },
   { id: 'tank',     name: '탱크보이',     img: 'art/tank.png',     grade: '희귀', color: '#A8C98A', role: '광역',   pref: 'back',
     dmg: 400,  rate: 1 / 1.6,  range: 250, proj: 'shell', arc: true, splash: 50, desc: '포탄으로 뭉친 적을 한꺼번에 날려요.' },
+  // ↓ 2차 입국 (2026-11-20) — 777 능력을 바탕으로 숫자는 Claude가 맞춤
+  { id: 'noesi',    name: '노에시',       img: 'art/noesi.png',    grade: '희귀', color: '#C9B8F0', role: '변신',   pref: 'front',
+    dmg: 60,   rate: 1 / 1,    range: 150, melee: 'slash', drill: { cost: 250, time: 20, dmg: 800, every: 0.4, splash: 40 },
+    desc: '작고 약한 아이. 돈 250을 내면 20초 동안 드릴차를 타고 주변을 갈아 버려요.' },
+  { id: 'tenjo',    name: '텐조',         img: 'art/tenjo.png',    grade: '희귀', color: '#F6AE6B', role: '닌자',   pref: 'back',
+    dmg: 70,   rate: 1 / 0.25, range: 260, proj: 'paper', desc: '시험지를 수리검처럼 던져요. 엄청 빨라요.' },
   { id: 'stein',    name: '데스슈타인',   img: 'art/stein.png',    grade: '영웅', color: '#C2E07A', role: '감전',   pref: 'back',
-    dmg: 300,  rate: 1 / 0.8,  range: 210, proj: 'punch', chainP: 0.3, chainN: 3, desc: '주먹을 날려요. 30% 확률로 감전돼서 옆에 있는 적 3명도 같은 피해!' },
+    dmg: 300,  rate: 1 / 0.8,  range: 250, proj: 'punch', chainP: 0.3, chainN: 3, desc: '주먹을 날려요. 30% 확률로 감전돼서 옆에 있는 적 3명도 같은 피해!' },
   { id: 'lumber',   name: '나무꾼',       img: 'art/lumber.png',   grade: '영웅', color: '#D9A880', role: '근거리', pref: 'front',
     dmg: 520,  rate: 1 / 1,    range: 150, melee: 'slash', desc: '도끼로 앞에 있는 적을 세게 찍어요.' },
   // 🥷 다크라이더: 다른 게임(냥코 대전쟁)의 다크라이더와 닮아서 입국 실패 (2026-11-20, 구예준 결정)
-  { id: 'miner',    name: '능력자광부',   img: 'art/miner.png',    grade: '신화', color: '#F2B76B', role: '광역',   pref: 'back',
-    dmg: 380,  rate: 1 / 0.9,  range: 230, proj: 'bomb', arc: true, splash: 45, desc: '폭탄을 던져 주변 적을 터뜨려요.' },
+  // ⛏️ 능력자광부 · 🗡️ 낭인: 결별 (2026-11-20, 구예준 결정)
+  { id: 'jeff',     name: '제프',         img: 'art/jeff.png',     grade: '영웅', color: '#B9C4D8', role: '회사원', pref: 'back',
+    dmg: 350,  rate: 1 / 0.8,  range: 250, proj: 'orb', party: { every: 5, self: 2, team: 0.2 },
+    desc: '평소엔 근무 모드. 5웨이브마다 파티 모드! 그 웨이브 동안 제프는 2배, 아군 전체 공격력 +20%.' },
+  { id: 'hochi',    name: '호치',         img: 'art/hochi.png',    grade: '영웅', color: '#F2C77A', role: '지원',   pref: 'back',
+    dmg: 0,    rate: 1,        range: 0,   support: true, dig: true,
+    desc: '싸우지 않아요. 3·5의 배수 웨이브마다 땅을 파서 금맥(돈 300) · 광물(아군 공격력 +20%, 10초) · 폭발의 캔디(적 전체 체력 20%↓) 중 하나를 찾아와요.' },
+  { id: 'hosper',   name: '호스퍼',       img: 'art/hosper.png',   grade: '영웅', color: '#D6B8E8', role: '마술',   pref: 'back',
+    dmg: 360,  rate: 1 / 0.9,  range: 250, proj: 'fan', encore: { every: 15, pct: 0.3, stun: 2 },
+    desc: '셋이서 하나인 트리오 매지션. 15초마다 앙코르! 적 30%를 2초 동안 묶어요 (보스 제외).' },
+  { id: 'willy',    name: '윌리',         img: 'art/willy.png',    grade: '영웅', color: '#9AD3F2', role: '풀장',   pref: 'back',
+    dmg: 300,  rate: 1 / 0.8,  range: 250, proj: 'tube', pool: { slow: 0.4, time: 20, team: 0.1 },
+    desc: '포저 해수욕장 안전요원. 3·5의 배수 웨이브마다 풀장 개장! 20초 동안 적 감속 + 아군 공격력 +10%.' },
   { id: 'ricecake', name: '떡장수',       img: 'art/ricecake.png', grade: '신화', color: '#F5B7C5', role: '4연발',  pref: 'back',
     dmg: 220,  rate: 1 / 0.75, range: 270, proj: 'songpyeon', multi: 4, noBoss: true, desc: '송편 4개를 적 4명에게 한꺼번에 던져요. 보스는 안 노려요.' },
-  { id: 'ronin',    name: '낭인',         img: 'art/ronin.png',    grade: '신화', color: '#9CC79A', role: '근거리', pref: 'front',
-    dmg: 800,  rate: 1 / 1.1,  range: 160, melee: 'slash', critP: 0.25, critX: 3, critSplash: 50, critName: '발도술!',
-    desc: '칼로 베요. 4번에 1번은 발도술: 3배 피해로 주변까지 베요.' },
   { id: 'angel',    name: '엔젤 푸들',   img: 'art/angel.png',   grade: '신화', color: '#FFF1B8', role: '즉사',   pref: 'back',
     dmg: 250,  rate: 1 / 0.6,  range: 260, proj: 'holy', smiteP: 0.08, desc: '빛으로 공격해요. 8% 확률로 적을 바로 데려가요 (보스 제외).' },
+  { id: 'sunin',    name: '선인탈',       img: 'art/sunin.png',    grade: '신화', color: '#E8C49A', role: '근거리', pref: 'front',
+    dmg: 1500, rate: 1 / 1.2,  range: 150, melee: 'slash', sunin: { every: 3, luckyP: 0.2, luckyX: 4, stunP: 0.15 },
+    desc: '3웨이브마다 모드가 바뀌어요. 선인 모드: 20% 럭키샷(4배). 봉산 모드: 때릴 때마다 맹독 + 15% 기절 (보스 제외).' },
+  { id: 'blader',   name: '블레이더',     img: 'art/blader.png',   grade: '신화', color: '#B8D8E8', role: '전맵',   pref: 'back',
+    dmg: 700,  rate: 1 / 0.56, range: 999, proj: 'dagger', stack: { per: 0.02, max: 1 },
+    desc: '눈을 가린 채 단검을 던져요. 전장 어디든 닿고, 던질수록 정확해져요 (한 번에 +2%, 최대 +100%).' },
+  { id: 'toogom',   name: '혼의 투곰',    img: 'art/toogom.png',   grade: '신화', color: '#C9A27A', role: '근거리', pref: 'front',
+    dmg: 900,  rate: 1 / 0.6,  range: 150, melee: 'bite', crunchP: 0.08, crunchCut: 0.3,
+    desc: '물어뜯어요. 8% 확률로 깨물어부수기: 적 체력 30% 감소 (보스 제외).' },
+  { id: 'press',    name: '프레스',       img: 'art/press.png',    grade: '신화', color: '#A9AEC2', role: '광역',   pref: 'front',
+    dmg: 4000, rate: 1 / 4,    range: 170, melee: 'slash', splash: 50, stunHit: 1,
+    desc: '4초마다 쾅! 눌러서 주변 적을 납작하게 하고 1초 기절시켜요.' },
+  { id: 'swallow',  name: '스왈로제트',   img: 'art/swallow.png',  grade: '신화', color: '#F5B7C5', role: '차징',   pref: 'back',
+    dmg: 250,  rate: 1 / 0.8,  range: 250, proj: 'straw', charge: 0.5,
+    desc: '빨대를 꽂으면 놓지 않아요. 같은 적을 계속 빨면 끝없이 세져요 (한 번에 +50%). 빨대가 뽑히면 처음부터.' },
+  { id: 'gail',     name: '가일',         img: 'art/gail.png',     grade: '신화', color: '#E89A7A', role: '근거리', pref: 'front',
+    dmg: 3000, rate: 1 / 1.5,  range: 150, melee: 'slash', steal: 5,
+    desc: '강한 주먹. 노리던 적을 다른 아군이 잡으면 막타를 뺏긴 값으로 돈 +5.' },
+  { id: 'guru',     name: '구루투',       img: 'art/guru.png',     grade: '신화', color: '#B5DE85', role: '경로당', pref: 'front',
+    dmg: 300,  rate: 1 / 1.5,  range: 150, melee: 'slash',
+    senior: { waves: [2, 3, 5], team: 0.1, cost: 300, p: 0.4, young: { dmg: 3500, rate: 1 / 0.5, splash: 40 } },
+    desc: '17000살 나무 할아버지. 2·3·5의 배수 웨이브마다 홍삼캔디로 아군 공격력 +10%. 돈 300을 걸면 40% 확률로 27살로 돌아가요!' },
   // 신작 오리지널 (2026-11-20, 그림·설정: 구예준) — 블루 · 보라돌이 · 분홍이 셋이 한 캐릭터
   { id: 'bakbak',   name: '빡빡공룡 삼형제', img: 'art/bakbak.png', grade: '신화', color: '#B9A8F5', role: '근거리', pref: 'front',
     dmg: 800,  rate: 1 / 0.7,  range: 150, melee: 'bite', bites: 3, bitePassive: { every: 300, min: 0.2, max: 0.4 },
@@ -463,12 +500,15 @@ const CHARS = [
     dmg: 1400, rate: 1 / 2.5, range: 240, proj: 'punch',
     doctor: { hits: 30, waves: 6, dmg: 1000, every: 1, chain: 4, range: 280, at: { x: 0.80, y: 0.24 } },   // 닥터 대두 숫자는 Claude가 정함
     desc: '평소엔 로봇 콩뚝이가 때려요. 콩뚝이가 30번 때리면 닥터 대두가 나와서 6웨이브 동안 강한 전기 연쇄 공격을 같이 해요!' },
+  { id: 'chef',     name: '로얄 셰프',    img: 'art/chef.png',     grade: '전설', color: '#F7EBD5', role: '요리',   pref: 'back',
+    dmg: 0,    rate: 1,        range: 0,   support: true, cook: 30,
+    desc: '싸우지 않아요. 30초마다 랜덤 요리! 팬케이크(공격력 +30%) · 컵케이크(공속 +30%) · 수프(돈 200) · 우동(적 감속) · 사탕(적 기절).' },
   { id: 'dragon',   name: '레드드래곤',   img: 'art/dragon.png',   grade: '전설', color: '#F08A7E', role: '광역',   pref: 'back',
     dmg: 1300, rate: 1 / 1.7,  range: 480, proj: 'breath', splash: 70, desc: '전장 끝까지 닿는 불꽃 브레스로 넓게 태워요.' },
   { id: 'dosa',     name: '도사',         img: 'art/dosa.png',     grade: '전설', color: '#A9D8F0', role: '원거리', pref: 'back',
     dmg: 900,  rate: 1 / 0.8,  range: 300, proj: 'fan', desc: '부채를 던지면 적을 끝까지 따라가 맞혀요.' },
   { id: 'catmachine', name: '캣머신',     img: 'art/catmachine.png', grade: '전설', color: '#F4C7A1', role: '광역', pref: 'back',
-    dmg: 600,  rate: 1 / 0.5,  range: 200, proj: 'missile', splash: 30, desc: '미사일을 빠르게 쏴서 주변까지 터뜨려요.' },
+    dmg: 600,  rate: 1 / 0.5,  range: 250, proj: 'missile', splash: 30, desc: '미사일을 빠르게 쏴서 주변까지 터뜨려요.' },
 ];
 const BY = {}; CHARS.forEach((c) => { BY[c.id] = c; });
 
@@ -500,7 +540,7 @@ const imgReady = (id) => { const im = IMGS[id]; return im && im.complete && im.n
 const faceHTML = (d, px) => d.img ? '<img src="' + d.img + '" alt=""' + (px ? ' style="max-height:' + px + 'px;max-width:' + px + 'px"' : '') + '>' : d.emo;
 const every = (d) => String(Math.round(100 / d.rate) / 100) + '초마다';
 const TIERS = ['#A493DB', '#6DBB7D', '#E38C69', '#5FAED6', '#D7B24E', '#D57AA3'];
-const PSPEED = { arrow: 520, ball: 460, shell: 340, punch: 420, shuriken: 640, bomb: 300, songpyeon: 420, holy: 460, breath: 360, fan: 380, missile: 480 };
+const PSPEED = { paper: 600, orb: 420, tube: 400, dagger: 700, straw: 480, arrow: 520, ball: 460, shell: 340, punch: 420, shuriken: 640, bomb: 300, songpyeon: 420, holy: 460, breath: 360, fan: 380, missile: 480 };
 const GRADE_C = { '일반': '#7D8597', '희귀': '#3E9B5E', '영웅': '#2F6BD8', '신화': '#8E4CC4', '전설': '#D98A1C' };
 const GRADE_SIZE = { '일반': 1, '희귀': 1, '영웅': 1.15, '신화': 1.3, '전설': 1.45 };   // 영웅부터 캐릭터가 커져요 (예준이 요청)
 const GRADE_W = { '일반': 6, '희귀': 4, '영웅': 3, '신화': 2, '전설': 1 };   // 선물 카드에 나올 확률 (전설이 제일 드물어요)
@@ -519,7 +559,7 @@ function newBattle() {
     wave: 0, waveT: BAL.waveLen - 3, queue: [], spawnT: 0, spawnGap: 1,
     gold: BAL.startGold, picks: 0, upN: 0, kills: 0, time: 0,
     units: new Array(SLOTS).fill(null), enemies: [], projs: [], fx: [], pools: [],
-    levels: {}, count: 0, weakT: 0, shake: 0, drag: null, merges: 0, paused: false, over: false, choosing: false, offer: null, sel: -1, banner: null,
+    levels: {}, count: 0, weakT: 0, shake: 0, party: false, candy: false, poolT: 0, tDmgT: 0, tDmgV: 0, tSpdT: 0, tSpdV: 0, drag: null, merges: 0, paused: false, over: false, choosing: false, offer: null, sel: -1, banner: null,
     buff: { dmg: 0, spd: 0, rng: 0, gold: 0, thorn: 0 }, stacks: {}, turrets: [], turretLv: 1, traps: [], trapLv: 1, lv: 1, xp: 0,
   });
   S.deck.forEach((id) => { S.levels[id] = 1; });
@@ -539,6 +579,57 @@ function segDist2(px, py, x1, y1, x2, y2) {
 }
 
 /* ===== 웨이브 ===== */
+const hasUnit = (id, ok) => S.units.some((u) => u && u.type === id && (!ok || ok(u)));
+const teamMul = () => 1 + (S.party ? BY.jeff.party.team : 0) + (S.candy ? BY.guru.senior.team : 0)
+  + (S.poolT > 0 ? BY.willy.pool.team : 0) + (S.tDmgT > 0 ? S.tDmgV : 0);
+const spdMul = () => 1 + (S.tSpdT > 0 ? S.tSpdV : 0);
+function say(s, c) { fx({ k: 'text', x: W / 2, y: WALL_Y - 80, s, c: c || YEL, life: 1.8, size: 16 }); }
+function waveHooks() {
+  const w = S.wave;
+  S.party = hasUnit('jeff') && w % BY.jeff.party.every === 0;
+  if (S.party) say('🎤 제프 파티 모드! 아군 +20%', '#7A5CE0');
+  S.candy = hasUnit('guru', (u) => !u.young) && BY.guru.senior.waves.some((n) => w % n === 0);
+  if (S.candy) fx({ k: 'text', x: W / 2, y: WALL_Y - 104, s: '🍬 구루투 홍삼캔디! 아군 +10%', c: '#4DB36A', life: 1.8, size: 14 });
+  const w35 = w % 3 === 0 || w % 5 === 0;
+  if (hasUnit('willy') && w35) { S.poolT = BY.willy.pool.time; fx({ k: 'text', x: W / 2, y: WALL_Y - 128, s: '🛟 윌리의 풀장 개장!', c: '#2F6BD8', life: 1.8, size: 15 }); }
+  if (hasUnit('hochi') && w35) {                           // ⛏️ 뭐가 나올지는 파봐야 안다
+    const r = Math.floor(Math.random() * 3);
+    if (r === 0) { S.gold += 300; fx({ k: 'text', x: W / 2, y: WALL_Y - 152, s: '⛏️ 호치: 금맥 발견! 돈 +300', c: YEL, life: 1.8, size: 14 }); }
+    else if (r === 1) { S.tDmgT = 10; S.tDmgV = Math.max(S.tDmgV, 0.2); fx({ k: 'text', x: W / 2, y: WALL_Y - 152, s: '⛏️ 호치: 광물! 아군 공격력 +20%', c: '#5FAED6', life: 1.8, size: 14 }); }
+    else { for (const e of S.enemies) if (!e.dead && !e.boss) e.hp *= 0.8; fx({ k: 'text', x: W / 2, y: WALL_Y - 152, s: '⛏️ 호치: 폭발의 캔디! 적 체력 20%↓', c: RED, life: 1.8, size: 14 }); }
+  }
+}
+function unitTimers(u, def, dt) {                          // 시간마다 하는 일: 호스퍼 앙코르 · 셰프 요리
+  if (def.encore) {
+    u.skT = (u.skT || 0) + dt;
+    if (u.skT >= def.encore.every) {
+      u.skT = 0;
+      const pool = S.enemies.filter((e) => !e.dead && !e.boss && e.y > 0);
+      for (const e of pool) if (Math.random() < def.encore.pct) e.stunT = Math.max(e.stunT, def.encore.stun);
+      const p = slotXY(u.slot); fx({ k: 'text', x: p.x, y: p.y - 50, s: '🎪 앙코르!', c: '#8E4CC4', life: 1.2, size: 15 });
+    }
+  }
+  if (def.cook) {
+    u.skT = (u.skT || 0) + dt;
+    if (u.skT >= def.cook) {
+      u.skT = 0;
+      const r = Math.floor(Math.random() * 5), p = slotXY(u.slot);
+      const dish = ['🥞 팬케이크! 아군 공격력 +30%', '🧁 컵케이크! 아군 공속 +30%', '🍲 수프! 돈 +200', '🍜 우동! 적이 느려져요', '🍭 사탕! 적이 기절해요'][r];
+      if (r === 0) { S.tDmgT = 10; S.tDmgV = Math.max(S.tDmgV, 0.3); }
+      else if (r === 1) { S.tSpdT = 10; S.tSpdV = 0.3; }
+      else if (r === 2) S.gold += 200;
+      else if (r === 3) for (const e of S.enemies) { e.slowF = 0.5; e.slowT = Math.max(e.slowT, 5); }
+      else for (const e of S.enemies) if (!e.boss) e.stunT = Math.max(e.stunT, 2);
+      fx({ k: 'text', x: p.x, y: p.y - 56, s: dish, c: '#C0392B', life: 1.6, size: 13 });
+    }
+  }
+}
+const sunMode = () => Math.floor((Math.max(1, S.wave) - 1) / BY.sunin.sunin.every) % 2 === 0;   // true = 선인, false = 봉산
+function unitRate(u, def) {
+  if (u.drillT > 0) return 1 / def.drill.every;
+  if (u.young) return def.senior.young.rate;
+  return def.rate;
+}
 function startWave() {
   if (S.wave > 0) {
     const b = BAL.waveBonus(S.wave);
@@ -546,6 +637,7 @@ function startWave() {
     fx({ k: 'text', x: W / 2, y: WALL_Y - 40, s: '웨이브 보상 +' + b, c: YEL, life: 1.4, size: 15 });
   }
   S.wave++; S.waveT = 0;
+  waveHooks();
   const boss = S.wave % BAL.bossEvery === 0;
   let n = BAL.count(S.wave);
   const q = [];
@@ -585,6 +677,9 @@ function hurt(e, a, src) {
   if (a > 0.6) e.flash = 0.07;
   if (e.hp <= 0) {
     e.dead = true; S.kills++;
+    if (src !== 'gail') for (const g of S.units) if (g && g.type === 'gail' && g.lastT === e) {
+      S.gold += BY.gail.steal; g.lastT = null; fx({ k: 'text', x: e.x, y: e.y - 20, s: '막타 뺏김 +' + BY.gail.steal, c: YEL, life: 0.9, size: 11 });
+    }
     S.xp += e.boss ? 10 : 1;
     while (S.xp >= xpNeed()) { S.xp -= xpNeed(); S.lv++; fx({ k: 'text', x: W / 2, y: 140, s: '레벨 업! Lv.' + S.lv, c: BLUE, life: 1.3, size: 20 }); }
     S.gold += (e.boss ? BAL.bossGold : BAL.killGold) + S.buff.gold;
@@ -607,6 +702,10 @@ function area(x, y, r, dmg, src, fn) {
 }
 function findTarget(u, def) {
   const p = slotXY(u.slot);
+  if (def.charge && u.chT && !u.chT.dead) {                // 🥤 빨대는 꽂은 적을 놓지 않아요
+    const r = def.range + S.buff.rng;
+    if ((u.chT.x - p.x) ** 2 + (u.chT.y - p.y) ** 2 <= r * r) return u.chT;
+  }
   return findTargetAt(p.x, p.y, def.range + S.buff.rng, def.byHp, def.noBoss);
 }
 function findTargetAt(px, py, range, byHp, noBoss) {
@@ -621,7 +720,7 @@ function findTargetAt(px, py, range, byHp, noBoss) {
   }
   return best;
 }
-function attack(u, def, t) {
+function attack(u, def, t) {   // def는 드릴차·27살일 때 잠깐 바뀌어요
   const p = slotXY(u.slot);
   if (def.doctor && !doctorOn(u)) {                       // 콩뚝이가 30번 때리면 닥터 대두 출동
     u.dHits = (u.dHits || 0) + 1;
@@ -639,7 +738,17 @@ function attack(u, def, t) {
       fx({ k: 'text', x: p.x, y: p.y - 40, s: '물기! +' + Math.round(up * 100) + '%', c: '#7A5CE0', life: 1.4, size: 15 });
     }
   }
-  const dmg = def.dmg * lvMult(def.id) * BAL.dmgMul * (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1) * (1 + (u.bonus || 0));
+  let base = def.dmg, own = 1 + (u.bonus || 0);
+  if (u.drillT > 0) { base = def.drill.dmg; def = Object.assign({}, def, { splash: def.drill.splash }); }        // 🔩 드릴차
+  else if (u.young) { base = def.senior.young.dmg; def = Object.assign({}, def, { splash: def.senior.young.splash }); }   // 🌱 27살
+  if (def.party && S.party) own *= def.party.self;                                    // 🎤 제프 파티
+  if (def.stack) { own *= 1 + (u.stack || 0); u.stack = Math.min(def.stack.max, (u.stack || 0) + def.stack.per); }   // 🗡️ 블레이더
+  if (def.charge) { u.charge = u.chT === t ? (u.charge || 0) + 1 : 0; u.chT = t; own *= 1 + def.charge * u.charge; } // 🥤 빨대
+  if (def.sunin && sunMode() && Math.random() < def.sunin.luckyP) {                   // 🎭 선인 모드 럭키샷
+    own *= def.sunin.luckyX; fx({ k: 'text', x: t.x, y: t.y - 18, s: '럭키샷!', c: ORANGE, life: 0.8, size: 13 });
+  }
+  if (def.steal) u.lastT = t;                                                         // 👊 가일: 누구를 노렸는지 기억
+  const dmg = base * lvMult(def.id) * BAL.dmgMul * (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1) * own * teamMul();
   const ang = Math.atan2(t.y - p.y, t.x - p.x);
   u.anim = 0.12;
   if (def.melee) {
@@ -650,6 +759,10 @@ function attack(u, def, t) {
       if (tg.dead) { tg = findTarget(u, def); if (!tg) break; }
       fx({ k: def.melee === 'bite' ? 'bite' : 'slash', x: tg.x + (n > 1 ? (i - 1) * 8 : 0), y: tg.y, a: ang, life: 0.22 });
       hitTarget(def, tg, dmg / n, tg.x, tg.y);
+      if (def.sunin && !sunMode() && !tg.dead && !tg.boss) {                          // 🐀 봉산 모드: 맹독 + 기절
+        if (!(tg.poisonT > 0)) { tg.poisonT = POISON.time; tg.poisonCd = POISON.tick; tg.poisonN = 0; tg.poisonD = dmg; }
+        if (Math.random() < def.sunin.stunP) tg.stunT = Math.max(tg.stunT, 1);
+      }
     }
     return;
   }
@@ -671,6 +784,10 @@ function hitTarget(def, t, dmg, x, y) {
     t.hp *= 0.25;
     fx({ k: 'text', x, y: y - 14, s: '¼!', c: '#2F6BD8', life: 0.8, size: 14 });
   }
+  if (def.crunchP && alive && !t.boss && Math.random() < def.crunchP) {
+    t.hp *= 1 - def.crunchCut;
+    fx({ k: 'text', x, y: y - 14, s: '깨물어부수기!', c: '#8B5A2B', life: 0.9, size: 12 });
+  }
   if (def.smiteP && alive && !t.boss && Math.random() < def.smiteP) {
     hurt(t, t.hp + 1, def.id);
     fx({ k: 'ring', x, y, r: 22, c: YEL, life: 0.4 });
@@ -682,7 +799,7 @@ function hitTarget(def, t, dmg, x, y) {
     dmg *= def.critX; if (def.critSplash) r = def.critSplash;
     fx({ k: 'text', x, y: y - 16, s: def.critName, c: ORANGE, life: 0.8, size: 13 });
   }
-  if (r) { area(x, y, r, dmg, def.id); fx({ k: 'boom', x, y, r, c: ORANGE, life: 0.3 }); }
+  if (r) { area(x, y, r, dmg, def.id, def.stunHit ? (e) => { e.stunT = Math.max(e.stunT, def.stunHit); } : null); fx({ k: 'boom', x, y, r, c: ORANGE, life: 0.3 }); }
   else if (alive) hurt(t, dmg, def.id);
   if (def.chainP && Math.random() < def.chainP) {
     const d2 = (e) => (e.x - x) ** 2 + (e.y - y) ** 2;
@@ -722,6 +839,12 @@ function separate() {
 function update(dt) {
   S.time += dt; S.waveT += dt;
   if (S.weakT > 0) S.weakT -= dt;
+  if (S.tDmgT > 0) S.tDmgT -= dt;
+  if (S.tSpdT > 0) S.tSpdT -= dt;
+  if (S.poolT > 0) {                                       // 🛟 윌리의 풀장: 그동안 모든 적이 느려요
+    S.poolT -= dt;
+    for (const e of S.enemies) { e.slowF = Math.max(e.slowT > 0 ? e.slowF : 0, BY.willy.pool.slow); e.slowT = Math.max(e.slowT, 0.2); }
+  }
   if (S.queue.length) {
     S.spawnT -= dt;
     while (S.queue.length && S.spawnT <= 0) { S.enemies.push(makeEnemy(S.queue.shift())); S.spawnT += S.spawnGap; }
@@ -767,9 +890,11 @@ function update(dt) {
     if (u.anim > 0) u.anim -= dt;
     if (u.lunge > 0) u.lunge -= dt;
     u.cd -= dt;
-    if (u.cd <= 0 && u.born > 0.3) {
+    if (u.drillT > 0) u.drillT -= dt;
+    unitTimers(u, BY[u.type], dt);
+    if (u.cd <= 0 && u.born > 0.3 && !BY[u.type].support) {
       const def = BY[u.type], t = findTarget(u, def);
-      if (t) { attack(u, def, t); u.cd += 1 / (def.rate * (1 + S.buff.spd)); if (u.cd < 0) u.cd = 0; } else u.cd = 0.1;
+      if (t) { attack(u, def, t); u.cd += 1 / (unitRate(u, def) * (1 + S.buff.spd) * spdMul()); if (u.cd < 0) u.cd = 0; } else u.cd = 0.1;
     }
     const dd = BY[u.type];
     if (dd.doctor && doctorOn(u)) {                        // ⚡ 닥터 대두의 전기 연쇄 (콩뚝이도 계속 때려요)
@@ -931,7 +1056,7 @@ function offerHTML(o, i) {
     name = d.name + (o.k === 'char' ? ' 소환' : ' 무료 강화');
     tag = '<span class="rc-tag" style="background:' + GRADE_C[d.grade] + '">' + d.grade + '</span>';
     desc = o.k === 'char' ? d.desc : '자리가 꽉 찼어요. 대신 ' + eul(d.name) + ' 공짜로 1번 강화해요';
-    note = '데미지 ' + d.dmg + ' · ' + every(d) + (n ? ' · 지금 ' + n + '마리' : '');
+    note = (d.support ? '지원 캐릭터' : '데미지 ' + d.dmg + ' · ' + every(d)) + (n ? ' · 지금 ' + n + '마리' : '');
   } else if (o.k === 'buff') {
     const b = BUFF_BY[o.id];
     ico = '<span class="rc-ico" style="--c:' + b.color + '">' + b.emo + '</span>';
@@ -1267,6 +1392,7 @@ function drawUnit(u, at) {
   const c = ctx, def = BY[u.type], p = at || slotXY(u.slot);
   let s = u.born < 0.3 ? Math.max(0.01, easeBack(u.born / 0.3)) : 1;
   if (u.anim > 0) s *= 1 + u.anim * 0.9;
+  if (u.drillT > 0) s *= 1.3; else if (u.young) s *= 1.15;
   let ox = 0, oy = 0;
   if (u.lunge > 0) { const k = Math.sin((u.lunge / 0.25) * Math.PI) * 12; ox = u.lx * k; oy = u.ly * k; }
   const duo = def.doctor && doctorOn(u) && IMGS[u.type + ':duo'];
@@ -1300,6 +1426,13 @@ function drawProj(pr) {
       c.fillStyle = INK; c.beginPath(); c.moveTo(6, 0); c.lineTo(0, -3.5); c.lineTo(0, 3.5); c.fill();
       break;
     case 'ball': c.fillStyle = PAPER; circle(c, 0, 0, 3.8); c.fill(); c.stroke(); break;
+    case 'paper': c.rotate(pr.spin); c.fillStyle = PAPER; c.fillRect(-4, -4, 8, 8); c.strokeRect(-4, -4, 8, 8); break;
+    case 'orb': c.fillStyle = '#9B86D6'; circle(c, 0, 0, 5); c.fill(); c.stroke(); break;
+    case 'tube': c.strokeStyle = ORANGE; c.lineWidth = 3; circle(c, 0, 0, 5); c.stroke(); break;
+    case 'dagger':
+      c.rotate(a); c.fillStyle = '#C9CDDA'; c.beginPath(); c.moveTo(8, 0); c.lineTo(-4, -2.5); c.lineTo(-4, 2.5); c.closePath(); c.fill(); c.stroke();
+      break;
+    case 'straw': c.fillStyle = '#F5B7C5'; circle(c, 0, 0, 4); c.fill(); c.stroke(); break;
     case 'shell': c.fillStyle = INK; circle(c, 0, 0, pr.def.id === 'turret' ? 3.6 : 5.5); c.fill(); break;
     case 'cannonball': c.fillStyle = INK; circle(c, 0, 0, 5); c.fill(); c.fillStyle = '#6B7280'; circle(c, -1.5, -1.5, 1.6); c.fill(); break;
     case 'punch': c.fillStyle = '#F2C9A0'; circle(c, 0, 0, 5.5); c.fill(); c.stroke(); break;
@@ -1503,7 +1636,7 @@ function renderDeck() {
       stickerHTML(d, 40) +
       '<span class="cc-name">' + d.name + ' <em>' + d.role + '</em><em class="grade" style="background:' + GRADE_C[d.grade] + '">' + d.grade + '</em></span>' +
       '<span class="cc-desc">' + d.desc + '</span>' +
-      '<span class="cc-stat">데미지 ' + d.dmg + ' · ' + every(d) + ' · 사거리 ' + range + '</span>' +
+      '<span class="cc-stat">' + (d.support ? '공격 안 함 · 지원' : '데미지 ' + d.dmg + ' · ' + every(d) + ' · 사거리 ' + range) + '</span>' +
       '<span class="cc-check">' + (d.id === 'sword' ? '시작' : '출전') + '</span></button>';
   }).join('');
   $('#deckCount').textContent = draft.length + '/8';
@@ -1580,7 +1713,14 @@ function showPop() {
   $('#popEmo').innerHTML = faceHTML(d); $('#popName').textContent = d.name;
   $('#popLv').textContent = 'Lv.' + S.levels[u.type];
   $('#popRefund').textContent = SELL[d.grade] || 20;
-  $('#popDesc').textContent = d.desc + ' (데미지 ' + Math.round(d.dmg * lvMult(d.id) * (1 + (u.bonus || 0))) + ' · ' + every(d) + ')' +
+  const sk = $('#popSkill');
+  if (d.drill && !(u.drillT > 0)) { sk.hidden = false; sk.textContent = '🔩 드릴러 변신 ' + d.drill.cost + 'G'; }
+  else if (d.senior && !u.young) { sk.hidden = false; sk.textContent = '🌱 과성장 도전 ' + d.senior.cost + 'G (40%)'; }
+  else sk.hidden = true;
+  $('#popDesc').textContent = d.desc + (d.support ? '' : ' (데미지 ' + Math.round(d.dmg * lvMult(d.id) * (1 + (u.bonus || 0))) + ' · ' + every(d) + ')') +
+    (d.sunin ? (sunMode() ? ' · 지금 🧙선인 모드' : ' · 지금 🐀봉산 모드') : '') +
+    (d.stack ? ' · 지금 +' + Math.round((u.stack || 0) * 100) + '%' : '') +
+    (u.drillT > 0 ? ' · 🔩 드릴차 ' + Math.ceil(u.drillT) + '초 남음' : '') + (u.young ? ' · 🌱 27살!' : '') +
     (d.doctor ? (doctorOn(u) ? ' · ⚡ 닥터 대두 출동 중! ' + (u.drUntil - S.wave) + '웨이브 남음' : ' · 닥터 대두까지 ' + (u.dHits || 0) + '/' + d.doctor.hits + '번') : '') +
     (d.bitePassive ? ' · 물기 ' + ((u.hits || 0) % d.bitePassive.every) + '/' + d.bitePassive.every + '번, 지금까지 +' + Math.round((u.bonus || 0) * 100) + '%' : '');
   pop.hidden = false;
@@ -1624,6 +1764,16 @@ $('#bPlay').addEventListener('click', startBattle);
 $('#bRetry').addEventListener('click', startBattle);
 $('#bHome').addEventListener('click', () => show('home'));
 $('#popSell').addEventListener('click', sell);
+$('#popSkill').addEventListener('click', () => {           // 노에시 드릴차 · 구루투 과성장
+  const u = S.units[S.sel]; if (!u || S.over) return;
+  const d = BY[u.type], p = slotXY(u.slot), cost = d.drill ? d.drill.cost : d.senior ? d.senior.cost : 0;
+  if (S.gold < cost) { toast('돈이 부족해요'); return; }
+  S.gold -= cost;
+  if (d.drill) { u.drillT = d.drill.time; fx({ k: 'text', x: p.x, y: p.y - 50, s: '🔩 드릴차 출동!', c: ORANGE, life: 1.3, size: 15 }); }
+  else if (Math.random() < d.senior.p) { u.young = true; u.born = 0; fx({ k: 'text', x: p.x, y: p.y - 50, s: '🌱 27살로 돌아왔다!', c: '#4DB36A', life: 1.5, size: 15 }); }
+  else fx({ k: 'text', x: p.x, y: p.y - 50, s: '실패… 그대로 할아버지', c: '#7D8597', life: 1.3, size: 13 });
+  showPop();
+});
 $('#rwCards').addEventListener('click', (e) => { const b = e.target.closest('.rc'); if (b) pick(+b.dataset.i); });
 $('#bPause').addEventListener('click', () => setPaused(true));
 $('#bResume').addEventListener('click', () => setPaused(false));
