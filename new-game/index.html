@@ -238,7 +238,7 @@ h1,h2,p{margin:0}
       <button class="btn btn-blue big" id="bPlay" type="button">전투 시작</button>
       <button class="btn" id="bDeck" type="button">덱 편성</button>
     </div>
-    <p class="foot">캐릭터 16명 전원 예준이 그림! 버프템과 터렛은 아직 임시예요.</p>
+    <p class="foot">캐릭터 17명 · 적 4종 · 성까지 전부 예준이 그림! 버프템과 터렛은 아직 임시예요.</p>
   </section>
 
   <!-- ===== 덱 편성 ===== -->
@@ -414,6 +414,10 @@ const CHARS = [
     desc: '칼로 베요. 4번에 1번은 발도술: 3배 피해로 주변까지 베요.' },
   { id: 'angel',    name: '천사 도베르만', img: 'art/angel.png',   grade: '신화', color: '#FFF1B8', role: '즉사',   pref: 'back',
     dmg: 250,  rate: 1 / 0.6,  range: 260, proj: 'holy', smiteP: 0.08, desc: '빛으로 공격해요. 8% 확률로 적을 바로 데려가요 (보스 제외).' },
+  // 신작 오리지널 (2026-11-20, 그림·설정: 구예준) — 블루 · 보라돌이 · 분홍이 셋이 한 캐릭터
+  { id: 'bakbak',   name: '빡빡공룡 삼형제', img: 'art/bakbak.png', grade: '신화', color: '#B9A8F5', role: '근거리', pref: 'front',
+    dmg: 800,  rate: 1 / 0.7,  range: 150, melee: 'bite', bitePassive: { every: 300, min: 0.2, max: 0.4 },
+    desc: '블루·보라돌이·분홍이 셋이 한 캐릭터! 패시브 물기: 공격을 300번 할 때마다 공격력이 20~40%씩 계속 올라요.' },
   { id: 'dragon',   name: '레드드래곤',   img: 'art/dragon.png',   grade: '전설', color: '#F08A7E', role: '광역',   pref: 'back',
     dmg: 1300, rate: 1 / 1.7,  range: 480, proj: 'breath', splash: 70, desc: '전장 끝까지 닿는 불꽃 브레스로 넓게 태워요.' },
   { id: 'dosa',     name: '도사',         img: 'art/dosa.png',     grade: '전설', color: '#A9D8F0', role: '원거리', pref: 'back',
@@ -567,7 +571,15 @@ function findTargetAt(px, py, range, byHp, noBoss) {
 }
 function attack(u, def, t) {
   const p = slotXY(u.slot);
-  const dmg = def.dmg * lvMult(def.id) * BAL.dmgMul * (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1);
+  if (def.bitePassive) {                                   // 빡빡공룡 패시브 물기
+    u.hits = (u.hits || 0) + 1;
+    if (u.hits % def.bitePassive.every === 0) {
+      const up = def.bitePassive.min + Math.random() * (def.bitePassive.max - def.bitePassive.min);
+      u.bonus = (u.bonus || 0) + up;
+      fx({ k: 'text', x: p.x, y: p.y - 40, s: '물기! +' + Math.round(up * 100) + '%', c: '#7A5CE0', life: 1.4, size: 15 });
+    }
+  }
+  const dmg = def.dmg * lvMult(def.id) * BAL.dmgMul * (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1) * (1 + (u.bonus || 0));
   const ang = Math.atan2(t.y - p.y, t.x - p.x);
   u.anim = 0.12;
   if (def.melee) {
@@ -1274,7 +1286,8 @@ function showPop() {
   const d = BY[u.type], p = slotXY(u.slot);
   $('#popEmo').innerHTML = faceHTML(d); $('#popName').textContent = d.name;
   $('#popLv').textContent = 'Lv.' + S.levels[u.type];
-  $('#popDesc').textContent = d.desc + ' (데미지 ' + Math.round(d.dmg * lvMult(d.id)) + ' · ' + every(d) + ')';
+  $('#popDesc').textContent = d.desc + ' (데미지 ' + Math.round(d.dmg * lvMult(d.id) * (1 + (u.bonus || 0))) + ' · ' + every(d) + ')' +
+    (d.bitePassive ? ' · 물기 ' + ((u.hits || 0) % d.bitePassive.every) + '/' + d.bitePassive.every + '번, 지금까지 +' + Math.round((u.bonus || 0) * 100) + '%' : '');
   pop.hidden = false;
   const fw = field.clientWidth, pw = pop.offsetWidth;
   let left = cv.offsetLeft + p.x * SC;
