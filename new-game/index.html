@@ -453,6 +453,7 @@ const every = (d) => String(Math.round(100 / d.rate) / 100) + '초마다';
 const TIERS = ['#A493DB', '#6DBB7D', '#E38C69', '#5FAED6', '#D7B24E', '#D57AA3'];
 const PSPEED = { arrow: 520, ball: 460, shell: 340, punch: 420, shuriken: 640, bomb: 300, songpyeon: 420, holy: 460, breath: 360, fan: 380, missile: 480 };
 const GRADE_C = { '일반': '#7D8597', '희귀': '#3E9B5E', '영웅': '#2F6BD8', '신화': '#8E4CC4', '전설': '#D98A1C' };
+const GRADE_SIZE = { '일반': 1, '희귀': 1, '영웅': 1.15, '신화': 1.3, '전설': 1.45 };   // 영웅부터 캐릭터가 커져요 (예준이 요청)
 const GRADE_W = { '일반': 6, '희귀': 4, '영웅': 3, '신화': 2, '전설': 1 };   // 선물 카드에 나올 확률 (전설이 제일 드물어요)
 
 /* ===== 저장 ===== */
@@ -960,7 +961,8 @@ function drawEnemy(e) {
   c.restore();
 }
 function drawSprite(u, def, im, p, s, ox, oy) {
-  const c = ctx, k0 = Math.min(64 / im.naturalHeight, 62 / im.naturalWidth), SH = im.naturalHeight * k0, sw = im.naturalWidth * k0;
+  const gs = GRADE_SIZE[def.grade] || 1;
+  const c = ctx, k0 = Math.min(64 * gs / im.naturalHeight, 62 * gs / im.naturalWidth), SH = im.naturalHeight * k0, sw = im.naturalWidth * k0;
   const br = Math.sin((S.time + u.slot * 0.37) * 3.2);        // 숨쉬기
   let sx = 1 - br * 0.015, sy = 1 + br * 0.03, rot = 0;
   if (u.lunge > 0) {                                           // 공격: 적 쪽으로 기울며 달려들기
