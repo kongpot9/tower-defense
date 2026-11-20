@@ -362,7 +362,7 @@ const BAL = {
   killGold: 1, bossGold: 30,
   waveBonus: (w) => 10 + 2 * w,
   maxEnemies: 100,
-  bossEvery: 10, bossHp: 25, bossWeight: 10,
+  bossEvery: 10, bossWeight: 10,
   dmgMul: 1,
   turretSpots: [189, 130, 256, 50, 321], // 성벽 위 망루 5개 (예준이 그림의 성가퀴 자리)
 };
@@ -422,6 +422,21 @@ const CHARS = [
     dmg: 600,  rate: 1 / 0.5,  range: 200, proj: 'missile', splash: 30, desc: '미사일을 빠르게 쏴서 주변까지 터뜨려요.' },
 ];
 const BY = {}; CHARS.forEach((c) => { BY[c.id] = c; });
+
+/* ===== 적 (그림·설정: 구예준) =====
+   이속: 보통 잡몹 = 8, 해골장수 = 10 (빠른 편)
+   체력: hp = 그 웨이브 잡몹 평균 체력의 몇 배인지 */
+const SPEED_UNIT = (w) => (32 + Math.min(w, 40) * 0.45) / 8;    // 이속 1이 화면에서 몇 칸인지
+const FOES = [
+  { id: 'zolla', name: '졸라검객', img: 'art/enemy-zolla.png', hp: 0.7, speed: 8, r: 9,   w: 4 },               // 체력 약한 쩌리
+  { id: 'skull', name: '해골잡졸', img: 'art/enemy-skull.png', hp: 0.9, speed: 8, r: 9,   w: 4 },               // 쩌리
+  { id: 'slime', name: '슬라임',   img: 'art/enemy-slime.png', hp: 1.0, speed: 8, r: 9.5, w: 2, dodge: 0.15 },  // 가끔 점프로 공격을 피함
+];
+const BOSSES = [
+  { id: 'skullgen', name: '해골장수', img: 'art/boss-skullgen.png', hp: 4, speed: 10, r: 20, skill: 'gumgi' },  // 검기: 아군 공격력 10초간 ½
+];
+const FOE_IMG = {};
+FOES.concat(BOSSES).forEach((f) => { const im = new Image(); im.src = f.img; FOE_IMG[f.id] = im; });
 const IMGS = {};
 CHARS.forEach((c) => { if (c.img) { const im = new Image(); im.src = c.img; IMGS[c.id] = im; } });
 const imgReady = (id) => { const im = IMGS[id]; return im && im.complete && im.naturalWidth > 0 ? im : null; };
@@ -446,7 +461,7 @@ function newBattle() {
     wave: 0, waveT: BAL.waveLen - 3, queue: [], spawnT: 0, spawnGap: 1,
     gold: BAL.startGold, picks: 0, upN: 0, kills: 0, time: 0,
     units: new Array(SLOTS).fill(null), enemies: [], projs: [], fx: [], pools: [],
-    levels: {}, count: 0, paused: false, over: false, choosing: false, offer: null, sel: -1, banner: null,
+    levels: {}, count: 0, weakT: 0, paused: false, over: false, choosing: false, offer: null, sel: -1, banner: null,
     buff: { dmg: 0, spd: 0, rng: 0, gold: 0, thorn: 0 }, stacks: {}, turrets: [], turretLv: 1, lv: 1, xp: 0,
   });
   S.deck.forEach((id) => { S.levels[id] = 1; });
@@ -477,16 +492,19 @@ function startWave() {
   if (boss) { q.push(true); n = Math.floor(n / 2); }
   for (let i = 0; i < n; i++) q.push(false);
   S.queue = q; S.spawnGap = BAL.spawnWindow / q.length; S.spawnT = 0;
-  S.banner = { s: boss ? '보스 등장!' : 'WAVE ' + S.wave, t: 0, c: boss ? RED : INK };
+  S.banner = { s: boss ? BOSSES[0].name + ' 등장!' : 'WAVE ' + S.wave, t: 0, c: boss ? RED : INK };
 }
 function makeEnemy(boss) {
   const w = S.wave;
-  const hp = BAL.hp0 * Math.pow(BAL.hpGrow, w - 1) * (boss ? BAL.bossHp : 1);
-  const r = boss ? 20 : 8.5 + Math.random() * 1.5;
+  let f;
+  if (boss) f = BOSSES[Math.floor(Math.random() * BOSSES.length)];
+  else { let r = Math.random() * FOES.reduce((a, o) => a + o.w, 0); f = FOES.find((o) => (r -= o.w) < 0) || FOES[0]; }
+  const hp = BAL.hp0 * Math.pow(BAL.hpGrow, w - 1) * f.hp;
+  const r = f.r + (boss ? 0 : Math.random());
   return {
-    x: r + Math.random() * (W - 2 * r), y: -r - Math.random() * 8, r, hp, maxHp: hp,
-    sp: (boss ? 20 : 32 + Math.min(w, 40) * 0.45) * (0.85 + Math.random() * 0.3),
-    slowT: 0, slowF: 0, stunT: 0, burnT: 0, burnDps: 0, flash: 0,
+    x: r + Math.random() * (W - 2 * r), y: -r - Math.random() * 8, r, hp, maxHp: hp, foe: f,
+    sp: f.speed * SPEED_UNIT(w) * (boss ? 1 : 0.85 + Math.random() * 0.3),
+    slowT: 0, slowF: 0, stunT: 0, burnT: 0, burnDps: 0, flash: 0, jumpT: 0, jumpCd: 0, skillT: 6 + Math.random() * 3,
     boss, weight: boss ? BAL.bossWeight : 1, dead: false,
     wob: Math.random() * 6.28, tier: Math.floor((w - 1) / 5) % TIERS.length,
   };
@@ -495,6 +513,14 @@ function makeEnemy(boss) {
 /* ===== 전투 ===== */
 function hurt(e, a, src) {
   if (e.dead) return;
+  if (src && e.foe.dodge) {                               // 슬라임 점프: 공중에선 안 맞고, 착지 후 잠깐은 다시 못 뜀
+    if (e.jumpT > 0) return;
+    if (e.jumpCd <= 0 && Math.random() < e.foe.dodge) {
+      e.jumpT = 0.4; e.jumpCd = 1.5;
+      fx({ k: 'text', x: e.x, y: e.y - 16, s: '점프!', c: '#7FBF4D', life: 0.6, size: 11 });
+      return;
+    }
+  }
   e.hp -= a;
   if (a > 0.6) e.flash = 0.07;
   if (e.hp <= 0) {
@@ -537,7 +563,7 @@ function findTargetAt(px, py, range, byHp, noBoss) {
 }
 function attack(u, def, t) {
   const p = slotXY(u.slot);
-  const dmg = def.dmg * lvMult(def.id) * BAL.dmgMul * (1 + S.buff.dmg);
+  const dmg = def.dmg * lvMult(def.id) * BAL.dmgMul * (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1);
   const ang = Math.atan2(t.y - p.y, t.x - p.x);
   u.anim = 0.12;
   if (def.melee) {
@@ -610,6 +636,7 @@ function separate() {
 
 function update(dt) {
   S.time += dt; S.waveT += dt;
+  if (S.weakT > 0) S.weakT -= dt;
   if (S.queue.length) {
     S.spawnT -= dt;
     while (S.queue.length && S.spawnT <= 0) { S.enemies.push(makeEnemy(S.queue.shift())); S.spawnT += S.spawnGap; }
@@ -619,6 +646,15 @@ function update(dt) {
   for (const e of S.enemies) {
     if (e.dead) continue;
     if (e.flash > 0) e.flash -= dt;
+    if (e.jumpT > 0) e.jumpT -= dt; else if (e.jumpCd > 0) e.jumpCd -= dt;
+    if (e.foe.skill === 'gumgi' && e.y > 0) {
+      e.skillT -= dt;
+      if (e.skillT <= 0) {                                 // 해골장수의 검기
+        e.skillT = 8 + Math.random() * 4; S.weakT = 10;
+        fx({ k: 'gumgi', x: e.x, y: e.y, life: 0.7 });
+        fx({ k: 'text', x: e.x, y: e.y - 34, s: '검기!', c: '#9B5DE5', life: 1.2, size: 18 });
+      }
+    }
     if (e.burnT > 0) { e.burnT -= dt; hurt(e, e.burnDps * dt, null); if (e.dead) continue; }
     if (e.slowT > 0) e.slowT -= dt;
     if (e.stunT > 0) { e.stunT -= dt; continue; }
@@ -655,7 +691,7 @@ function update(dt) {
     if (tg) {
       tu.a = Math.atan2(tg.y - tu.y, tg.x - tu.x); tu.anim = 0.12;
       S.projs.push({ k: 'shell', x: tu.x, y: tu.y, t: tg, lx: tg.x, ly: tg.y, sp: 480, def: { id: 'turret' }, d0: 1, prog: 0,
-                     dmg: TURRET.dmg * Math.pow(BAL.upMult, S.turretLv - 1) * (1 + S.buff.dmg) });
+                     dmg: TURRET.dmg * Math.pow(BAL.upMult, S.turretLv - 1) * (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1) });
       tu.cd = 1 / (TURRET.rate * (1 + S.buff.spd));
     } else tu.cd = 0.1;
   }
@@ -850,7 +886,28 @@ function layout() {
 function circle(c, x, y, r) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); }
 const easeBack = (k) => { const s = 1.7; k -= 1; return k * k * ((s + 1) * k + s) + 1; };
 
+function drawFoeSprite(e, im) {
+  const c = ctx, box = e.boss ? 58 : 26, k = Math.min(box / im.naturalHeight, box * 1.25 / im.naturalWidth);
+  const dw = im.naturalWidth * k, dh = im.naturalHeight * k, t = S.time * 9 + e.wob;
+  const jump = e.jumpT > 0 ? Math.sin((e.jumpT / 0.4) * Math.PI) * 14 : 0;
+  const pop = e.flash > 0 ? 1.12 : 1;
+  c.save(); c.translate(e.x, e.y + e.r * 0.9);
+  c.fillStyle = 'rgba(27,34,50,.16)'; c.beginPath(); c.ellipse(0, 0, dw * 0.4, 3, 0, 0, Math.PI * 2); c.fill();
+  c.translate(0, -jump); c.rotate(Math.sin(t) * 0.06); c.scale(pop, pop);
+  c.drawImage(im, -dw / 2, -dh, dw, dh);
+  if (e.slowT > 0) { c.globalAlpha = 0.35; c.fillStyle = '#9AD3F2'; c.fillRect(-dw / 2, -dh, dw, dh); c.globalAlpha = 1; }
+  c.restore();
+  if (e.burnT > 0) { c.fillStyle = ORANGE; circle(c, e.x + dw * 0.3, e.y - dh * 0.5, 2.6 + Math.sin(S.time * 20) * 0.8); c.fill(); }
+  if (e.stunT > 0) { c.fillStyle = YEL; c.font = '9px ' + UIF; c.textAlign = 'center'; c.fillText('★', e.x + Math.cos(S.time * 8) * 6, e.y - dh * 0.6); }
+  if (e.boss || e.hp < e.maxHp) {
+    const bw = e.boss ? 44 : 18, by = e.y + e.r * 0.9 - dh - jump - (e.boss ? 8 : 5);
+    c.fillStyle = INK; c.fillRect(e.x - bw / 2 - 1, by - 1, bw + 2, e.boss ? 6 : 4);
+    c.fillStyle = e.boss ? RED : '#6BCB77'; c.fillRect(e.x - bw / 2, by, bw * Math.max(0, e.hp / e.maxHp), e.boss ? 4 : 2);
+  }
+}
 function drawEnemy(e) {
+  const im = FOE_IMG[e.foe.id];
+  if (im && im.complete && im.naturalWidth) { drawFoeSprite(e, im); return; }
   const c = ctx, wob = Math.sin(S.time * 9 + e.wob);
   c.save(); c.translate(e.x, e.y);
   c.fillStyle = 'rgba(27,34,50,.14)';
@@ -1027,6 +1084,12 @@ function drawFx(f) {
       c.beginPath(); c.arc(f.x, f.y + g, 10, Math.PI * 0.1, Math.PI * 0.9); c.stroke();
       break;
     }
+    case 'gumgi': {                                      // 보라색 검기가 성으로 날아가요
+      const y = f.y + (H - f.y) * k;
+      c.strokeStyle = '#9B5DE5'; c.lineWidth = 6 * (1 - k) + 2; c.lineCap = 'round';
+      c.beginPath(); c.arc(f.x, y - 30, 40, Math.PI * 0.2, Math.PI * 0.8); c.stroke();
+      break;
+    }
     case 'p': c.fillStyle = f.c; circle(c, f.x, f.y, f.r); c.fill(); break;
     case 'pop':
       c.strokeStyle = YEL; c.lineWidth = 3;
@@ -1082,6 +1145,13 @@ function render() {
     c.save(); c.strokeStyle = BLUE; c.lineWidth = 3; circle(c, p.x, p.y, 27); c.stroke(); c.restore();
   }
   for (const pr of S.projs) drawProj(pr);
+  if (S.weakT > 0) {
+    c.save(); c.fillStyle = 'rgba(155,93,229,.14)'; c.fillRect(0, WALL_Y, W, H - WALL_Y);
+    c.font = '14px ' + UIF; c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineJoin = 'round';
+    const msg = '검기! 아군 공격력 ½ · ' + Math.ceil(S.weakT) + '초';
+    c.lineWidth = 4; c.strokeStyle = PAPER; c.strokeText(msg, W / 2, WALL_Y + 22); c.fillStyle = '#7A3FC4'; c.fillText(msg, W / 2, WALL_Y + 22);
+    c.restore();
+  }
   for (const f of S.fx) drawFx(f);
   if (S.banner) {
     const t = S.banner.t, a = t < 0.25 ? t / 0.25 : t > 1.4 ? Math.max(0, (1.8 - t) / 0.4) : 1;
