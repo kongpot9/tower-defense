@@ -366,8 +366,7 @@ const BAL = {
   bossEvery: 10, bossWeight: 10,
   dmgMul: 1,
   turretSpots: [189, 130, 256, 50, 321], // 성벽 위 망루 5개 (예준이 그림의 성가퀴 자리)
-  trapSpots: [160, 90, 288],             // 성벽 앞 땅에 트랩 3자리 (터렛 사이사이)
-  trapY: -50,                            // 성벽에서 이만큼 바깥 땅
+  trapY: -22,                            // 트랩 줄: 성벽 바로 앞
 };
 
 /* ===== 웨이브 선물: 버프템 · 터렛 (임시 — 예준이가 바꿀 예정) ===== */
@@ -395,8 +394,9 @@ const TURRET_LV = [null,
   { dmg: 1800, every: 0.5 },   // Lv.5
 ];
 const TURRET_IMG = new Image(); TURRET_IMG.src = TURRET.img;
-// 트랩 (그림·설정: 구예준, 2026-11-20) — 성벽 앞 땅에 깔려서 밟고 있는 적을 1초마다 찔러요
-const TRAP = { name: '트랩', img: 'art/trap.png', maxLv: 5, every: 1, w: 70 };
+// 트랩 (그림·설정: 구예준, 2026-11-20) — 거북선처럼 처음부터 성벽 앞에 한 줄로 쭉 깔려 있어요
+// 1초마다 위에 있는 적을 모두 찔러요 · Lv.5가 되면 바로 각성 트랩
+const TRAP = { name: '트랩', img: 'art/trap.png', maxLv: 5, every: 1, w: 360 };
 const TRAP_LV = [null, 100, 400, 700, 1200, 1900];
 // 각성: Lv.5 세 개가 모이면 셋을 가져가고 각성 하나가 나와요
 const AWAKE = {
@@ -502,6 +502,7 @@ function newBattle() {
   });
   S.deck.forEach((id) => { S.levels[id] = 1; });
   placeUnit('sword', 2);
+  S.traps.push({ x: W / 2, y: WALL_Y + BAL.trapY, cd: 1, anim: 0, born: 0 });   // 트랩은 처음부터
 }
 const xpNeed = () => 10 + 5 * (S.lv - 1);   // 적 1마리 = 경험치 1, 보스 = 10
 const upCost = (id) => BAL.upBase * S.levels[id];
@@ -830,8 +831,7 @@ function rollOffer() {
   for (const b of BUFFS) if (!b.max || (S.stacks[b.id] || 0) < b.max) pool.push({ k: 'buff', id: b.id, w: 3 });
   if (freeSpot(BAL.turretSpots, S.turrets) != null) pool.push({ k: 'turret', w: 4 });
   if (S.turrets.some((t) => !t.awake) && S.turretLv < TURRET.maxLv) pool.push({ k: 'turretUp', w: 4 });
-  if (freeSpot(BAL.trapSpots, S.traps) != null) pool.push({ k: 'trap', w: 3 });
-  if (S.traps.some((t) => !t.awake) && S.trapLv < TRAP.maxLv) pool.push({ k: 'trapUp', w: 3 });
+  if (S.trapLv < TRAP.maxLv) pool.push({ k: 'trapUp', w: 3 });
   const out = [];
   while (out.length < 3 && pool.length) {
     let r = Math.random() * pool.reduce((a, o) => a + o.w, 0), i = 0;
@@ -870,14 +870,13 @@ function offerHTML(o, i) {
     const L = TRAP_LV[S.trapLv], N = TRAP_LV[S.trapLv + 1];
     ico = '<span class="rc-ico" style="--c:#DDE0E7"><img src="' + TRAP.img + '" alt="" style="max-width:46px;max-height:30px"></span>';
     tag = '<span class="rc-tag turret">트랩</span>';
-    if (o.k === 'trap') {
-      name = TRAP.name + ' 설치';
-      desc = '성벽 앞 땅에 트랩을 깔아요. 밟고 있는 적을 1초마다 모두 찔러요';
-      note = '트랩 ' + S.traps.length + '/' + BAL.trapSpots.length + ' · Lv.' + S.trapLv + ' (데미지 ' + L + ')';
+    name = TRAP.name + ' 레벨업';
+    if (S.trapLv + 1 >= TRAP.maxLv) {
+      desc = 'Lv.' + S.trapLv + ' → <b>각성 트랩!</b> 데미지 ' + L + ' → ' + AWAKE.trap.dmg + ' · 3% 확률로 체력 절반 + 맹독';
+      note = 'Lv.5가 되면 바로 각성해요';
     } else {
-      name = TRAP.name + ' 레벨업';
       desc = 'Lv.' + S.trapLv + ' → Lv.' + (S.trapLv + 1) + ': 데미지 ' + L + ' → ' + N;
-      note = '트랩이 모두 같이 올라요 · Lv.5 트랩 3개가 모이면 각성 트랩!';
+      note = '성벽 앞에 쭉 깔린 트랩이 세져요 · Lv.5가 되면 각성 트랩!';
     }
   } else {
     const L = TURRET_LV[S.turretLv], N = TURRET_LV[S.turretLv + 1];
@@ -898,7 +897,11 @@ function offerHTML(o, i) {
     (note ? '<span class="rc-note">' + note + '</span>' : '') + '</span></button>';
 }
 function awakenCheck() {                                  // Lv.5가 3개 모이면 → 각성 1개
-  for (const kind of ['turret', 'trap']) {
+  if (S.trapLv >= TRAP.maxLv && S.traps[0] && !S.traps[0].awake) {
+    S.traps[0].awake = true; S.traps[0].born = 0;
+    S.banner = { s: AWAKE.trap.name + '!', t: 0, c: '#7A3FC4' };
+  }
+  for (const kind of ['turret']) {
     const list = kind === 'turret' ? S.turrets : S.traps, lv = kind === 'turret' ? S.turretLv : S.trapLv;
     const max = kind === 'turret' ? TURRET.maxLv : TRAP.maxLv;
     while (lv >= max && list.filter((o) => !o.awake).length >= 3) {
@@ -935,13 +938,9 @@ function pick(i) {
     if (o.id === 'chest') S.gold += v; else S.buff[o.id] += v;
     S.stacks[o.id] = (S.stacks[o.id] || 0) + 1;
     fx({ k: 'text', x: W / 2, y: WALL_Y - 60, s: BUFF_BY[o.id].name + '!', c: YEL, life: 1.4, size: 16 });
-  } else if (o.k === 'trap') {
-    const x = freeSpot(BAL.trapSpots, S.traps);
-    S.traps.push({ x, y: WALL_Y + BAL.trapY, cd: 0.5, anim: 0, born: 0 });
-    fx({ k: 'pop', x, y: WALL_Y + BAL.trapY, life: 0.45 });
   } else if (o.k === 'trapUp') {
     S.trapLv = Math.min(TRAP.maxLv, S.trapLv + 1);
-    for (const tr of S.traps) fx({ k: 'text', x: tr.x, y: tr.y - 18, s: 'Lv.' + S.trapLv, c: BLUE, life: 0.9, size: 14 });
+    for (const tr of S.traps) fx({ k: 'text', x: tr.x, y: tr.y - 22, s: '트랩 Lv.' + S.trapLv, c: BLUE, life: 1.1, size: 15 });
   } else if (o.k === 'turret') {
     const x = freeSpot(BAL.turretSpots, S.turrets);
     S.turrets.push({ x, y: WALL_Y, cd: 0.4, face: 1, anim: 0, born: 0 });
@@ -1138,16 +1137,18 @@ function drawTurret(tu) {
   c.fillStyle = tu.awake ? '#7A3FC4' : INK; circle(c, tu.x - 13, tu.y - 4, tu.awake ? 10 : 7.5); c.fill();
   c.fillStyle = PAPER; c.font = (tu.awake ? 8 : 10) + 'px ' + UIF; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(label, tu.x - 13, tu.y - 3.5);
 }
-function drawTrap(tr) {
-  const c = ctx, s = tr.born < 0.3 ? Math.max(0.01, easeBack(tr.born / 0.3)) : 1;
-  const im = tr.awake ? AWAKE_IMG.trap : TRAP_IMG;
-  const h = tr.awake ? AWAKE.trap.h : 20, w = tr.awake ? h * AWAKE.trap.ratio : TRAP.w, pop = tr.anim > 0 ? 1 + tr.anim * 0.5 : 1;
-  c.save(); c.translate(tr.x, tr.y + h / 2); c.scale(s, s * pop);
-  if (im.complete && im.naturalWidth) c.drawImage(im, -w / 2, -h, w, h);
-  c.restore();
-  c.fillStyle = tr.awake ? '#7A3FC4' : INK; circle(c, tr.x + w / 2 - 2, tr.y + 6, tr.awake ? 10 : 7.5); c.fill();
+function drawTrap(tr) {                                    // 한 줄로 쭉: 그림을 나란히 이어 붙여요
+  const c = ctx, im = tr.awake ? AWAKE_IMG.trap : TRAP_IMG;
+  const h = tr.awake ? 26 : 16, w = tr.awake ? h * AWAKE.trap.ratio : h * 162 / 60;
+  const pop = tr.anim > 0 ? 1 + tr.anim * 0.6 : 1, grow = tr.born < 0.4 ? tr.born / 0.4 : 1;
+  if (im.complete && im.naturalWidth) {
+    c.save(); c.globalAlpha = grow;
+    for (let x = -w / 3; x < W; x += w * 0.92) { c.save(); c.translate(x + w / 2, tr.y + h / 2); c.scale(1, pop); c.drawImage(im, -w / 2, -h, w, h); c.restore(); }
+    c.restore();
+  }
+  c.fillStyle = tr.awake ? '#7A3FC4' : INK; circle(c, 14, tr.y - 2, tr.awake ? 11 : 8); c.fill();
   c.fillStyle = PAPER; c.font = (tr.awake ? 8 : 10) + 'px ' + UIF; c.textAlign = 'center'; c.textBaseline = 'middle';
-  c.fillText(tr.awake ? '각성' : String(S.trapLv), tr.x + w / 2 - 2, tr.y + 6.5);
+  c.fillText(tr.awake ? '각성' : String(S.trapLv), 14, tr.y - 1.5);
 }
 function drawUnit(u, at) {
   const c = ctx, def = BY[u.type], p = at || slotXY(u.slot);
