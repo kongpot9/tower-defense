@@ -443,8 +443,7 @@ const CHARS = [
     dmg: 300,  rate: 1 / 0.8,  range: 210, proj: 'punch', chainP: 0.3, chainN: 3, desc: '주먹을 날려요. 30% 확률로 감전돼서 옆에 있는 적 3명도 같은 피해!' },
   { id: 'lumber',   name: '나무꾼',       img: 'art/lumber.png',   grade: '영웅', color: '#D9A880', role: '근거리', pref: 'front',
     dmg: 520,  rate: 1 / 1,    range: 150, melee: 'slash', desc: '도끼로 앞에 있는 적을 세게 찍어요.' },
-  { id: 'rider',    name: '다크라이더',   img: 'art/rider.png',    grade: '영웅', color: '#B9BCC8', role: '연사',   pref: 'back',
-    dmg: 100,  rate: 1 / 0.22, range: 260, proj: 'shuriken', desc: '수리검을 아주 빠르게 던져요.' },
+  // 🥷 다크라이더: 다른 게임(냥코 대전쟁)의 다크라이더와 닮아서 입국 실패 (2026-11-20, 구예준 결정)
   { id: 'miner',    name: '능력자광부',   img: 'art/miner.png',    grade: '신화', color: '#F2B76B', role: '광역',   pref: 'back',
     dmg: 380,  rate: 1 / 0.9,  range: 230, proj: 'bomb', arc: true, splash: 45, desc: '폭탄을 던져 주변 적을 터뜨려요.' },
   { id: 'ricecake', name: '떡장수',       img: 'art/ricecake.png', grade: '신화', color: '#F5B7C5', role: '4연발',  pref: 'back',
@@ -452,7 +451,7 @@ const CHARS = [
   { id: 'ronin',    name: '낭인',         img: 'art/ronin.png',    grade: '신화', color: '#9CC79A', role: '근거리', pref: 'front',
     dmg: 800,  rate: 1 / 1.1,  range: 160, melee: 'slash', critP: 0.25, critX: 3, critSplash: 50, critName: '발도술!',
     desc: '칼로 베요. 4번에 1번은 발도술: 3배 피해로 주변까지 베요.' },
-  { id: 'angel',    name: '천사 도베르만', img: 'art/angel.png',   grade: '신화', color: '#FFF1B8', role: '즉사',   pref: 'back',
+  { id: 'angel',    name: '엔젤 푸들',   img: 'art/angel.png',   grade: '신화', color: '#FFF1B8', role: '즉사',   pref: 'back',
     dmg: 250,  rate: 1 / 0.6,  range: 260, proj: 'holy', smiteP: 0.08, desc: '빛으로 공격해요. 8% 확률로 적을 바로 데려가요 (보스 제외).' },
   // 신작 오리지널 (2026-11-20, 그림·설정: 구예준) — 블루 · 보라돌이 · 분홍이 셋이 한 캐릭터
   { id: 'bakbak',   name: '빡빡공룡 삼형제', img: 'art/bakbak.png', grade: '신화', color: '#B9A8F5', role: '근거리', pref: 'front',
