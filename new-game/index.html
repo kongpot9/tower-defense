@@ -355,7 +355,7 @@ const BAL = {
   startGold: 50,
   upBase: 25, upMult: 1.3,             // 강화 비용 = 25 × 레벨, 강화 1번에 데미지 ×1.3
   waveLen: 20, spawnWindow: 13,        // 웨이브 20초, 처음 13초 동안 적이 나와요
-  hp0: 150, hpGrow: 1.125,             // 적 체력 = 150 × 1.125^(웨이브-1)  (전사 데미지 200 기준)
+  hp0: 150, hpGrow: 1.15,              // 적 체력 = 150 × 1.15^(웨이브-1)  (버프템이 점점 세지니까 적도 빨리 세져요)
   count: (w) => 8 + Math.floor(w * 1.2),
   killGold: 1, bossGold: 30,
   waveBonus: (w) => 10 + 2 * w,
@@ -366,14 +366,19 @@ const BAL = {
 };
 
 /* ===== 웨이브 선물: 버프템 · 터렛 (임시 — 예준이가 바꿀 예정) ===== */
+// 같은 버프템을 또 고를수록 세져요: 처음 숫자의 1배 → 4배 → 7배 → 10배 (예준이 규칙: 10% → 40% → 70% → 100%)
+// 끝없이 고르면 너무 세져서 버프템마다 최대 4번 (돈 주머니·가시는 3번)
+const P = (v) => (Math.round(v * 1000) / 10) + '%';
 const BUFFS = [
-  { id: 'dmg',   name: '힘의 물약',   emo: '💪', color: '#F08A7E', desc: '아군 전체 데미지 +15%' },
-  { id: 'spd',   name: '번개 장갑',   emo: '🧤', color: '#F7D774', desc: '아군 전체 공격 속도 +12%' },
-  { id: 'rng',   name: '망원경',      emo: '🔭', color: '#9AD3F2', desc: '아군 전체 사거리 +25 (최대 4번)', max: 4 },
-  { id: 'gold',  name: '황금 주머니', emo: '👛', color: '#EDD38A', desc: '적을 처치할 때마다 돈 +1 (최대 5번)', max: 5 },
-  { id: 'thorn', name: '가시 방어선', emo: '🌵', color: '#B5DE85', desc: '방어선에 붙은 적이 1초마다 체력의 2%를 잃어요 (보스는 0.5%, 최대 3번)', max: 3 },
-  { id: 'chest', name: '보물 상자',   emo: '🎁', color: '#C7A6E6', desc: '돈을 바로 받아요' },
+  { id: 'dmg',   name: '힘의 물약',   emo: '💪', color: '#F08A7E', base: 0.10, max: 4, d: (v) => '아군 전체 데미지 +' + P(v), s: (v) => '+' + P(v) },
+  { id: 'spd',   name: '번개 장갑',   emo: '🧤', color: '#F7D774', base: 0.10, max: 4, d: (v) => '아군 전체 공격 속도 +' + P(v), s: (v) => '+' + P(v) },
+  { id: 'rng',   name: '망원경',      emo: '🔭', color: '#9AD3F2', base: 15, max: 4, d: (v) => '아군 전체 사거리 +' + Math.round(v), s: (v) => '+' + Math.round(v) },
+  { id: 'gold',  name: '황금 주머니', emo: '👛', color: '#EDD38A', base: 1, max: 3, d: (v) => '적을 처치할 때마다 돈 +' + v, s: (v) => '+' + v },
+  { id: 'thorn', name: '가시 방어선', emo: '🌵', color: '#B5DE85', base: 0.01, max: 3,
+    d: (v) => '방어선에 붙은 적이 1초마다 체력의 ' + P(v) + '를 잃어요 (보스는 4분의 1)', s: (v) => P(v) },
+  { id: 'chest', name: '보물 상자',   emo: '🎁', color: '#C7A6E6', max: 4, d: (v) => '돈 ' + Math.round(v) + '을 바로 받아요', s: (v) => '돈 ' + Math.round(v) },
 ];
+const buffVal = (b, n = S.stacks[b.id] || 0) => (b.id === 'chest' ? chestGold() : b.base) * (1 + 3 * n);
 const BUFF_BY = {}; BUFFS.forEach((b) => { BUFF_BY[b.id] = b; });
 const TURRET = { name: '임시 터렛', emo: '🗼', dmg: 120, rate: 1, range: 220 };
 
@@ -713,11 +718,12 @@ function rollOffer() {
   }
   return out;
 }
-function buffNote(id) {
-  const b = S.buff;
-  const now = { dmg: b.dmg ? '+' + Math.round(b.dmg * 100) + '%' : '', spd: b.spd ? '+' + Math.round(b.spd * 100) + '%' : '',
-                rng: b.rng ? '+' + b.rng : '', gold: b.gold ? '+' + b.gold : '', thorn: b.thorn ? Math.round(b.thorn * 100) + '% (' + (S.stacks.thorn || 0) + '/3)' : '' }[id];
-  return now ? '지금 ' + now : '';
+function buffNote(b) {
+  const n = S.stacks[b.id] || 0;
+  const now = n && b.id !== 'chest' ? ' · 지금까지 ' + b.s(S.buff[b.id]) : '';
+  const left = b.max ? ' · ' + n + '/' + b.max : '';
+  const next = b.max && n + 1 >= b.max ? '' : ' · 또 고르면 ' + b.s(buffVal(b, n + 1)) + '!';
+  return (n + 1) + '번째' + now + left + next;
 }
 function offerHTML(o, i) {
   let ico, name, tag, desc, note = '';
@@ -732,8 +738,8 @@ function offerHTML(o, i) {
     const b = BUFF_BY[o.id];
     ico = '<span class="rc-ico" style="--c:' + b.color + '">' + b.emo + '</span>';
     name = b.name; tag = '<span class="rc-tag buff">버프템</span>';
-    desc = b.id === 'chest' ? '돈 ' + chestGold() + '을 바로 받아요' : b.desc;
-    note = buffNote(b.id);
+    desc = b.d(buffVal(b));
+    note = buffNote(b);
   } else {
     const full = S.turrets.length >= BAL.turretSpots.length;
     ico = '<span class="rc-ico" style="--c:#C9CDDA">' + TURRET.emo + '</span>';
@@ -761,9 +767,8 @@ function pick(i) {
     S.levels[o.id]++;
     for (const u of S.units) if (u && u.type === o.id) { const p = slotXY(u.slot); u.anim = 0.2; fx({ k: 'text', x: p.x, y: p.y - 30, s: 'Lv.' + S.levels[o.id], c: BLUE, life: 0.9, size: 14 }); }
   } else if (o.k === 'buff') {
-    const b = S.buff;
-    if (o.id === 'dmg') b.dmg += 0.15; else if (o.id === 'spd') b.spd += 0.12; else if (o.id === 'rng') b.rng += 25;
-    else if (o.id === 'gold') b.gold += 1; else if (o.id === 'thorn') b.thorn += 0.02; else if (o.id === 'chest') S.gold += chestGold();
+    const v = buffVal(BUFF_BY[o.id]);
+    if (o.id === 'chest') S.gold += v; else S.buff[o.id] += v;
     S.stacks[o.id] = (S.stacks[o.id] || 0) + 1;
     fx({ k: 'text', x: W / 2, y: WALL_Y + 24, s: BUFF_BY[o.id].name + '!', c: YEL, life: 1.4, size: 16 });
   } else if (S.turrets.length < BAL.turretSpots.length) {
@@ -1269,7 +1274,7 @@ function start(data) {
   requestAnimationFrame(frame);
 }
 window.claude?.hot?.snapshot?.(() => ({ deck: S.deck }));
-window.__td = { S, BAL, CHARS, pick, upgrade: (id) => upgrade(id, deckbar.querySelector('[data-id="' + id + '"]')), startBattle };
+window.__td = { S, BAL, CHARS, pick, offerHTML, upgrade: (id) => upgrade(id, deckbar.querySelector('[data-id="' + id + '"]')), startBattle };
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
 </script>
