@@ -433,10 +433,14 @@ const FOES = [
   { id: 'slime', name: '슬라임',   img: 'art/enemy-slime.png', hp: 1.0, speed: 8, r: 9.5, w: 2, dodge: 0.15 },  // 가끔 점프로 공격을 피함
 ];
 const BOSSES = [
-  { id: 'skullgen', name: '해골장수', img: 'art/boss-skullgen.png', hp: 4, speed: 10, r: 20, skill: 'gumgi' },  // 검기: 아군 공격력 10초간 ½
+  { id: 'skullgen', name: '해골장수', img: 'art/boss-skullgen.png', skillImg: 'art/boss-skullgen-gumgi.png', hp: 4, speed: 10, r: 20, skill: 'gumgi' },
+  // ↑ 검기: 아군 공격력 10초간 ½ · 검기를 쓸 때만 보라색 검기가 있는 그림으로 바뀌어요
 ];
 const FOE_IMG = {};
-FOES.concat(BOSSES).forEach((f) => { const im = new Image(); im.src = f.img; FOE_IMG[f.id] = im; });
+FOES.concat(BOSSES).forEach((f) => {
+  const im = new Image(); im.src = f.img; FOE_IMG[f.id] = im;
+  if (f.skillImg) { const sk = new Image(); sk.src = f.skillImg; FOE_IMG[f.id + ':skill'] = sk; }
+});
 const IMGS = {};
 CHARS.forEach((c) => { if (c.img) { const im = new Image(); im.src = c.img; IMGS[c.id] = im; } });
 const imgReady = (id) => { const im = IMGS[id]; return im && im.complete && im.naturalWidth > 0 ? im : null; };
@@ -504,7 +508,7 @@ function makeEnemy(boss) {
   return {
     x: r + Math.random() * (W - 2 * r), y: -r - Math.random() * 8, r, hp, maxHp: hp, foe: f,
     sp: f.speed * SPEED_UNIT(w) * (boss ? 1 : 0.85 + Math.random() * 0.3),
-    slowT: 0, slowF: 0, stunT: 0, burnT: 0, burnDps: 0, flash: 0, jumpT: 0, jumpCd: 0, skillT: 6 + Math.random() * 3,
+    slowT: 0, slowF: 0, stunT: 0, burnT: 0, burnDps: 0, flash: 0, jumpT: 0, jumpCd: 0, castT: 0, skillT: 6 + Math.random() * 3,
     boss, weight: boss ? BAL.bossWeight : 1, dead: false,
     wob: Math.random() * 6.28, tier: Math.floor((w - 1) / 5) % TIERS.length,
   };
@@ -647,10 +651,11 @@ function update(dt) {
     if (e.dead) continue;
     if (e.flash > 0) e.flash -= dt;
     if (e.jumpT > 0) e.jumpT -= dt; else if (e.jumpCd > 0) e.jumpCd -= dt;
+    if (e.castT > 0) e.castT -= dt;
     if (e.foe.skill === 'gumgi' && e.y > 0) {
       e.skillT -= dt;
       if (e.skillT <= 0) {                                 // 해골장수의 검기
-        e.skillT = 8 + Math.random() * 4; S.weakT = 10;
+        e.skillT = 8 + Math.random() * 4; S.weakT = 10; e.castT = 0.9;
         fx({ k: 'gumgi', x: e.x, y: e.y, life: 0.7 });
         fx({ k: 'text', x: e.x, y: e.y - 34, s: '검기!', c: '#9B5DE5', life: 1.2, size: 18 });
       }
@@ -906,7 +911,8 @@ function drawFoeSprite(e, im) {
   }
 }
 function drawEnemy(e) {
-  const im = FOE_IMG[e.foe.id];
+  const sk = e.castT > 0 && FOE_IMG[e.foe.id + ':skill'];
+  const im = sk && sk.complete && sk.naturalWidth ? sk : FOE_IMG[e.foe.id];
   if (im && im.complete && im.naturalWidth) { drawFoeSprite(e, im); return; }
   const c = ctx, wob = Math.sin(S.time * 9 + e.wob);
   c.save(); c.translate(e.x, e.y);
