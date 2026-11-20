@@ -178,7 +178,7 @@ h1,h2,p{margin:0}
 @keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
 
 .pop{position:absolute;z-index:10;width:224px;background:var(--paper);color:var(--ink);border:2.5px solid var(--ink);border-radius:14px;
-  box-shadow:0 4px 0 var(--ink);padding:10px 12px 12px;transform:translate(-50%,-100%);display:flex;flex-direction:column;gap:6px}
+  box-shadow:0 4px 0 var(--ink);padding:10px 12px 12px;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;pointer-events:none;left:50%;top:10px}
 .pop-head{display:flex;align-items:center;gap:6px;font-size:17px}
 .pop-head .e{font-size:20px;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
 .pop-head .e img{max-height:30px;max-width:40px;display:block;margin:-4px 0}
@@ -230,6 +230,7 @@ h1,h2,p{margin:0}
     <div class="rules">
       <b>시작</b><span>전사 혼자 전장에 나가요</span>
       <b>선물</b><span>웨이브가 끝나면 카드 3장 중 1장을 골라요. 캐릭터·버프템·터렛!</span>
+      <b>합성</b><span>같은 캐릭터 둘을 합치면 한 등급 위 캐릭터! 5%는 2단계 대박</span>
       <b>강화</b><span>돈으로 아래 카드를 눌러 캐릭터를 강화해요</span>
       <b>100</b><span>적이 100마리 쌓이면 패배!</span>
     </div>
@@ -270,7 +271,7 @@ h1,h2,p{margin:0}
       <div class="pop" id="pop" hidden>
         <div class="pop-head"><span class="e" id="popEmo"></span><span id="popName"></span><span class="chip" id="popLv"></span></div>
         <p id="popDesc"></p>
-        <p class="pop-hint">빈 칸을 누르면 이동, 다른 캐릭터를 누르면 자리 바꾸기</p>
+        <p class="pop-hint">빈 칸 → 이동 · 다른 캐릭터 → 자리 바꾸기 · <b>같은 캐릭터 → 합성!</b><br>꾹 눌러서 끌어 옮겨도 돼요</p>
       </div>
       <div class="toast" id="toast" hidden></div>
     </div>
@@ -480,7 +481,7 @@ function newBattle() {
     wave: 0, waveT: BAL.waveLen - 3, queue: [], spawnT: 0, spawnGap: 1,
     gold: BAL.startGold, picks: 0, upN: 0, kills: 0, time: 0,
     units: new Array(SLOTS).fill(null), enemies: [], projs: [], fx: [], pools: [],
-    levels: {}, count: 0, weakT: 0, paused: false, over: false, choosing: false, offer: null, sel: -1, banner: null,
+    levels: {}, count: 0, weakT: 0, drag: null, merges: 0, paused: false, over: false, choosing: false, offer: null, sel: -1, banner: null,
     buff: { dmg: 0, spd: 0, rng: 0, gold: 0, thorn: 0 }, stacks: {}, turrets: [], turretLv: 1, lv: 1, xp: 0,
   });
   S.deck.forEach((id) => { S.levels[id] = 1; });
@@ -890,19 +891,52 @@ function slotAt(x, y) {
   }
   return -1;
 }
+// 그림이 보이는 곳을 눌러도 골라져요 (큰 캐릭터는 머리가 윗칸까지 올라가니까)
+function unitAt(x, y, skip) {
+  for (let i = SLOTS - 1; i >= 0; i--) {                  // 아랫줄이 앞에 그려지니까 먼저 봐요
+    const u = S.units[i]; if (!u || i === skip) continue;
+    const p = slotXY(i), gs = GRADE_SIZE[BY[u.type].grade] || 1, h = 64 * gs, w = Math.max(46, 52 * gs);
+    if (Math.abs(x - p.x) < w / 2 && y <= p.y + 31 && y >= p.y + 27 - h) return i;
+  }
+  return -1;
+}
+function pickSlot(x, y, skip) {
+  const s = slotAt(x, y);
+  if (s >= 0 && !S.units[s] && (S.sel >= 0 || S.drag)) return s;   // 옮기는 중엔 빈 칸이 먼저
+  const u = unitAt(x, y, skip);
+  return u >= 0 ? u : s;
+}
+const GRADES = ['일반', '희귀', '영웅', '신화', '전설'];
+function tryMerge(from, to) {                                // 같은 캐릭터 둘 → 한 등급 위 (777 규칙)
+  const d = BY[S.units[from].type], gi = GRADES.indexOf(d.grade);
+  if (gi >= GRADES.length - 1) { toast('전설은 더 합성할 수 없어요'); return false; }
+  const inDeck = (g) => S.deck.filter((id) => BY[id].grade === GRADES[g]);
+  let up = Math.random() < 0.05 && gi + 2 < GRADES.length ? 2 : 1;
+  let pool = inDeck(gi + up);
+  if (!pool.length && up === 2) { up = 1; pool = inDeck(gi + 1); }
+  if (!pool.length) { toast('덱에 ' + GRADES[gi + 1] + ' 캐릭터가 없어서 합성할 수 없어요'); return false; }
+  const id = pool[Math.floor(Math.random() * pool.length)], p = slotXY(to);
+  S.units[from] = null;
+  S.units[to] = { type: id, slot: to, cd: 0, born: 0, anim: 0, lunge: 0, lx: 0, ly: 0 };
+  S.merges++;
+  fx({ k: 'pop', x: p.x, y: p.y, life: 0.5 });
+  fx({ k: 'text', x: p.x, y: p.y - 44, s: (up === 2 ? '대박! ' : '합성! ') + BY[id].name, c: up === 2 ? RED : BLUE, life: 1.3, size: up === 2 ? 17 : 14 });
+  return true;
+}
+function act(from, to) {
+  const a = S.units[from];
+  if (!a || to < 0 || to === from) { select(-1); return; }
+  const b = S.units[to];
+  if (b && b.type === a.type) { tryMerge(from, to); select(-1); return; }
+  S.units[to] = a; S.units[from] = b || null;
+  a.slot = to; if (b) b.slot = from;
+  select(-1);
+}
 function onTap(x, y) {
   if (S.over) return;
-  const i = slotAt(x, y);
-  if (i < 0) { select(-1); return; }
-  const u = S.units[i];
-  if (S.sel >= 0) {
-    if (i === S.sel) { select(-1); return; }
-    const a = S.units[S.sel];
-    S.units[i] = a; S.units[S.sel] = u || null;
-    a.slot = i; if (u) u.slot = S.sel;
-    select(-1); return;
-  }
-  if (u) select(i);
+  const i = pickSlot(x, y);
+  if (S.sel >= 0) { if (i < 0 || i === S.sel) select(-1); else act(S.sel, i); return; }
+  if (i >= 0 && S.units[i]) select(i); else select(-1);
 }
 
 /* ===== 그리기 ===== */
@@ -1016,8 +1050,8 @@ function drawTurret(tu) {
   c.fillStyle = INK; circle(c, tu.x - 12, tu.y - 4, 7.5); c.fill();
   c.fillStyle = PAPER; c.font = '10px ' + UIF; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(S.turretLv), tu.x - 12, tu.y - 3.5);
 }
-function drawUnit(u) {
-  const c = ctx, def = BY[u.type], p = slotXY(u.slot);
+function drawUnit(u, at) {
+  const c = ctx, def = BY[u.type], p = at || slotXY(u.slot);
   let s = u.born < 0.3 ? Math.max(0.01, easeBack(u.born / 0.3)) : 1;
   if (u.anim > 0) s *= 1 + u.anim * 0.9;
   let ox = 0, oy = 0;
@@ -1187,7 +1221,18 @@ function render() {
   }
   for (const e of S.enemies) drawEnemy(e);
   for (const tu of S.turrets) drawTurret(tu);
-  for (const u of S.units) if (u) drawUnit(u);
+  const holding = S.drag ? S.units[S.drag.from] : S.sel >= 0 ? S.units[S.sel] : null;
+  if (holding) {
+    c.save(); c.strokeStyle = YEL; c.lineWidth = 3; c.setLineDash([5, 4]);
+    for (const u of S.units) if (u && u !== holding && u.type === holding.type) { const q = slotXY(u.slot); c.beginPath(); c.ellipse(q.x, q.y + 27, 22, 7, 0, 0, Math.PI * 2); c.stroke(); }
+    c.restore();
+  }
+  for (const u of S.units) if (u && !(S.drag && u.slot === S.drag.from)) drawUnit(u);
+  if (S.drag && S.units[S.drag.from]) {
+    const t = pickSlot(S.drag.x, S.drag.y, S.drag.from);
+    if (t >= 0) { const q = slotXY(t); c.save(); c.strokeStyle = BLUE; c.lineWidth = 3; c.strokeRect(q.x - 27, q.y - 27, 54, 56); c.restore(); }
+    c.save(); c.globalAlpha = 0.85; drawUnit(S.units[S.drag.from], { x: S.drag.x, y: S.drag.y - 4 }); c.restore();
+  }
   if (S.sel >= 0 && S.units[S.sel]) {
     const p = slotXY(S.sel);
     c.save(); c.strokeStyle = BLUE; c.lineWidth = 3; circle(c, p.x, p.y, 27); c.stroke(); c.restore();
@@ -1319,11 +1364,7 @@ function showPop() {
   $('#popDesc').textContent = d.desc + ' (데미지 ' + Math.round(d.dmg * lvMult(d.id) * (1 + (u.bonus || 0))) + ' · ' + every(d) + ')' +
     (d.bitePassive ? ' · 물기 ' + ((u.hits || 0) % d.bitePassive.every) + '/' + d.bitePassive.every + '번, 지금까지 +' + Math.round((u.bonus || 0) * 100) + '%' : '');
   pop.hidden = false;
-  const fw = field.clientWidth, pw = pop.offsetWidth;
-  let left = cv.offsetLeft + p.x * SC;
-  left = Math.max(pw / 2 + 2, Math.min(fw - pw / 2 - 2, left));
-  pop.style.left = left + 'px';
-  pop.style.top = (cv.offsetTop + (p.y - 30) * SC) + 'px';
+  pop.style.top = (cv.offsetTop + 8) + 'px';            // 성 밖(전장 맨 위)에 띄워서 아군을 안 가려요
 }
 
 const toastEl = $('#toast'); let toastTimer = 0;
@@ -1368,10 +1409,27 @@ $('#bResume').addEventListener('click', () => setPaused(false));
 $('#bGiveUp').addEventListener('click', () => { S.paused = false; $('#pauseOv').hidden = true; gameOver(); });
 $('#bSpeed').addEventListener('click', () => { S.speed = S.speed === 1 ? 2 : 1; $('#bSpeed').textContent = '×' + S.speed; });
 $('#bCoachGo').addEventListener('click', () => { store.set('yj2.coach', true); $('#coach').hidden = true; S.paused = false; });
+const toField = (e) => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+let press = null;                                            // 누르기 → 떼기 = 탭, 누른 채로 움직이기 = 끌기
 cv.addEventListener('pointerdown', (e) => {
-  const r = cv.getBoundingClientRect();
-  onTap((e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H);
+  if (S.over || S.screen !== 'battle') return;
+  const q = toField(e), i = pickSlot(q.x, q.y);
+  press = { x: q.x, y: q.y, from: i >= 0 && S.units[i] ? i : -1 };
+  try { cv.setPointerCapture(e.pointerId); } catch (err) { /* 괜찮아요 */ }
 });
+cv.addEventListener('pointermove', (e) => {
+  if (!press || press.from < 0 || S.over) return;
+  const q = toField(e);
+  if (!S.drag && Math.hypot(q.x - press.x, q.y - press.y) > 10) { S.drag = { from: press.from, x: q.x, y: q.y }; select(-1); }
+  if (S.drag) { S.drag.x = q.x; S.drag.y = q.y; }
+});
+cv.addEventListener('pointerup', (e) => {
+  const q = toField(e);
+  if (S.drag) { const from = S.drag.from; act(from, pickSlot(q.x, q.y, from)); S.drag = null; }
+  else if (press) onTap(q.x, q.y);
+  press = null;
+});
+cv.addEventListener('pointercancel', () => { press = null; S.drag = null; });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && S.screen === 'battle' && !S.over && $('#coach').hidden) setPaused(true);
 });
