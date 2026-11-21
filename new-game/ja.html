@@ -1143,8 +1143,8 @@ function update(dt) {
     }
     if (e.foe.skill === 'gumgi' && e.y > 0) {
       e.skillT -= dt;
-      if (e.skillT <= 0) {                                 // 해골장수의 검기
-        e.skillT = 8 + Math.random() * 4; S.weakT = 10; S.weakSrc = 'gumgi'; e.castT = 0.9;
+      if (e.skillT <= 0 && (e.skillT = 8 + Math.random() * 4, Math.random() < 0.8)) {   // 해골장수의 검기: 8~12秒ごと 80% 확률 (20% 낮춤, 2026-11-21 예준이 결정)
+        S.weakT = 10; S.weakSrc = 'gumgi'; e.castT = 0.9;
         fx({ k: 'gumgi', x: e.x, y: e.y, life: 0.7 });
         fx({ k: 'text', x: e.x, y: e.y - 34, s: '剣気！', c: '#9B5DE5', life: 1.2, size: 18 });
       }
