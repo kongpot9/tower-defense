@@ -197,6 +197,11 @@ h1,h2,p{margin:0}
   border-radius:12px;padding:8px 14px;font-size:15px;pointer-events:none;white-space:nowrap}
 
 .ov-fixed{position:fixed!important;border-radius:0!important;z-index:40!important}
+.watchbar{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--paper);color:var(--ink);border:2.5px solid var(--ink);border-radius:14px;padding:6px 8px 6px 14px;font-size:16px}
+.watchbar span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#battle.watching .row-main{display:none}
+.watch-list li{cursor:pointer;grid-template-columns:28px 1fr auto}
+.watch-list li:active{transform:translateY(2px)}
 .rank-card{max-height:calc(100% - 20px);overflow-y:auto}
 .rank-list{list-style:none;margin:0;padding:0;display:grid;gap:4px;text-align:left;max-height:46vh;overflow-y:auto}
 .rank-list li{display:grid;grid-template-columns:34px 1fr auto;gap:8px;align-items:center;padding:6px 10px;border-radius:10px;background:var(--paper-2);font-size:15px;font-variant-numeric:tabular-nums}
@@ -259,6 +264,7 @@ h1,h2,p{margin:0}
       <button class="btn btn-blue big" id="bPlay" type="button">전투 시작</button>
       <button class="btn" id="bDeck" type="button">덱 편성</button>
       <button class="btn" id="bRank" type="button">🏆 랭킹</button>
+      <button class="btn" id="bWatch" type="button">👀 관전</button>
     </div>
     <p class="foot">캐릭터 32명 · 적 6종 · 터렛 · 트랩 · 성까지 전부 예준이 그림! 버프템만 아직 임시예요.</p>
   </section>
@@ -309,6 +315,7 @@ h1,h2,p{margin:0}
         <div class="next" id="nextBox"><span class="next-lbl"><span class="g"><i class="coin"></i><b id="hGold">0</b></span><span id="nextLbl">곧 시작</span></span><span class="next-bar"><i id="nextBar"></i></span></div>
         <button class="btn sq" id="bSpeed" type="button" aria-label="배속">×1</button>
       </div>
+      <div class="watchbar" id="watchBar" hidden><span id="watchLbl">👀 관전 중</span><button class="btn btn-sm" id="bWatchExit" type="button">나가기</button></div>
       <div class="deckbar" id="deckbar"></div>
     </div>
 
@@ -365,6 +372,15 @@ h1,h2,p{margin:0}
   </section>
 
   <!-- ===== 🏆 랭킹 ===== -->
+  <div class="ov ov-fixed" id="watchOv" hidden>
+    <div class="ov-card rank-card">
+      <h2>👀 관전</h2>
+      <p class="sub">지금 게임하는 사람을 실시간으로 봐요</p>
+      <ol class="rank-list watch-list" id="watchList"></ol>
+      <p class="rank-note" id="watchNote"></p>
+      <div class="ov-btns"><button class="btn" id="bWatchClose" type="button">닫기</button></div>
+    </div>
+  </div>
   <div class="ov ov-fixed" id="rankOv" hidden>
     <div class="ov-card rank-card">
       <h2>🏆 랭킹</h2>
@@ -787,7 +803,7 @@ function makeEnemy(boss) {
     x: r + Math.random() * (W - 2 * r), y: -r - Math.random() * 8, r, hp, maxHp: hp, foe: f,
     sp: f.speed * SPEED_UNIT(w) * (boss ? 1 : 0.85 + Math.random() * 0.3),
     slowT: 0, slowF: 0, stunT: 0, burnT: 0, burnDps: 0, flash: 0, jumpT: 0, jumpCd: 0, castT: 0, skillT: 6 + Math.random() * 3,
-    boss, weight: boss ? BAL.bossWeight : 1, dead: false, shieldT: 0, shieldCd: f.shield ? 1 + Math.random() * 4 : 0, msgT: 0,
+    id: S.eid = (S.eid || 0) + 1, boss, weight: boss ? BAL.bossWeight : 1, dead: false, shieldT: 0, shieldCd: f.shield ? 1 + Math.random() * 4 : 0, msgT: 0,
     wob: Math.random() * 6.28, tier: Math.floor((w - 1) / 5) % TIERS.length,
   };
 }
@@ -1443,7 +1459,7 @@ function pick(i) {
   startWave();
 }
 function upgrade(id, el) {
-  if (S.over) return;
+  if (S.over || S.watching) return;
   const cost = upCost(id);
   if (S.gold < cost) { toast('강화할 돈이 부족해요'); shake(el); return; }
   S.gold -= cost; S.levels[id]++; S.upN++;
@@ -1528,7 +1544,7 @@ function act(from, to) {
   select(-1);
 }
 function onTap(x, y) {
-  if (S.over) return;
+  if (S.over || S.watching) return;
   const i = pickSlot(x, y);
   if (S.equipping) {
     if (i >= 0 && S.units[i]) { equip(S.equipping, S.units[i]); S.equipping = null; equipBar().hidden = true; }
@@ -2100,11 +2116,143 @@ function setPaused(p) {
   S.paused = p; $('#pauseOv').hidden = !p;
   if (p) saveGame();
 }
+/* ===== 👀 관전 (2026-11-21 예준이 요청) =====
+   게임하는 사람은 0.25초마다 지금 화면(캐릭터 · 적 · 무기)을 작게 줄여서 room presence로 보내고,
+   보는 사람은 그걸 받아서 같은 그림으로 그려요. claude.ai에 로그인한 사람끼리만 돼요. */
+const LIVE = { room: null, ready: null, sent: 0, on: false, peers: [] };
+const ALL_FOES = FOES.concat(BOSSES);
+const b36 = (n, w) => { n = Math.max(0, Math.min(36 ** w - 1, Math.round(n))); return n.toString(36).padStart(w, '0'); };
+function liveInit() {
+  if (LIVE.ready) return LIVE.ready;
+  LIVE.ready = (async () => {
+    const C = window.claude;
+    if (!C || typeof C.use !== 'function') return null;
+    try { LIVE.room = await C.use('room'); } catch (e) { LIVE.room = null; }
+    if (LIVE.room) LIVE.room.onPeers((ch) => { LIVE.peers = ch.peers; if (!$('#watchOv').hidden) renderWatchList(); if (S.watching) watchPeers(); }, () => { LIVE.room = null; });
+    return LIVE.room;
+  })();
+  return LIVE.ready;
+}
+function liveSnap() {
+  const unitIdx = {}; CHARS.forEach((c, i) => { unitIdx[c.id] = i; });
+  let e = '';
+  for (const x of S.enemies) {
+    if (x.dead || e.length > 1600) continue;
+    const fl = (x.shieldT > 0 ? 1 : 0) | (x.jumpT > 0 ? 2 : 0) | (x.stunT > 0 ? 4 : 0) | (x.slowT > 0 ? 8 : 0) | (x.poisonT > 0 ? 16 : 0) | (x.castT > 0 ? 32 : 0);
+    e += b36(ALL_FOES.indexOf(x.foe), 1) + b36(x.x + 50, 2) + b36(x.y + 100, 2) + b36(x.hp / x.maxHp * 35, 1) + b36(fl, 2) + b36((x.id || 0) % 1296, 2);
+  }
+  return {
+    n: store.get('yj2.nick', '') || '이름 없음', w: S.wave, c: S.count, g: Math.floor(S.gold), lv: S.lv, xp: Math.round(S.xp), wt: Math.round(S.waveT * 10) / 10,
+    o: S.over ? 1 : 0, ch: S.choosing ? 1 : 0, p: S.paused ? 1 : 0,
+    d: S.deck.map((id) => [unitIdx[id], S.levels[id]]),
+    u: S.units.map((u) => u ? unitIdx[u.type] : -1),
+    e, tu: S.turrets.map((t) => [Math.round(t.x), t.awake ? 1 : 0]), tl: S.turretLv,
+    tr: S.traps.length ? (S.traps[0].awake ? 2 : 1) : 0, trl: S.trapLv,
+    cn: S.cannon ? [S.cannon.lv, S.cannon.awake ? 1 : 0] : 0,
+    al: S.aliens.map((a) => [a.kind === 'yellow' ? 0 : 1, a.lv]),
+  };
+}
+function liveTick(t) {
+  const R = LIVE.room;
+  if (!R) return;
+  const playing = S.screen === 'battle' && !S.watching && S.units;
+  if (playing && (t - LIVE.sent > 250 || (S.over && LIVE.on !== 'over'))) {
+    LIVE.sent = t; LIVE.on = S.over ? 'over' : true;
+    R.presence({ live: liveSnap() }).catch(() => {});
+  } else if (!playing && LIVE.on) { LIVE.on = false; R.presence({ live: null }).catch(() => {}); }
+}
+const livePeers = () => LIVE.peers.filter((p) => !p.sameTab && p.presence && p.presence.live && typeof p.presence.live === 'object');
+async function openWatch() {
+  const ov = $('#watchOv'), list = $('#watchList');
+  ov.hidden = false; list.innerHTML = '<li class="empty">찾는 중…</li>'; $('#watchNote').textContent = '';
+  const R = await liveInit();
+  if (!R) { list.innerHTML = '<li class="empty">관전은 claude.ai 게임 페이지에서 로그인해야 할 수 있어요</li>'; return; }
+  renderWatchList();
+  setTimeout(() => { if (!ov.hidden) renderWatchList(); }, 2000);
+}
+function renderWatchList() {
+  const list = $('#watchList'), ps = livePeers();
+  list.innerHTML = ps.length ? '' : '<li class="empty">지금 게임하는 사람이 없어요</li>';
+  ps.forEach((p) => {
+    const L = p.presence.live, li = document.createElement('li');
+    const a = document.createElement('b'); a.textContent = L.o ? '💀' : '🎮';
+    const nm = document.createElement('span'); nm.className = 'n'; nm.textContent = String(L.n || '이름 없음').slice(0, 12) + (p.isMe ? ' (나)' : '');
+    const wv = document.createElement('span'); wv.textContent = 'WAVE ' + (+L.w || 0);
+    li.append(a, nm, wv); li.addEventListener('click', () => enterWatch(p.peer)); list.appendChild(li);
+  });
+  $('#watchNote').textContent = ps.length ? '누르면 그 사람 화면을 봐요' : '';
+}
+function enterWatch(peer) {
+  $('#watchOv').hidden = true;
+  S.homeDeck = S.deck;
+  newBattle();
+  Object.assign(S, { watching: peer, units: new Array(SLOTS).fill(null), fx: [], projs: [], enemies: [], wmap: new Map() });
+  for (const k in ui) delete ui[k];
+  $('#battle').classList.add('watching'); $('#watchBar').hidden = false; buildDeckBar();
+  $('#overOv').hidden = true; $('#pauseOv').hidden = true; $('#rewardOv').hidden = true; pop.hidden = true; $('#equipBar').hidden = true; $('#coach').hidden = true;
+  show('battle');
+  watchPeers();
+}
+function exitWatch() {
+  S.watching = null; S.deck = S.homeDeck || S.deck; S.enemies = []; S.units = new Array(SLOTS).fill(null);
+  $('#battle').classList.remove('watching'); $('#watchBar').hidden = true;
+  for (const k in ui) delete ui[k];
+  show('home');
+}
+function watchPeers() {                                     // 보는 사람이 받은 화면을 그림으로 바꿔요
+  const p = LIVE.peers.find((x) => x.peer === S.watching), L = p && p.presence.live;
+  if (!L || typeof L !== 'object') { $('#watchLbl').textContent = '👀 게임이 끝났거나 나갔어요'; return; }
+  if (L === S.wLast) return;
+  S.wLast = L;
+  $('#watchLbl').textContent = '👀 ' + String(L.n || '이름 없음').slice(0, 12) + (L.o ? ' · 게임 오버!' : L.ch ? ' · 선물 고르는 중' : L.p ? ' · 잠깐 멈춤' : ' 관전 중');
+  Object.assign(S, { wave: +L.w || 0, count: +L.c || 0, gold: +L.g || 0, lv: +L.lv || 1, xp: +L.xp || 0, waveT: +L.wt || 0,
+    turretLv: +L.tl || 1, trapLv: +L.trl || 1 });
+  if (Array.isArray(L.d)) {
+    const deck = L.d.map((x) => CHARS[x && x[0]]).filter(Boolean).map((c) => c.id);
+    if (deck.length === 8 && deck.join() !== S.deck.join()) { S.deck = deck; buildDeckBar(); }
+    L.d.forEach((x) => { const c = x && CHARS[x[0]]; if (c) S.levels[c.id] = +x[1] || 1; });
+  }
+  if (Array.isArray(L.u)) for (let i = 0; i < SLOTS; i++) {
+    const c = CHARS[L.u[i]], u = S.units[i];
+    if (!c) S.units[i] = null;
+    else if (!u || u.type !== c.id) S.units[i] = { type: c.id, slot: i, cd: 0, born: 0, anim: 0, lunge: 0, lx: 0, ly: 0 };
+  }
+  const old = S.turrets; S.turrets = (Array.isArray(L.tu) ? L.tu : []).map((t, i) => Object.assign(old[i] && old[i].x === t[0] ? old[i] : { y: WALL_Y, cd: 0, face: 1, anim: 0, born: 0 }, { x: +t[0] || 0, awake: !!t[1] }));
+  S.traps = L.tr ? [Object.assign(S.traps[0] || { x: W / 2, y: WALL_Y + BAL.trapY, cd: 0, anim: 0, born: 0 }, { awake: L.tr === 2 })] : [];
+  S.cannon = Array.isArray(L.cn) ? Object.assign(S.cannon || { x: 222, y: WALL_Y + 16, cd: 0, face: 1, anim: 0, born: 0 }, { lv: +L.cn[0] || 1, awake: !!L.cn[1] }) : null;
+  const oa = S.aliens; S.aliens = (Array.isArray(L.al) ? L.al : []).map((a) => { const kind = a[0] ? 'purple' : 'yellow', was = oa.find((x) => x.kind === kind);
+    return Object.assign(was || { kind, x: ALIEN[kind].x, cd: 0, burst: 0, bt: 0, anim: 0, born: 0, bob: Math.random() * 6 }, { lv: +a[1] || 1 }); });
+  const e = typeof L.e === 'string' ? L.e : '', seen = new Map(), tier = Math.floor((S.wave - 1) / 5) % TIERS.length;
+  for (let i = 0; i + 10 <= e.length; i += 10) {
+    const f = ALL_FOES[parseInt(e[i], 36)]; if (!f) continue;
+    const x = parseInt(e.substr(i + 1, 2), 36) - 50, y = parseInt(e.substr(i + 3, 2), 36) - 100, hp = parseInt(e[i + 5], 36) / 35, fl = parseInt(e.substr(i + 6, 2), 36), id = e.substr(i + 8, 2);
+    let o = S.wmap.get(id);
+    if (!o || o.foe !== f) o = { x, y, r: f.r, foe: f, boss: BOSSES.includes(f), maxHp: 1, wob: Math.random() * 6.28, tier, flash: 0, burnT: 0, dead: false };
+    Object.assign(o, { tx: x, ty: y, hp: Math.max(0.01, hp), shieldT: fl & 1 ? 1 : 0, jumpT: fl & 2 ? 0.2 : 0, stunT: fl & 4 ? 1 : 0, slowT: fl & 8 ? 1 : 0, poisonT: fl & 16 ? 1 : 0, castT: fl & 32 ? 1 : 0 });
+    seen.set(id, o);
+  }
+  S.wmap = seen; S.enemies = [...seen.values()];
+}
+function watchTick(dt) {
+  S.time += dt;
+  if (S.banner) { S.banner.t += dt; if (S.banner.t > 1.8) S.banner = null; }
+  const k = Math.min(1, dt * 10);
+  for (const e of S.enemies) { e.x += (e.tx - e.x) * k; e.y += (e.ty - e.y) * k; }
+  for (const u of S.units) if (u) u.born += dt;
+  for (const t of S.turrets) t.born += dt;
+  for (const a of S.aliens) { a.born += dt; a.bob += dt; }
+  if (S.cannon) S.cannon.born += dt;
+  for (const t of S.traps) t.born += dt;
+}
+$('#bWatch').addEventListener('click', openWatch);
+$('#bWatchClose').addEventListener('click', () => { $('#watchOv').hidden = true; });
+$('#bWatchExit').addEventListener('click', exitWatch);
+
 /* ===== 💾 세이브 (2026-11-21 예준이 요청) — 웨이브가 시작될 때 · 멈출 때 · 앱을 나갈 때 자동 저장 ===== */
 const SAVE_KEY = 'yj2.save', SAVE_V = 1;
 const SKIP = new Set(['screen', 'best', 'speed', 'projs', 'fx', 'drag', 'banner', 'sel', 'paused', 'equipping', 'over']);
 function saveGame() {
-  if (S.screen !== 'battle' || S.over || !S.units) return;
+  if (S.screen !== 'battle' || S.over || S.watching || !S.units) return;
   const units = new Set(S.units.filter(Boolean)), foes = new Set(S.enemies);
   const data = {};
   for (const k in S) if (!SKIP.has(k) && typeof S[k] !== 'function') data[k] = S[k];
@@ -2289,7 +2437,7 @@ $('#bCoachGo').addEventListener('click', () => { store.set('yj2.coach', true); $
 const toField = (e) => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
 let press = null;                                            // 누르기 → 떼기 = 탭, 누른 채로 움직이기 = 끌기
 cv.addEventListener('pointerdown', (e) => {
-  if (S.over || S.screen !== 'battle') return;
+  if (S.over || S.screen !== 'battle' || S.watching) return;
   const q = toField(e), i = pickSlot(q.x, q.y);
   press = { x: q.x, y: q.y, from: i >= 0 && S.units[i] && !S.equipping ? i : -1 };
   try { cv.setPointerCapture(e.pointerId); } catch (err) { /* 괜찮아요 */ }
@@ -2308,7 +2456,7 @@ cv.addEventListener('pointerup', (e) => {
 });
 cv.addEventListener('pointercancel', () => { press = null; S.drag = null; });
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && S.screen === 'battle' && !S.over && $('#coach').hidden) setPaused(true);
+  if (document.hidden && S.screen === 'battle' && !S.over && !S.watching && $('#coach').hidden) setPaused(true);
   if (document.hidden) saveGame();
 });
 window.addEventListener('resize', layout);
@@ -2318,14 +2466,16 @@ let last = 0;
 function frame(t) {
   const dt = Math.min(0.05, (t - last) / 1000 || 0); last = t;
   if (S.screen === 'battle') {
-    if (!S.paused && !S.over && !S.choosing && !S.equipping) for (let i = 0; i < S.speed && !S.over && !S.choosing; i++) update(dt);
+    if (S.watching) watchTick(dt);
+    else if (!S.paused && !S.over && !S.choosing && !S.equipping) for (let i = 0; i < S.speed && !S.over && !S.choosing; i++) update(dt);
     render(); syncHUD();
   }
+  liveTick(t);
   requestAnimationFrame(frame);
 }
 
 function start(data) {
-  rankInit();
+  rankInit(); liveInit();
   S.deck = validDeck(data && data.deck) || validDeck(store.get('yj2.deck', null)) || CHARS.slice(0, 8).map((c) => c.id);
   S.best = store.get('yj2.best', 0) || 0;
   show('home');
