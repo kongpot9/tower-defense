@@ -104,6 +104,13 @@ h1,h2,p{margin:0}
 .cc:active{transform:translateY(2px);box-shadow:0 2px 0 var(--ink)}
 .cc[aria-pressed="true"]{background:var(--yellow)}
 .cc.locked{filter:grayscale(.85);opacity:.6}
+.cc.locked.buy{filter:grayscale(.4);opacity:.85}
+.cc-how{font-size:12px;font-weight:700;color:var(--ink);background:var(--paper-2,#E4E7EE);border:1.5px dashed var(--ink);border-radius:8px;padding:3px 7px}
+.box-got{display:flex;flex-direction:column;align-items:center;gap:6px;margin:6px 0;animation:pop .35s ease-out}
+.box-got .stk{width:84px;height:84px}
+.box-got b{font-family:var(--f-display);font-weight:400;font-size:22px}
+.box-got .grade{font-style:normal;font-size:12px;color:#fff;border-radius:6px;padding:1px 8px}
+@keyframes pop{0%{transform:scale(.3);opacity:0}80%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
 .cc-lock{position:absolute;top:10px;right:10px;font-family:var(--f-display);font-size:13px;color:var(--ink);background:var(--paper);border:2px solid var(--ink);border-radius:8px;padding:1px 6px}
 .cc .stk{width:40px;height:40px;font-size:20px;margin:2px 0 2px 2px}
 .cc-name{font-size:17px;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
@@ -226,7 +233,7 @@ h1,h2,p{margin:0}
 .go-earn span{display:flex;align-items:center;gap:4px}
 .go-earn img{width:22px;height:22px;object-fit:contain}
 .btn-gold{background:#F2C440;color:var(--ink)}
-.btn img.ic{width:22px;height:22px;object-fit:contain;vertical-align:-5px;margin:0 2px}
+img.ic{width:22px;height:22px;object-fit:contain;vertical-align:-5px;margin:0 2px}
 .up-list li{grid-template-columns:40px 1fr auto}
 .up-list .stk{width:36px;height:36px;font-size:18px}
 .up-list small{display:block;font-size:11px;color:var(--muted)}
@@ -296,6 +303,7 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
     <div class="lobby-top">
       <button class="btn btn-sm" id="bUpg" type="button" hidden>⭐ 強化</button>
       <button class="btn btn-sm" id="bDeck" type="button">🃏 デッキ編成</button>
+      <button class="btn btn-sm" id="bBox" type="button">🎁 ボックス</button>
       <button class="btn btn-sm" id="bRank" type="button">🏆 ランキング</button>
       <button class="btn btn-sm" id="bWatch" type="button" hidden>👀 観戦</button>
       <button class="btn btn-sm" id="bLang" type="button" hidden>🌐 한국어</button>
@@ -418,6 +426,15 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
   </section>
 
   <!-- ===== 🏆 ランキング ===== -->
+  <div class="ov ov-fixed" id="boxOv" hidden>
+    <div class="ov-card">
+      <h2>🎁 キャラボックス</h2>
+      <p class="sub">クリスタルキャラがひとり出ます · <span id="boxPrice"></span></p>
+      <p class="bld-note" id="boxOdds"></p>
+      <div id="boxResult"></div>
+      <div class="ov-btns"><button class="btn btn-gold big" id="bBoxOpen" type="button">開ける</button><button class="btn" id="bBoxClose" type="button">とじる</button></div>
+    </div>
+  </div>
   <div class="ov ov-fixed" id="bldOv" hidden>
     <div class="ov-card bld-card">
       <img class="bld-img" id="bldImg" alt="">
@@ -750,6 +767,20 @@ const store = {
 // 🔓 처음부터 쓸 수 있는 캐릭터 (2026-11-21 예준이 결정): ノーマル 전부 · レア 전부(ノエシ 빼고) · 영웅은 デスシュタイン 하나 · 전설은 レッドドラゴン
 const START_UNLOCK = ['sword', 'archer', 'farmer', 'jura', 'taein', 'tank', 'tenjo', 'stein', 'dragon'];
 const unlocked = (id) => START_UNLOCK.includes(id) || !!(META.unlock && META.unlock[id]);
+// 🏆 実績 캐릭터 · 💎 クリスタル 캐릭터 (나누기 · 조건 · 가격은 Claude 초안, 2026-11-21 예준이 "이대로 하자")
+const ACH = {
+  noesi:    { d: 'ゲームを5回プレイ',            n: () => META.games || 0, goal: 5 },
+  willy:    { d: 'ウェーブ15到達',           n: () => META.bestWave || 0, goal: 15 },
+  hochi:    { d: 'ボスを1体たおす',          n: () => META.bossKills || 0, goal: 1 },
+  jeff:     { d: 'ウェーブ25到達',           n: () => META.bestWave || 0, goal: 25 },
+  blader:   { d: 'ウェーブ40到達',           n: () => META.bestWave || 0, goal: 40 },
+  bakbak:   { d: 'ダンジョンでボスを3体たおす',  n: () => META.dgBoss || 0, goal: 3 },
+  dosa:     { d: '1回のゲームで覚醒武器3つ',     n: () => META.awakeMax || 0, goal: 3 },
+  kongttuk: { d: 'ウェーブ60到達',           n: () => META.bestWave || 0, goal: 60 },
+};
+const CRYS_PRICE = { 'ヒーロー': 500, '神話': 3000, '伝説': 10000 };
+const BOX = { price: 300, odds: { 'ヒーロー': 70, '神話': 27, '伝説': 3 } };   // 🎁 아직 없는 クリスタル 캐릭터만 나와요 (중복 없음)
+const isCrysChar = (id) => BY[id] && !START_UNLOCK.includes(id) && !ACH[id];
 const validDeck = (d) => Array.isArray(d) && d.length === 8 && new Set(d).size === 8 && d.every((id) => BY[id] && unlocked(id)) && d.includes('sword') ? d.slice() : null;
 
 /* ===== 상태 ===== */
@@ -1032,7 +1063,8 @@ function hurt(e, a, src) {
     S.xp += e.boss ? 10 : 1;
     while (S.xp >= xpNeed()) { S.xp -= xpNeed(); S.lv++; S.pendingLv++; fx({ k: 'text', x: W / 2, y: 140, s: 'レベルアップ！Lv.' + S.lv, c: BLUE, life: 1.3, size: 20 }); }
     S.gold += (e.boss ? BAL.bossGold : BAL.killGold) + S.buff.gold;
-    if (e.boss) { if (S.mode === 'dungeon') S.dgKills = (S.dgKills || 0) + 1; else S.runCrystal = (S.runCrystal || 0) + EARN.crystalBoss; }   // 💎 ボス たおした数
+    if (e.boss) { if (S.mode === 'dungeon') S.dgKills = (S.dgKills || 0) + 1; else S.runCrystal = (S.runCrystal || 0) + EARN.crystalBoss;   // 💎 ボス たおした数
+      META.bossKills = (META.bossKills || 0) + 1; metaSave(); checkAch(true); }
     const n = e.boss ? 18 : 5;
     if (S.fx.length < 500) {
       for (let i = 0; i < n; i++) {
@@ -1677,9 +1709,9 @@ function pick(i) {
     S.turrets.push({ x, y: WALL_Y, cd: 0.4, face: 1, anim: 0, born: 0 });
     fx({ k: 'pop', x, y: WALL_Y - 15, life: 0.45 });
   }
-  awakenCheck();
+  awakenCheck(); noteAwake();
   S.offer = null; S.choosing = false; $('#rewardOv').hidden = true;
-  if (!S.bonusPick && S.aliens.some((a) => a.kind === 'purple') && Math.random() < ALIEN.purple.bonusP) {   // 👽 パープル・エイリアン: プレゼント 한 回 더!
+  if (!S.bonusPick && S.aliens.some((a) => a.kind === 'purple') && Math.random() < ALIEN.purple.bonusP) {   // 👽 パープル・エイリアン: プレゼント もう一回!
     S.bonusPick = true; endWave();
     $('#rwTitle').textContent = '👽 パープル・エイリアン ボーナス！'; $('#rwSub').textContent = 'プレゼントをもうひとつえらんでね';
     return;
@@ -1731,7 +1763,7 @@ function sell() {
   const u = S.units[S.sel];
   if (!u || S.over) return;
   const sb = $('#popSell');
-  if (sellArm !== u) {                                      // 실수로 팔리지 않게: 한 回 더 눌러야 팔려요
+  if (sellArm !== u) {                                      // 실수로 팔리지 않게: もう一回 눌러야 팔려요
     sellArm = u; sb.classList.add('arm'); sb.textContent = '本当に売る？もう一回！';
     clearTimeout(sellTimer); sellTimer = setTimeout(() => { if (sellArm === u) showPop(); }, 2500);
     return;
@@ -2227,12 +2259,13 @@ function openDeck() { draft = S.deck.slice(); renderDeck(); show('deck'); }
 function renderDeck() {
   const g = $('#charGrid');
   g.innerHTML = CHARS.map((d) => {
-    const on = draft.includes(d.id), lock = !unlocked(d.id);
+    const on = draft.includes(d.id), lock = !unlocked(d.id), A = ACH[d.id];
     const range = d.range >= 999 ? '全体' : d.range;
-    return '<button class="cc' + (lock ? ' locked' : '') + '" type="button" data-id="' + d.id + '" aria-pressed="' + on + '">' +
+    const how = !lock ? '' : A ? '🏆 実績： ' + A.d + ' (' + Math.min(A.n(), A.goal) + '/' + A.goal + ')' : '💎 ' + CRYS_PRICE[d.grade].toLocaleString() + 'で解放・🎁 ボックス';
+    return '<button class="cc' + (lock ? ' locked' : '') + (lock && !A ? ' buy' : '') + '" type="button" data-id="' + d.id + '" aria-pressed="' + on + '">' +
       stickerHTML(d, 40) +
       '<span class="cc-name">' + d.name + ' <em>' + d.role + '</em><em class="grade" style="background:' + GRADE_C[d.grade] + '">' + d.grade + '</em></span>' +
-      '<span class="cc-desc">' + d.desc + '</span>' +
+      '<span class="cc-desc">' + d.desc + '</span>' + (how ? '<span class="cc-how">' + how + '</span>' : '') +
       '<span class="cc-stat">' + (d.support ? '攻撃しない・サポート' : 'ダメージ ' + d.dmg + ' · ' + every(d) + ' · 射程 ' + range) + '</span>' +
       '<span class="cc-check">' + (d.id === 'sword' ? 'スタート' : '出撃') + '</span>' + (lock ? '<span class="cc-lock">🔒 ロック中</span>' : '') + '</button>';
   }).join('');
@@ -2244,7 +2277,7 @@ $('#charGrid').addEventListener('click', (e) => {
   const b = e.target.closest('.cc'); if (!b) return;
   const id = b.dataset.id, i = draft.indexOf(id);
   if (id === 'sword') { toast('戦士はいつもいっしょにスタートします'); return; }
-  if (!unlocked(id)) { toast('🔒 まだロックされています'); return; }
+  if (!unlocked(id)) { if (ACH[id]) toast('🏆 実績： ' + ACH[id].d); else buyChar(id); return; }
   if (i >= 0) draft.splice(i, 1);
   else if (draft.length < 8) draft.push(id);
   else { toast('8体までしか連れて行けません。先にひとり外してね'); }
@@ -2413,6 +2446,55 @@ $('#bUpg').addEventListener('click', openUpg);
 $('#bUpClose').addEventListener('click', () => { $('#upOv').hidden = true; });
 $('#bRevive').addEventListener('click', revive);
 
+/* ===== 🏆 実績 · 💎 クリスタル 캐릭터 · 🎁 ボックス ===== */
+function checkAch(inBattle) {                                 // 조건을 깼으면 解放！
+  META.unlock = META.unlock || {};
+  const got = [];
+  for (const id in ACH) if (!META.unlock[id] && ACH[id].n() >= ACH[id].goal) { META.unlock[id] = true; got.push(id); }
+  if (!got.length) return;
+  metaSave();
+  const msg = '🏆 実績達成！ ' + got.map((id) => BY[id].name).join(' · ') + ' 解放！';
+  if (inBattle && S.screen === 'battle') S.banner = { s: msg, t: 0, c: '#D98A1C' }; else toast(msg);
+}
+function awakeCount() {
+  return S.turrets.filter((t) => t.awake).length + (S.traps[0] && S.traps[0].awake ? 1 : 0) + (S.cannon && S.cannon.awake ? 1 : 0) +
+    Object.values(S.xw || {}).filter((u) => u.awake).length;
+}
+function noteAwake() { const n = awakeCount(); if (n > (META.awakeMax || 0)) { META.awakeMax = n; metaSave(); checkAch(true); } }
+let buyArm = '';
+function buyChar(id) {                                        // 💎 바로 사기 (두 回 눌러야 사요)
+  const price = CRYS_PRICE[BY[id].grade];
+  if (META.crystal < price) { toast('クリスタルが足りません (💎' + price.toLocaleString() + ')'); return; }
+  if (buyArm !== id) { buyArm = id; toast('もう一度押すと 💎' + price.toLocaleString() + 'で解放します'); setTimeout(() => { if (buyArm === id) buyArm = ''; }, 2500); return; }
+  buyArm = ''; META.crystal -= price; META.unlock = META.unlock || {}; META.unlock[id] = true; metaSave();
+  toast('🔓 ' + BY[id].name + ' 解放！'); renderDeck();
+}
+function boxLeft() { return CHARS.filter((c) => isCrysChar(c.id) && !unlocked(c.id)); }
+function openBox() {
+  const left = boxLeft(), ov = $('#boxOv');
+  $('#boxPrice').innerHTML = crysIco + BOX.price;
+  $('#boxOdds').textContent = 'ヒーロー ' + BOX.odds['ヒーロー'] + '% · 神話 ' + BOX.odds['神話'] + '% · 伝説 ' + BOX.odds['伝説'] + '% · まだ持っていないキャラだけ出ます（のこり ' + left.length + '人)';
+  $('#boxResult').innerHTML = '';
+  const b = $('#bBoxOpen'); b.disabled = !left.length || META.crystal < BOX.price;
+  b.innerHTML = left.length ? crysIco + BOX.price + ' 開ける' : '全部集めました！';
+  ov.hidden = false;
+}
+function rollBox() {
+  const left = boxLeft(); if (!left.length || META.crystal < BOX.price) return;
+  const grades = Object.keys(BOX.odds).filter((g) => left.some((c) => c.grade === g));
+  let r = Math.random() * grades.reduce((a, g) => a + BOX.odds[g], 0), g = grades[0];
+  for (const x of grades) { if ((r -= BOX.odds[x]) < 0) { g = x; break; } }
+  const pool = left.filter((c) => c.grade === g), c = pool[Math.floor(Math.random() * pool.length)];
+  META.crystal -= BOX.price; META.unlock = META.unlock || {}; META.unlock[c.id] = true; metaSave();
+  $('#boxResult').innerHTML = '<div class="box-got">' + stickerHTML(c, 84) + '<b></b><em class="grade" style="background:' + GRADE_C[c.grade] + '">' + c.grade + '</em></div>';
+  $('#boxResult b').textContent = c.name + ' 解放！';
+  const b = $('#bBoxOpen'), l2 = boxLeft(); b.disabled = !l2.length || META.crystal < BOX.price; b.innerHTML = l2.length ? crysIco + BOX.price + ' もう一回' : '全部集めました！';
+  $('#boxOdds').textContent = 'ヒーロー ' + BOX.odds['ヒーロー'] + '% · 神話 ' + BOX.odds['神話'] + '% · 伝説 ' + BOX.odds['伝説'] + '% · まだ持っていないキャラだけ出ます（のこり ' + l2.length + '人)';
+}
+$('#bBox').addEventListener('click', openBox);
+$('#bBoxOpen').addEventListener('click', rollBox);
+$('#bBoxClose').addEventListener('click', () => { $('#boxOv').hidden = true; });
+
 /* ===== 🏘️ 마을 건물 (그림 · 기능 · 가격: グ・イェジュン, 2026-11-21) =====
    성벽 뒤에 건물을 지어요. 時間 · 출석으로 コイン · 크리스탈을 주거나, 던전에 들어가요.
    '출석' = 그날 처음 들어왔을 때 (하루에 한 回) */
@@ -2543,7 +2625,8 @@ function dungeonEnd() {                                             // 🕳️ �
   if (S.over) return;
   S.over = true; select(-1);
   const k = S.dgKills || 0, gain = k * DUNGEON.reward;
-  META.crystal += gain; metaSave();
+  META.dgBoss = (META.dgBoss || 0) + k;
+  META.crystal += gain; metaSave(); checkAch(false);
   $('#goWave').textContent = k;
   $('.go-wave small').textContent = 'たおしたボス';
   $('.go-title').textContent = S.dgLeft <= 0 ? 'ダンジョン おわり！' : 'ダンジョンで負けました!';
@@ -2774,7 +2857,7 @@ function resumeBattle() {
 }
 function startBattle(mode) {
   mode = mode === 'dungeon' ? 'dungeon' : 'normal';
-  if (mode === 'normal') { clearSave(); countPlay(); META.games = (META.games || 0) + 1; metaSave(); }
+  if (mode === 'normal') { clearSave(); countPlay(); META.games = (META.games || 0) + 1; metaSave(); checkAch(false); }
   newBattle();
   S.mode = mode;
   if (mode === 'dungeon') { S.dgLeft = DUNGEON.time; S.dgKills = 0; }
@@ -2898,8 +2981,9 @@ function gameOver() {
   S.over = true; select(-1); clearSave();
   const w = S.wave, nb = w > S.best;
   if (nb) { S.best = w; store.set('yj2ja.best', w); S.newRecord = true; }
+  if (w > (META.bestWave || 0)) META.bestWave = w;
   $('.go-wave small').textContent = '到達ウェーブ'; $('.go-title').textContent = 'お城がくずれた！'; $('#goReason').textContent = '敵が100匹たまりました'; $('#bGoRank').hidden = false;
-  const got = payRun();
+  const got = payRun(); checkAch(false);
   $('#goEarn').innerHTML = '<span>' + coinIco + '+' + got.coin + '</span>' + (got.crys ? '<span>' + crysIco + '+' + got.crys + '</span>' : '');
   const rv = $('#bRevive'); rv.hidden = !!S.revived; rv.disabled = META.crystal < PRICE.revive;
   rv.innerHTML = crysIco + PRICE.revive + ' 復活 (1回のゲームで1回)';
@@ -2997,6 +3081,8 @@ function start(data) {
   rankInit(); liveInit();
   S.deck = validDeck(data && data.deck) || validDeck(store.get('yj2ja.deck', null)) || CHARS.filter((c) => unlocked(c.id)).slice(0, 8).map((c) => c.id);
   S.best = store.get('yj2ja.best', 0) || 0;
+  if (S.best > (META.bestWave || 0)) { META.bestWave = S.best; metaSave(); }   // 예전 최고 기록도 업적에 쳐요
+  setTimeout(() => checkAch(false), 600);
   show('home');
   if (document.fonts && document.fonts.load) { document.fonts.load('12px "M PLUS Rounded 1c"').then(() => { if (S.screen === 'battle') layout(); }).catch(() => {}); }
   requestAnimationFrame(frame);
