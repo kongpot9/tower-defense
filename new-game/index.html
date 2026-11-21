@@ -462,7 +462,7 @@ const CANNON_LV = [null,
   { dmg: 1900, every: 1 },     // Lv.5
 ];
 const CANNON_IMG = new Image(); CANNON_IMG.src = CANNON.img;
-// 👽 에일리언 (그림·설정: 구예준, 2026-11-21) — 성벽 위에 떠 있는 방어 유닛 · 직선으로 찍찍 쏴요
+// 👽 에일리언 (그림·설정: 구예준, 2026-11-21) — 성벽 위에 떠 있는 방어 유닛 · 번개 공격
 const ALIEN = {
   yellow: { name: '옐로 에일리언', img: 'art/alien-yellow.png', x: 92,  c: '#F2C440', maxLv: 5 },
   purple: { name: '보라 에일리언', img: 'art/alien-purple.png', x: 290, c: '#8A4FE0', bonusP: 0.2 },   // 웨이브 선물을 20% 확률로 2번
@@ -1113,7 +1113,7 @@ function update(dt) {
       } else cn.cd = 0.1;
     }
   }
-  for (const al of S.aliens) {                             // 👽 에일리언: 직선으로 찍찍 (한 번에 여러 발)
+  for (const al of S.aliens) {                             // 👽 에일리언: 번개 공격 (한 번에 여러 발)
     al.born += dt; al.bob += dt; if (al.anim > 0) al.anim -= dt;
     const L = ALIEN_LV[al.kind === 'yellow' ? al.lv : 1], y = alienY(al);
     if (al.burst > 0) {
@@ -1254,11 +1254,11 @@ function offerHTML(o, i) {
       note = '성벽 위 옐로 에일리언이 세져요';
     } else if (o.id === 'yellow') {
       name = A.name + ' 소환';
-      desc = '성벽 위에 떠서 직선으로 찍찍 쏴요. Lv.1: ' + sh(ALIEN_LV[1]);
+      desc = '성벽 위에 떠서 번개 공격을 쏴요. Lv.1: ' + sh(ALIEN_LV[1]);
       note = '레벨업하면 세져요 (Lv.5: 200×8 · 1초마다)';
     } else {
       name = A.name + ' 소환';
-      desc = '웨이브가 끝나면 <b>20% 확률로 선물을 2번</b> 받게 해 줘요! 옐로처럼 찍찍도 쏴요 (' + sh(ALIEN_LV[1]) + ')';
+      desc = '웨이브가 끝나면 <b>20% 확률로 선물을 2번</b> 받게 해 줘요! 옐로처럼 번개 공격도 해요 (' + sh(ALIEN_LV[1]) + ')';
       note = '방어 유닛 · 하나만 있을 수 있어요';
     }
   } else if (o.k === 'cannonNew') {
@@ -1742,7 +1742,7 @@ function drawProj(pr) {
     case 'straw': c.fillStyle = '#F5B7C5'; circle(c, 0, 0, 4); c.fill(); c.stroke(); break;
     case 'shell': c.fillStyle = INK; circle(c, 0, 0, pr.def.id === 'turret' ? 3.6 : 5.5); c.fill(); break;
     case 'cannonball': c.fillStyle = INK; circle(c, 0, 0, 5); c.fill(); c.fillStyle = '#6B7280'; circle(c, -1.5, -1.5, 1.6); c.fill(); break;
-    case 'beam':                                            // 👽 찍찍 — 짧은 직선 광선
+    case 'beam':                                            // 👽 번개 공격
       c.rotate(a); c.lineCap = 'round'; c.strokeStyle = INK; c.lineWidth = 5; c.beginPath(); c.moveTo(-11, 0); c.lineTo(5, 0); c.stroke();
       c.strokeStyle = pr.c; c.lineWidth = 3; c.beginPath(); c.moveTo(-11, 0); c.lineTo(5, 0); c.stroke();
       break;
