@@ -260,7 +260,7 @@ h1,h2,p{margin:0}
       <button class="btn" id="bDeck" type="button">덱 편성</button>
       <button class="btn" id="bRank" type="button">🏆 랭킹</button>
     </div>
-    <p class="foot">캐릭터 32명 · 적 4종 · 터렛 · 트랩 · 성까지 전부 예준이 그림! 버프템만 아직 임시예요.</p>
+    <p class="foot">캐릭터 32명 · 적 6종 · 터렛 · 트랩 · 성까지 전부 예준이 그림! 버프템만 아직 임시예요.</p>
   </section>
 
   <!-- ===== 덱 편성 ===== -->
@@ -611,6 +611,9 @@ const FOES = [
   { id: 'zolla', name: '졸라검객', img: 'art/enemy-zolla.png', hp: 0.7, speed: 8, r: 9,   w: 4 },               // 체력 약한 쩌리
   { id: 'skull', name: '해골잡졸', img: 'art/enemy-skull.png', hp: 0.9, speed: 8, r: 9,   w: 4 },               // 쩌리
   { id: 'slime', name: '슬라임',   img: 'art/enemy-slime.png', hp: 1.0, speed: 8, r: 9.5, w: 2, dodge: 0.15 },  // 가끔 점프로 공격을 피함
+  // 신규 적 (그림·설정: 구예준, 2026-11-21)
+  { id: 'squid', name: '미역스퀴드', img: 'art/enemy-squid.png', hp: 0.5, speed: 8, r: 9, w: 2, shield: { time: 2, every: 6 } },   // 체력은 낮지만 2초 동안 공격을 아예 안 맞는 실드
+  { id: 'pink',  name: '핑크슬라임', img: 'art/enemy-pinkslime.png', fixedHp: 1, speed: 8, r: 9.5, w: 1, hitP: 0.01 },          // 체력 1 · 공격이 맞을 확률 1%
 ];
 const BOSSES = [
   { id: 'skullgen', name: '해골장수', img: 'art/boss-skullgen.png', skillImg: 'art/boss-skullgen-gumgi.png', hp: 30, speed: 10, r: 28, skill: 'gumgi' },   // 체력: 잡몹 평균의 30배 (보스 웨이브라 4배 → 30배, 예준이 결정) · 보스는 1.5배 크게
@@ -778,20 +781,23 @@ function makeEnemy(boss) {
   let f;
   if (boss) f = BOSSES[Math.floor(Math.random() * BOSSES.length)];
   else { let r = Math.random() * FOES.reduce((a, o) => a + o.w, 0); f = FOES.find((o) => (r -= o.w) < 0) || FOES[0]; }
-  const hp = BAL.hp0 * Math.pow(BAL.hpGrow, w - 1) * f.hp;
+  const hp = f.fixedHp || BAL.hp0 * Math.pow(BAL.hpGrow, w - 1) * f.hp;
   const r = f.r + (boss ? 0 : Math.random());
   return {
     x: r + Math.random() * (W - 2 * r), y: -r - Math.random() * 8, r, hp, maxHp: hp, foe: f,
     sp: f.speed * SPEED_UNIT(w) * (boss ? 1 : 0.85 + Math.random() * 0.3),
     slowT: 0, slowF: 0, stunT: 0, burnT: 0, burnDps: 0, flash: 0, jumpT: 0, jumpCd: 0, castT: 0, skillT: 6 + Math.random() * 3,
-    boss, weight: boss ? BAL.bossWeight : 1, dead: false,
+    boss, weight: boss ? BAL.bossWeight : 1, dead: false, shieldT: 0, shieldCd: f.shield ? 1 + Math.random() * 4 : 0, msgT: 0,
     wob: Math.random() * 6.28, tier: Math.floor((w - 1) / 5) % TIERS.length,
   };
 }
 
 /* ===== 전투 ===== */
+const foeSay = (e, s, c) => { if (e.msgT > 0) return; e.msgT = 0.7; fx({ k: 'text', x: e.x, y: e.y - 16, s, c, life: 0.6, size: 11 }); };
 function hurt(e, a, src) {
   if (e.dead) return;
+  if (e.shieldT > 0) { foeSay(e, '실드!', '#3F8F3A'); return; }        // 🦑 미역스퀴드 실드: 아예 안 맞아요
+  if (e.foe.hitP && Math.random() >= e.foe.hitP) { foeSay(e, '빗나감!', '#E07A9B'); return; }   // 🩷 핑크슬라임: 1%만 맞아요
   if (src && e.foe.dodge) {                               // 슬라임 점프: 공중에선 안 맞고, 착지 후 잠깐은 다시 못 뜀
     if (e.jumpT > 0) return;
     if (e.jumpCd <= 0 && Math.random() < e.foe.dodge) {
@@ -997,6 +1003,11 @@ function update(dt) {
     if (e.dead) continue;
     if (e.flash > 0) e.flash -= dt;
     if (e.jumpT > 0) e.jumpT -= dt; else if (e.jumpCd > 0) e.jumpCd -= dt;
+    if (e.msgT > 0) e.msgT -= dt;
+    if (e.foe.shield) {                                    // 🦑 실드: 6초마다 2초
+      if (e.shieldT > 0) e.shieldT -= dt;
+      else if ((e.shieldCd -= dt) <= 0) { e.shieldT = e.foe.shield.time; e.shieldCd = e.foe.shield.every; }
+    }
     if (e.castT > 0) e.castT -= dt;
     if (e.poisonT > 0) {                                   // ☠️ 맹독: 0.5초마다, 한 번 줄 때마다 더 아파요
       e.poisonT -= dt; e.poisonCd -= dt;
@@ -1564,6 +1575,11 @@ function drawFoeSprite(e, im) {
   c.translate(0, -jump); c.rotate(Math.sin(t) * 0.06); c.scale(pop, pop);
   c.drawImage(im, -dw / 2, -dh, dw, dh);
   if (e.slowT > 0) { c.globalAlpha = 0.35; c.fillStyle = '#9AD3F2'; c.fillRect(-dw / 2, -dh, dw, dh); c.globalAlpha = 1; }
+  if (e.shieldT > 0) {                                     // 🦑 실드 방울
+    const r = Math.max(dw, dh) * 0.62 + Math.sin(S.time * 10) * 1;
+    c.fillStyle = 'rgba(120,200,110,.25)'; c.strokeStyle = '#3F8F3A'; c.lineWidth = 2;
+    c.beginPath(); c.arc(0, -dh / 2, r, 0, Math.PI * 2); c.fill(); c.stroke();
+  }
   c.restore();
   if (e.poisonT > 0) { c.fillStyle = '#7FBF4D'; circle(c, e.x - dw * 0.3, e.y - dh * 0.4, 3 + Math.sin(S.time * 14)); c.fill(); }
   if (e.burnT > 0) { c.fillStyle = ORANGE; circle(c, e.x + dw * 0.3, e.y - dh * 0.5, 2.6 + Math.sin(S.time * 20) * 0.8); c.fill(); }
@@ -2317,7 +2333,7 @@ function start(data) {
   requestAnimationFrame(frame);
 }
 window.claude?.hot?.snapshot?.(() => ({ deck: S.deck }));
-window.__td = { S, BAL, CHARS, pick, offerHTML, equip, upgrade: (id) => upgrade(id, deckbar.querySelector('[data-id="' + id + '"]')), startBattle };
+window.__td = { S, BAL, CHARS, FOES, makeEnemyOf: (f) => { const e = makeEnemy(false); const hp = f.fixedHp || BAL.hp0 * Math.pow(BAL.hpGrow, S.wave - 1) * f.hp; return Object.assign(e, { foe: f, hp, maxHp: hp, shieldCd: f.shield ? 1 : 0 }); }, pick, offerHTML, equip, upgrade: (id) => upgrade(id, deckbar.querySelector('[data-id="' + id + '"]')), startBattle };
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
 </script>
