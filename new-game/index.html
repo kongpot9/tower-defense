@@ -264,7 +264,7 @@ h1,h2,p{margin:0}
       <button class="btn btn-blue big" id="bPlay" type="button">전투 시작</button>
       <button class="btn" id="bDeck" type="button">덱 편성</button>
       <button class="btn" id="bRank" type="button">🏆 랭킹</button>
-      <button class="btn" id="bWatch" type="button">👀 관전</button>
+      <button class="btn" id="bWatch" type="button" hidden>👀 관전</button>
     </div>
     <p class="foot">캐릭터 32명 · 적 6종 · 터렛 · 트랩 · 성까지 전부 예준이 그림! 버프템만 아직 임시예요.</p>
   </section>
@@ -628,8 +628,8 @@ const FOES = [
   { id: 'skull', name: '해골잡졸', img: 'art/enemy-skull.png', hp: 0.9, speed: 8, r: 9,   w: 4 },               // 쩌리
   { id: 'slime', name: '슬라임',   img: 'art/enemy-slime.png', hp: 1.0, speed: 8, r: 9.5, w: 2, dodge: 0.15 },  // 가끔 점프로 공격을 피함
   // 신규 적 (그림·설정: 구예준, 2026-11-21)
-  { id: 'squid', name: '미역스퀴드', img: 'art/enemy-squid.png', hp: 0.5, speed: 8, r: 9, w: 2, shield: { time: 2, every: 6 } },   // 체력은 낮지만 2초 동안 공격을 아예 안 맞는 실드
-  { id: 'pink',  name: '핑크슬라임', img: 'art/enemy-pinkslime.png', fixedHp: 1, speed: 8, r: 9.5, w: 1, hitP: 0.01 },          // 체력 1 · 공격이 맞을 확률 1%
+  { id: 'squid', name: '미역스퀴드', img: 'art/enemy-squid.png', hp: 0.5, speed: 8, r: 9, w: 2, from: 11, shield: { time: 2, every: 6 } },   // 체력은 낮지만 2초 동안 공격을 아예 안 맞는 실드
+  { id: 'pink',  name: '핑크슬라임', img: 'art/enemy-pinkslime.png', fixedHp: 1, speed: 8, r: 9.5, w: 1, from: 11, hitP: 0.4 },  // 체력 1 · 공격이 맞을 확률 40% (1% → 40%, 예준이 조정)
 ];
 const BOSSES = [
   { id: 'skullgen', name: '해골장수', img: 'art/boss-skullgen.png', skillImg: 'art/boss-skullgen-gumgi.png', hp: 30, speed: 10, r: 28, skill: 'gumgi' },   // 체력: 잡몹 평균의 30배 (보스 웨이브라 4배 → 30배, 예준이 결정) · 보스는 1.5배 크게
@@ -796,7 +796,10 @@ function makeEnemy(boss) {
   const w = S.wave;
   let f;
   if (boss) f = BOSSES[Math.floor(Math.random() * BOSSES.length)];
-  else { let r = Math.random() * FOES.reduce((a, o) => a + o.w, 0); f = FOES.find((o) => (r -= o.w) < 0) || FOES[0]; }
+  else {                                                   // 미역스퀴드 · 핑크슬라임은 첫 보스 다음(11웨이브)부터 나와요
+    const pool = FOES.filter((o) => !o.from || w >= o.from);
+    let r = Math.random() * pool.reduce((a, o) => a + o.w, 0); f = pool.find((o) => (r -= o.w) < 0) || pool[0];
+  }
   const hp = f.fixedHp || BAL.hp0 * Math.pow(BAL.hpGrow, w - 1) * f.hp;
   const r = f.r + (boss ? 0 : Math.random());
   return {
@@ -2128,6 +2131,7 @@ function liveInit() {
     const C = window.claude;
     if (!C || typeof C.use !== 'function') return null;
     try { LIVE.room = await C.use('room'); } catch (e) { LIVE.room = null; }
+    $('#bWatch').hidden = !LIVE.room;                         // 관전이 되는 곳에서만 버튼이 보여요
     if (LIVE.room) LIVE.room.onPeers((ch) => { LIVE.peers = ch.peers; if (!$('#watchOv').hidden) renderWatchList(); if (S.watching) watchPeers(); }, () => { LIVE.room = null; });
     return LIVE.room;
   })();
@@ -2483,7 +2487,7 @@ function start(data) {
   requestAnimationFrame(frame);
 }
 window.claude?.hot?.snapshot?.(() => ({ deck: S.deck }));
-window.__td = { S, BAL, CHARS, FOES, makeEnemyOf: (f) => { const e = makeEnemy(false); const hp = f.fixedHp || BAL.hp0 * Math.pow(BAL.hpGrow, S.wave - 1) * f.hp; return Object.assign(e, { foe: f, hp, maxHp: hp, shieldCd: f.shield ? 1 : 0 }); }, pick, offerHTML, equip, upgrade: (id) => upgrade(id, deckbar.querySelector('[data-id="' + id + '"]')), startBattle };
+window.__td = { S, BAL, CHARS, FOES, mk: () => makeEnemy(false), makeEnemyOf: (f) => { const e = makeEnemy(false); const hp = f.fixedHp || BAL.hp0 * Math.pow(BAL.hpGrow, S.wave - 1) * f.hp; return Object.assign(e, { foe: f, hp, maxHp: hp, shieldCd: f.shield ? 1 : 0 }); }, pick, offerHTML, equip, upgrade: (id) => upgrade(id, deckbar.querySelector('[data-id="' + id + '"]')), startBattle };
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
 </script>
