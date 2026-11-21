@@ -308,7 +308,7 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
       <button class="btn btn-blue big" id="bLoad" type="button" hidden>▶ つづきから</button>
       <button class="btn btn-blue big" id="bPlay" type="button">バトル開始</button>
     </div>
-    <p class="foot">キャラ32人・敵6種・タレット・トラップ・お城まで全部イェジュンの絵！バフアイテムだけまだ仮です。</p>
+    <p class="foot">キャラ32人・敵8種・タレット・トラップ・お城まで全部イェジュンの絵！バフアイテムだけまだ仮です。</p>
     </div>
   </section>
 
@@ -704,6 +704,8 @@ const FOES = [
   { id: 'slime', name: 'スライム',   img: 'art/enemy-slime.png', hp: 1.0, speed: 8, r: 9.5, w: 2, dodge: 0.15 },  // 가끔 점프로 공격을 피함
   // 신규 敵 (그림·설정: グ・イェジュン, 2026-11-21)
   { id: 'squid', name: 'ワカメイカ', img: 'art/enemy-squid.png', hp: 0.5, speed: 8, r: 9, w: 2, from: 11, shield: { time: 2, every: 6 } },   // 체력은 낮지만 2秒 동안 공격을 아예 안 맞는 실드
+  { id: 'doomi', name: 'ドォドミ',   img: 'art/enemy-doomi.png', hp: 1.6, speed: 15, r: 10, w: 1, from: 11, hop: true, sturdy: true },     // 팔딱팔딱 · 체력 높음 · 무조건 한 번은 1 남기고 버팀 · 매우 빠름 (그림·설정: グ・イェジュン, 2026-11-21)
+  { id: 'seamole', name: 'ウミモグラ', img: 'art/enemy-seamole.png', hp: 1.3, speed: 8, r: 10, w: 1, from: 21, burrow: true },     // 땅속으로 성 앞까지 와서 튀어나오며 아군 攻撃力 10초간 ½ · 체력 은근 높음 (그림·설정: グ・イェジュン, 2026-11-21)
   { id: 'pink',  name: 'ピンクスライム', img: 'art/enemy-pinkslime.png', fixedHp: 1, speed: 8, r: 9.5, w: 1, from: 11, hitP: 0.4 },  // 체력 1 · 공격이 맞을 확률 40% (1% → 40%, 예준이 조정)
 ];
 const BOSSES = [
@@ -901,7 +903,7 @@ function makeEnemy(boss) {
     x: r + Math.random() * (W - 2 * r), y: -r - Math.random() * 8, r, hp, maxHp: hp, foe: f,
     sp: f.speed * SPEED_UNIT(w) * (boss ? 1 : 0.85 + Math.random() * 0.3),
     slowT: 0, slowF: 0, stunT: 0, burnT: 0, burnDps: 0, flash: 0, jumpT: 0, jumpCd: 0, castT: 0, skillT: 6 + Math.random() * 3,
-    id: S.eid = (S.eid || 0) + 1, boss, weight: boss ? BAL.bossWeight : 1, dead: false, shieldT: 0, shieldCd: f.shield ? 1 + Math.random() * 4 : 0, msgT: 0,
+    id: S.eid = (S.eid || 0) + 1, burrow: !!f.burrow, boss, weight: boss ? BAL.bossWeight : 1, dead: false, shieldT: 0, shieldCd: f.shield ? 1 + Math.random() * 4 : 0, msgT: 0,
     wob: Math.random() * 6.28, tier: Math.floor((w - 1) / 5) % TIERS.length,
   };
 }
@@ -910,6 +912,7 @@ function makeEnemy(boss) {
 const foeSay = (e, s, c) => { if (e.msgT > 0) return; e.msgT = 0.7; fx({ k: 'text', x: e.x, y: e.y - 16, s, c, life: 0.6, size: 11 }); };
 function hurt(e, a, src) {
   if (e.dead) return;
+  if (e.burrow) return;                                     // 🦫 ウミモグラ: 땅속에선 안 맞아요
   if (e.shieldT > 0) { foeSay(e, 'シールド！', '#3F8F3A'); return; }        // 🦑 ワカメイカ 실드: 아예 안 맞아요
   if (e.foe.hitP && Math.random() >= e.foe.hitP) { foeSay(e, 'ミス！', '#E07A9B'); return; }   // 🩷 ピンクスライム: 1%만 맞아요
   if (src && e.foe.dodge) {                               // スライム 점프: 공중에선 안 맞고, 착지 후 잠깐은 다시 못 뜀
@@ -924,6 +927,9 @@ function hurt(e, a, src) {
     S.dmgW = (S.dmgW || 0) + a;
     const hs = S.hitHist || (S.hitHist = []);
     if (hs.length < 300) hs.push(Math.round(a)); else hs[Math.floor(Math.random() * 300)] = Math.round(a);
+  }
+  if (e.foe.sturdy && !e.sturdyUsed && e.hp - a <= 0 && e.hp > 1) {   // 🐟 ドォドミ: 무조건 한 번은 1 남기고 버텨요
+    e.sturdyUsed = true; e.hp = 1; e.flash = 0.07; foeSay(e, 'こらえる！', '#E0952B'); return;
   }
   e.hp -= a;
   if (a > 0.6) e.flash = 0.07;
@@ -972,7 +978,7 @@ function findTargetAt(px, py, range, byHp, noBoss) {
   const p = { x: px, y: py }, r2 = range * range;
   let best = null, bv = -Infinity;
   for (const e of S.enemies) {
-    if (e.dead || e.y < 2 || (noBoss && e.boss)) continue;
+    if (e.dead || e.burrow || e.y < 2 || (noBoss && e.boss)) continue;
     const dx = e.x - p.x, dy = e.y - p.y;
     if (dx * dx + dy * dy > r2) continue;
     const v = byHp ? e.hp : e.y;
@@ -1138,7 +1144,7 @@ function update(dt) {
     if (e.foe.skill === 'gumgi' && e.y > 0) {
       e.skillT -= dt;
       if (e.skillT <= 0) {                                 // 해골장수의 검기
-        e.skillT = 8 + Math.random() * 4; S.weakT = 10; e.castT = 0.9;
+        e.skillT = 8 + Math.random() * 4; S.weakT = 10; S.weakSrc = 'gumgi'; e.castT = 0.9;
         fx({ k: 'gumgi', x: e.x, y: e.y, life: 0.7 });
         fx({ k: 'text', x: e.x, y: e.y - 34, s: '剣気！', c: '#9B5DE5', life: 1.2, size: 18 });
       }
@@ -1146,6 +1152,15 @@ function update(dt) {
     if (e.burnT > 0) { e.burnT -= dt; hurt(e, e.burnDps * dt, null); if (e.dead) continue; }
     if (e.slowT > 0) e.slowT -= dt;
     if (e.stunT > 0) { e.stunT -= dt; continue; }
+    if (e.burrow) {                                        // 🦫 땅속으로 쭉 → 성 앞에서 튀어나와 아군 攻撃力 ½
+      e.y += e.sp * 4 * dt;
+      if (e.y >= WALL_Y - e.r - 6) {
+        e.burrow = false; e.y = WALL_Y - e.r - 6; S.weakT = Math.max(S.weakT, 10); S.weakSrc = 'mole';
+        fx({ k: 'pop', x: e.x, y: e.y, life: 0.45 });
+        fx({ k: 'text', x: e.x, y: e.y - 30, s: 'ポン！攻撃力½', c: '#7A3FC4', life: 1.3, size: 15 });
+      }
+      continue;
+    }
     e.y += e.sp * (e.slowT > 0 ? 1 - e.slowF : 1) * dt;
   }
   separate();
@@ -1690,7 +1705,7 @@ const easeBack = (k) => { const s = 1.7; k -= 1; return k * k * ((s + 1) * k + s
 function drawFoeSprite(e, im) {
   const c = ctx, box = e.boss ? 88 : 26, k = Math.min(box / im.naturalHeight, box * 1.25 / im.naturalWidth);
   const dw = im.naturalWidth * k, dh = im.naturalHeight * k, t = S.time * 9 + e.wob;
-  const jump = e.jumpT > 0 ? Math.sin((e.jumpT / 0.4) * Math.PI) * 14 : 0;
+  const jump = e.jumpT > 0 ? Math.sin((e.jumpT / 0.4) * Math.PI) * 14 : e.foe.hop ? Math.abs(Math.sin(S.time * 7 + e.wob)) * 9 : 0;   // 🐟 팔딱팔딱
   const pop = e.flash > 0 ? 1.12 : 1;
   c.save(); c.translate(e.x, e.y + e.r * 0.9);
   c.fillStyle = 'rgba(27,34,50,.16)'; c.beginPath(); c.ellipse(0, 0, dw * 0.4, 3, 0, 0, Math.PI * 2); c.fill();
@@ -1713,6 +1728,13 @@ function drawFoeSprite(e, im) {
   }
 }
 function drawEnemy(e) {
+  if (e.burrow) {                                           // 🦫 땅속: 흙 둔덕만 보여요
+    const c = ctx; c.save(); c.translate(e.x, e.y + e.r * 0.6);
+    c.fillStyle = '#A0643A'; c.strokeStyle = INK; c.lineWidth = 1.5;
+    c.beginPath(); c.ellipse(0, 0, 12, 5 + Math.sin(S.time * 14 + e.wob) * 1.2, 0, Math.PI, 0); c.closePath(); c.fill(); c.stroke();
+    c.fillStyle = '#6E4123'; circle(c, -4, -2, 1.3); c.fill(); circle(c, 3, -3, 1.1); c.fill();
+    c.restore(); return;
+  }
   const sk = e.castT > 0 && FOE_IMG[e.foe.id + ':skill'];
   const im = sk && sk.complete && sk.naturalWidth ? sk : FOE_IMG[e.foe.id];
   if (im && im.complete && im.naturalWidth) { drawFoeSprite(e, im); return; }
@@ -2054,7 +2076,7 @@ function render() {
   if (S.weakT > 0) {
     c.save(); c.fillStyle = 'rgba(155,93,229,.14)'; c.fillRect(0, WALL_Y, W, H - WALL_Y);
     c.font = '14px ' + UIF; c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineJoin = 'round';
-    const msg = '剣気！味方の攻撃力 ½ · ' + Math.ceil(S.weakT) + '秒';
+    const msg = (S.weakSrc === 'mole' ? 'ウミモグラ！味方の攻撃力½ · ' : '剣気！味方の攻撃力 ½ · ') + Math.ceil(S.weakT) + '秒';
     c.lineWidth = 4; c.strokeStyle = PAPER; c.strokeText(msg, W / 2, WALL_Y + 22); c.fillStyle = '#7A3FC4'; c.fillText(msg, W / 2, WALL_Y + 22);
     c.restore();
   }
@@ -2484,7 +2506,7 @@ function liveSnap() {
   let e = '';
   for (const x of S.enemies) {
     if (x.dead || e.length > 1600) continue;
-    const fl = (x.shieldT > 0 ? 1 : 0) | (x.jumpT > 0 ? 2 : 0) | (x.stunT > 0 ? 4 : 0) | (x.slowT > 0 ? 8 : 0) | (x.poisonT > 0 ? 16 : 0) | (x.castT > 0 ? 32 : 0);
+    const fl = (x.shieldT > 0 ? 1 : 0) | (x.jumpT > 0 ? 2 : 0) | (x.stunT > 0 ? 4 : 0) | (x.slowT > 0 ? 8 : 0) | (x.poisonT > 0 ? 16 : 0) | (x.castT > 0 ? 32 : 0) | (x.burrow ? 64 : 0);
     e += b36(ALL_FOES.indexOf(x.foe), 1) + b36(x.x + 50, 2) + b36(x.y + 100, 2) + b36(x.hp / x.maxHp * 35, 1) + b36(fl, 2) + b36((x.id || 0) % 1296, 2);
   }
   return {
@@ -2581,7 +2603,7 @@ function watchPeers() {                                     // 보는 사람이 
     const x = parseInt(e.substr(i + 1, 2), 36) - 50, y = parseInt(e.substr(i + 3, 2), 36) - 100, hp = parseInt(e[i + 5], 36) / 35, fl = parseInt(e.substr(i + 6, 2), 36), id = e.substr(i + 8, 2);
     let o = S.wmap.get(id);
     if (!o || o.foe !== f) o = { x, y, r: f.r, foe: f, boss: BOSSES.includes(f), maxHp: 1, wob: Math.random() * 6.28, tier, flash: 0, burnT: 0, dead: false };
-    Object.assign(o, { tx: x, ty: y, hp: Math.max(0.01, hp), shieldT: fl & 1 ? 1 : 0, jumpT: fl & 2 ? 0.2 : 0, stunT: fl & 4 ? 1 : 0, slowT: fl & 8 ? 1 : 0, poisonT: fl & 16 ? 1 : 0, castT: fl & 32 ? 1 : 0 });
+    Object.assign(o, { tx: x, ty: y, hp: Math.max(0.01, hp), shieldT: fl & 1 ? 1 : 0, jumpT: fl & 2 ? 0.2 : 0, stunT: fl & 4 ? 1 : 0, slowT: fl & 8 ? 1 : 0, poisonT: fl & 16 ? 1 : 0, castT: fl & 32 ? 1 : 0, burrow: !!(fl & 64) });
     seen.set(id, o);
   }
   S.wmap = seen; S.enemies = [...seen.values()];
