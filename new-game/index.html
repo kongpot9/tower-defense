@@ -1113,8 +1113,22 @@ function findTarget(u, def) {
     const r = def.range + S.buff.rng;
     if ((u.chT.x - p.x) ** 2 + (u.chT.y - p.y) ** 2 <= r * r) return u.chT;
   }
-  return findTargetAt(p.x, p.y, def.range + S.buff.rng, def.byHp, def.noBoss);
+  // 🎯 나눠서 공격 (2026-11-21 예준이 요청): 한 적을 다 같이 다굴하지 않게
+  //   ① 이미 날아가는 공격만으로 죽을 적은 건너뛰고 ② 이번에 많이 노린 적일수록 덜 골라요
+  const r2 = (def.range + S.buff.rng) ** 2;
+  let best = null, bv = -Infinity, spare = null, sv = -Infinity;
+  for (const e of S.enemies) {
+    if (e.dead || e.burrow || e.y < 2 || (def.noBoss && e.boss)) continue;
+    if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 > r2) continue;
+    const v = (def.byHp ? e.hp : e.y) - AIM_SPREAD * (e.aim || 0);
+    if ((e.pend || 0) >= e.hp) { if (v > sv) { sv = v; spare = e; } continue; }   // 곧 죽을 적은 마지막에
+    if (v > bv) { bv = v; best = e; }
+  }
+  const t = best || spare;
+  if (t) t.aim = (t.aim || 0) + 1;
+  return t;
 }
+const AIM_SPREAD = 35;   // 같은 적을 한 명 더 노릴 때마다 '35px 뒤에 있는 적'처럼 덜 끌려요
 function findTargetAt(px, py, range, byHp, noBoss) {
   const p = { x: px, y: py }, r2 = range * range;
   let best = null, bv = -Infinity;
@@ -1184,8 +1198,9 @@ function attack(u, def, t) {   // def는 드릴차·27살일 때 잠깐 바뀌�
       .sort((a, b) => b.y - a.y).slice(0, def.multi);
   }
   for (const tg of targets) {
-    S.projs.push({ k: def.proj, x: p.x, y: p.y - 8, t: tg, lx: tg.x, ly: tg.y, sp: PSPEED[def.proj] || 450, dmg, def,
+    S.projs.push({ k: def.proj, x: p.x, y: p.y - 8, t: tg, lx: tg.x, ly: tg.y, sp: PSPEED[def.proj] || 450, dmg, def, pend: true,
                    d0: Math.max(1, Math.hypot(tg.x - p.x, tg.y - p.y)), prog: 0, spin: Math.random() * 6 });
+    tg.pend = (tg.pend || 0) + dmg;                               // 날아가는 중인 데미지
   }
 }
 // 맞았을 때: 즉사 → 크리티컬 → 범위/단일 → 감전 순서
@@ -1225,7 +1240,7 @@ function hitTarget(def, t, dmg, x, y) {
     }
   }
 }
-function projHit(pr) { hitTarget(pr.def, pr.t, pr.dmg, pr.x, pr.y); }
+function projHit(pr) { if (pr.pend && pr.t) pr.t.pend = Math.max(0, (pr.t.pend || 0) - pr.dmg); hitTarget(pr.def, pr.t, pr.dmg, pr.x, pr.y); }
 function fx(o) { o.t = 0; S.fx.push(o); }
 
 function separate() {
@@ -1320,6 +1335,7 @@ function update(dt) {
   }
   S.pools = S.pools.filter((p) => p.t > 0);
 
+  for (const e of S.enemies) if (e.aim) e.aim *= Math.max(0, 1 - dt * 1.5);   // 🎯 최근에 몇 명이 노렸는지 (조금씩 잊어요)
   for (const u of S.units) {
     if (!u) continue;
     u.born += dt;
