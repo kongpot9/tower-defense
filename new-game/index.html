@@ -2497,12 +2497,12 @@ $('#bBoxClose').addEventListener('click', () => { $('#boxOv').hidden = true; });
 /* ===== 🏘️ 마을 건물 (그림 · 기능 · 가격: 구예준, 2026-11-21) =====
    성벽 뒤에 건물을 지어요. 시간 · 출석으로 코인 · 크리스탈을 주거나, 던전에 들어가요.
    '출석' = 그날 처음 들어왔을 때 (하루에 한 번) */
-const DUNGEON = { time: 600, bossHp: 30, reward: 1000 };          // 10분 · 잡은 보스 × 1000 크리스탈
+const DUNGEON = { time: 600, bossHp: 30, reward: 1000, coin: 20000 };   // 10분 · 잡은 보스 하나마다 💎1000 + 🪙20000 (5마리면 🪙10만, 2026-11-21 예준이 결정)
 const BLD = {
   mold:    { name: '거푸집',     img: 'art/bld-mold.png',    cost: [400, 100],        max: 2, needGames: 10,
              d: '하루 첫 출석 때 또는 5시간마다 코인 10,000을 줘요', every: 5 * 3600e3, give: { coin: 10000 } },
   dungeon: { name: '던전',       img: 'art/bld-dungeon.png', cost: [10000, 2500],
-             d: '들어가면 10분 동안 보스만 나와요. 잡은 보스 수 × 크리스탈 1,000!' },
+             d: '들어가면 10분 동안 보스만 나와요. 보스 하나 잡을 때마다 크리스탈 1,000 + 코인 20,000!' },
   shrine:  { name: '화염사당',   img: 'art/bld-shrine.png',  cost: [100000, 23000], hold: true,
              d: '코인 10,000을 바치면 20% 확률로 오늘 하루 상점 가격이 절반!' },
   giwa:    { name: '기와집',     img: 'art/bld-giwa.png',    cost: [280000, 70000],
@@ -2623,15 +2623,15 @@ function openDwarf() {
 function dungeonEnd() {                                             // 🕳️ 던전 끝: 잡은 보스 × 1000 크리스탈
   if (S.over) return;
   S.over = true; select(-1);
-  const k = S.dgKills || 0, gain = k * DUNGEON.reward;
+  const k = S.dgKills || 0, gain = k * DUNGEON.reward, coin = k * DUNGEON.coin;
   META.dgBoss = (META.dgBoss || 0) + k;
-  META.crystal += gain; metaSave(); checkAch(false);
+  META.crystal += gain; META.coin += coin; metaSave(); checkAch(false);
   $('#goWave').textContent = k;
   $('.go-wave small').textContent = '잡은 보스';
   $('.go-title').textContent = S.dgLeft <= 0 ? '던전 끝!' : '던전에서 졌어요!';
   $('#goReason').textContent = S.dgLeft <= 0 ? '10분이 지났어요' : '적이 100마리 쌓였어요';
   $('#goBest').innerHTML = ''; $('#goRank').innerHTML = '';
-  $('#goEarn').innerHTML = '<span>' + crysIco + '+' + fmtNum(gain) + '</span>';
+  $('#goEarn').innerHTML = '<span>' + coinIco + '+' + fmtNum(coin) + '</span><span>' + crysIco + '+' + fmtNum(gain) + '</span>';
   $('#goSum').textContent = S.picks; $('#goKill').textContent = S.kills; $('#goUp').textContent = S.upN;
   $('#bRevive').hidden = true; $('#bGoRank').hidden = true;
   $('#overOv').hidden = false;
