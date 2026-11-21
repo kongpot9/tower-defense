@@ -84,7 +84,7 @@ h1,h2,p{margin:0}
 .lobby-title{padding:16px 14px 12px;text-align:center}
 .lobby-title .studio{color:var(--muted,#5B6478);padding-top:0}
 .lobby-title .title{font-size:clamp(40px,12vw,54px)}
-.yard{position:relative;border:3px solid var(--ink);border-radius:18px;overflow:hidden;box-shadow:0 5px 0 var(--ink);background:#d9dcd6;aspect-ratio:360/300;flex-shrink:0}
+.yard{position:relative;border:3px solid var(--ink);border-radius:18px;overflow:hidden;box-shadow:0 5px 0 var(--ink);background:#d9dcd6;aspect-ratio:1/1;flex-shrink:0}
 .yard canvas{display:block;width:100%;height:100%;touch-action:manipulation}
 .yard-tip{position:absolute;left:10px;top:8px;font-size:12px;color:var(--ink);background:rgba(244,246,241,.85);border:1.5px solid var(--ink);border-radius:8px;padding:2px 7px;pointer-events:none}
 .big{font-size:24px;padding:16px;font-family:var(--f-display);font-weight:400;letter-spacing:.02em}
@@ -228,6 +228,10 @@ h1,h2,p{margin:0}
 .up-list small{display:block;font-size:11px;color:var(--muted)}
 .up-list button{font-size:13px;padding:6px 9px;display:flex;align-items:center;gap:3px;white-space:nowrap}
 .up-list button img{width:16px;height:16px}
+.rep-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 6px;max-height:52vh;overflow-y:auto;padding:4px}
+.rep-pick{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:2px solid transparent;border-radius:12px;padding:6px 2px;font:inherit;font-size:11px;color:var(--ink);cursor:pointer}
+.rep-pick.on{border-color:var(--ink);background:var(--yellow)}
+.rep-pick span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rank-card{max-height:calc(100% - 20px);overflow-y:auto}
 .rank-list{list-style:none;margin:0;padding:0;display:grid;gap:4px;text-align:left;max-height:46vh;overflow-y:auto}
 .rank-list li{display:grid;grid-template-columns:34px 1fr auto;gap:8px;align-items:center;padding:6px 10px;border-radius:10px;background:var(--paper-2);font-size:15px;font-variant-numeric:tabular-nums}
@@ -285,7 +289,7 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
       <h1 class="title">脳筋<br>ディフェンス</h1>
       <p class="title-note">⬜ 四角頭のなかまたちが城を守る！</p>
     </div>
-    <div class="yard" id="yard"><canvas id="yardCv" aria-label="城の前の広場"></canvas><span class="yard-tip">なかまをタップしてみて！</span></div>
+    <div class="yard" id="yard"><canvas id="yardCv" aria-label="わたしの村"></canvas><span class="yard-tip">👑 代表キャラをタップすると変えられます</span></div>
     <div class="best">最高記録 <b id="homeBest">-</b></div>
     <div class="plays" id="homePlays" hidden></div>
     <div class="plays" id="homeOnline" hidden></div>
@@ -402,6 +406,14 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
   </section>
 
   <!-- ===== 🏆 ランキング ===== -->
+  <div class="ov ov-fixed" id="repOv" hidden>
+    <div class="ov-card rank-card">
+      <h2>👑 代表キャラ</h2>
+      <p class="sub">村にいるキャラをえらんでね</p>
+      <div class="rep-grid" id="repGrid"></div>
+      <div class="ov-btns"><button class="btn" id="bRepClose" type="button">とじる</button></div>
+    </div>
+  </div>
   <div class="ov ov-fixed" id="upOv" hidden>
     <div class="ov-card rank-card">
       <h2>⭐ キャラ強化</h2>
@@ -2250,17 +2262,16 @@ $('#bUpClose').addEventListener('click', () => { $('#upOv').hidden = true; });
 $('#bReroll').addEventListener('click', rerollOffer);
 $('#bRevive').addEventListener('click', revive);
 
-/* ===== 🏰 로비 마당 — 예준이 성 그림 앞에서 덱 캐릭터들이 돌아다녀요 · 누르면 이름이 떠요 ===== */
-const YARD = { W: 360, H: 300, top: 118, bottom: 290, walkers: [], deckKey: '', cv: null, ctx: null, dpr: 1, bubble: null };
+/* ===== 🏰 로비 = わたしの村 (그림 · 설정: グ・イェジュン, 2026-11-21) =====
+   마을 성벽 안에 내 '代表キャラ'가 있어요 (누르면 바꿔요) · 성벽 뒤(하늘 쪽)는 나중에 건물을 짓는 자리 */
+const VILLAGE = new Image(); VILLAGE.src = 'art/village.jpg';
+const YARD = { W: 360, H: 360, crop: 0.30, left: 70, right: 290, top: 236, bottom: 318, cv: null, ctx: null, rep: null, bubble: null };
+const repId = () => (BY[META.rep] ? META.rep : 'sword');
 function yardInit() {
-  const key = S.deck.join();
-  if (key === YARD.deckKey) return;
-  YARD.deckKey = key;
-  YARD.walkers = S.deck.map((id, i) => ({ id, x: 40 + (i % 4) * 90 + Math.random() * 20, y: YARD.top + 20 + Math.floor(i / 4) * 80 + Math.random() * 20,
-    tx: 0, ty: 0, wait: Math.random() * 2, dir: Math.random() < 0.5 ? -1 : 1, t: Math.random() * 6, hop: 0 }));
-  YARD.walkers.forEach(yardTarget);
+  if (YARD.rep && YARD.rep.id === repId()) return;
+  YARD.rep = { id: repId(), x: YARD.W / 2, y: 280, tx: YARD.W / 2, ty: 280, wait: 1.5, dir: 1, t: 0, hop: 0.4 };
 }
-function yardTarget(w) { w.tx = 24 + Math.random() * (YARD.W - 48); w.ty = YARD.top + Math.random() * (YARD.bottom - YARD.top); }
+function yardTarget(w) { w.tx = YARD.left + Math.random() * (YARD.right - YARD.left); w.ty = YARD.top + Math.random() * (YARD.bottom - YARD.top); }
 function yardTick(dt) {
   const cv = YARD.cv || (YARD.cv = $('#yardCv'));
   if (!cv || !cv.isConnected) return;
@@ -2269,47 +2280,49 @@ function yardTick(dt) {
   if (cv.width !== pw || cv.height !== ph) { cv.width = pw; cv.height = ph; }
   const c = YARD.ctx || (YARD.ctx = cv.getContext('2d')), k = pw / YARD.W;
   c.setTransform(k, 0, 0, k, 0, 0);
-  if (FIELD.complete && FIELD.naturalWidth) c.drawImage(FIELD, 0, FIELD.naturalHeight * 0.34, FIELD.naturalWidth, FIELD.naturalHeight * 0.66, 0, 0, YARD.W, YARD.H * 1.05);
-  else { c.fillStyle = '#d9dcd6'; c.fillRect(0, 0, YARD.W, YARD.H); }
-  for (const w of YARD.walkers) {                             // 걷기 → 잠깐 쉬기 → 다른 곳으로
-    w.t += dt; if (w.hop > 0) w.hop -= dt;
-    if (w.wait > 0) { w.wait -= dt; continue; }
-    const dx = w.tx - w.x, dy = w.ty - w.y, d = Math.hypot(dx, dy), sp = 26 * dt;
-    if (d < sp) { w.wait = 1 + Math.random() * 2.5; yardTarget(w); continue; }
-    w.x += dx / d * sp; w.y += dy / d * sp * 0.7; if (Math.abs(dx) > 2) w.dir = dx < 0 ? -1 : 1;
+  if (VILLAGE.complete && VILLAGE.naturalWidth) {
+    const sy = VILLAGE.naturalHeight * YARD.crop, sh = VILLAGE.naturalHeight - sy;
+    c.drawImage(VILLAGE, 0, sy, VILLAGE.naturalWidth, sh, 0, 0, YARD.W, YARD.W * sh / VILLAGE.naturalWidth);
+  } else { c.fillStyle = '#d9dcd6'; c.fillRect(0, 0, YARD.W, YARD.H); }
+  yardInit();
+  const w = YARD.rep, def = BY[w.id], im = IMGS[w.id];
+  w.t += dt; if (w.hop > 0) w.hop -= dt;                      // 천천히 걷다가 쉬다가
+  if (w.wait > 0) w.wait -= dt;
+  else {
+    const dx = w.tx - w.x, dy = w.ty - w.y, d = Math.hypot(dx, dy), sp = 22 * dt;
+    if (d < sp) { w.wait = 2 + Math.random() * 3; yardTarget(w); }
+    else { w.x += dx / d * sp; w.y += dy / d * sp * 0.6; if (Math.abs(dx) > 2) w.dir = dx < 0 ? -1 : 1; }
   }
-  const order = YARD.walkers.slice().sort((a, b) => a.y - b.y);
-  for (const w of order) {
-    const def = BY[w.id], im = IMGS[w.id]; if (!def) continue;
-    const gs = Math.min(1.25, GRADE_SIZE[def.grade] || 1), walking = w.wait <= 0;
-    const bob = walking ? Math.abs(Math.sin(w.t * 9)) * 3 : 0, hop = w.hop > 0 ? Math.sin((w.hop / 0.4) * Math.PI) * 14 : 0;
-    c.save(); c.fillStyle = 'rgba(27,34,50,.18)'; c.beginPath(); c.ellipse(w.x, w.y, 16 * gs, 4.5, 0, 0, Math.PI * 2); c.fill(); c.restore();
-    if (im && im.complete && im.naturalWidth) {
-      const h = 54 * gs, sc = Math.min(h / im.naturalHeight, 52 * gs / im.naturalWidth), dw = im.naturalWidth * sc, dh = im.naturalHeight * sc;
-      c.save(); c.translate(w.x, w.y - bob - hop); c.scale(w.dir, 1); c.rotate(walking ? Math.sin(w.t * 9) * 0.05 : 0);
-      c.drawImage(im, -dw / 2, -dh, dw, dh); c.restore();
-    }
+  const walking = w.wait <= 0, gs = Math.min(1.25, GRADE_SIZE[def.grade] || 1);
+  const bob = walking ? Math.abs(Math.sin(w.t * 8)) * 4 : Math.sin(w.t * 2.4) * 1.5, hop = w.hop > 0 ? Math.sin((w.hop / 0.4) * Math.PI) * 22 : 0;
+  c.save(); c.fillStyle = 'rgba(27,34,50,.2)'; c.beginPath(); c.ellipse(w.x, w.y, 30 * gs, 7, 0, 0, Math.PI * 2); c.fill(); c.restore();
+  if (im && im.complete && im.naturalWidth) {
+    const h = 112 * gs, sc = Math.min(h / im.naturalHeight, 110 * gs / im.naturalWidth), dw = im.naturalWidth * sc, dh = im.naturalHeight * sc;
+    c.save(); c.translate(w.x, w.y - Math.max(0, bob) - hop); c.scale(w.dir, 1); c.rotate(walking ? Math.sin(w.t * 8) * 0.05 : 0);
+    c.drawImage(im, -dw / 2, -dh, dw, dh); c.restore();
   }
-  const b = YARD.bubble;                                      // 💬 누른 친구 이름
-  if (b) {
-    b.t -= dt; if (b.t <= 0) YARD.bubble = null;
-    else {
-      const w = b.w, def = BY[w.id], gs = Math.min(1.25, GRADE_SIZE[def.grade] || 1), y = w.y - 60 * gs - 10;
-      c.font = '14px ' + UIF; const tw = c.measureText(def.name).width + 18;
-      const x = Math.max(tw / 2 + 4, Math.min(YARD.W - tw / 2 - 4, w.x));
-      c.fillStyle = PAPER; c.strokeStyle = INK; c.lineWidth = 2;
-      c.beginPath(); c.roundRect ? c.roundRect(x - tw / 2, y - 24, tw, 24, 8) : c.rect(x - tw / 2, y - 24, tw, 24); c.fill(); c.stroke();
-      c.fillStyle = GRADE_C[def.grade] || INK; c.fillRect(x - tw / 2 + 4, y - 4, tw - 8, 2);
-      c.fillStyle = INK; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(def.name, x, y - 12);
-    }
+  // 👑 이름표
+  c.font = '15px ' + UIF; const label = '👑 ' + def.name, tw = c.measureText(label).width + 20, ly = w.y + 20;
+  const lx = Math.max(tw / 2 + 4, Math.min(YARD.W - tw / 2 - 4, w.x));
+  c.fillStyle = PAPER; c.strokeStyle = INK; c.lineWidth = 2;
+  c.beginPath(); c.roundRect ? c.roundRect(lx - tw / 2, ly, tw, 24, 12) : c.rect(lx - tw / 2, ly, tw, 24); c.fill(); c.stroke();
+  c.fillStyle = INK; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(label, lx, ly + 12.5);
+}
+function openRep() {                                          // 👑 代表キャラ 고르기
+  const g = $('#repGrid'); g.innerHTML = '';
+  for (const d of CHARS) {
+    const f = document.createElement('button'); f.type = 'button'; f.className = 'rep-pick' + (d.id === repId() ? ' on' : '');
+    f.innerHTML = stickerHTML(d, 46) + '<span></span>'; f.lastChild.textContent = d.name;
+    f.addEventListener('click', () => { META.rep = d.id; metaSave(); YARD.rep = null; yardInit(); YARD.rep.hop = 0.4; $('#repOv').hidden = true; });
+    g.appendChild(f);
   }
+  $('#repOv').hidden = false;
 }
 $('#yardCv').addEventListener('pointerdown', (e) => {
-  const r = e.currentTarget.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * YARD.W, y = (e.clientY - r.top) / r.height * YARD.H;
-  let best = null, bd = 1e9;
-  for (const w of YARD.walkers) { const d = Math.hypot(w.x - x, (w.y - 26) - y); if (d < 36 && d < bd) { bd = d; best = w; } }
-  if (best) { best.hop = 0.4; best.wait = Math.max(best.wait, 1.2); YARD.bubble = { w: best, t: 1.8 }; }
+  const r = e.currentTarget.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * YARD.W, y = (e.clientY - r.top) / r.height * YARD.H, w = YARD.rep;
+  if (w && Math.abs(w.x - x) < 60 && y > w.y - 130 && y < w.y + 46) { w.hop = 0.4; openRep(); }
 });
+$('#bRepClose').addEventListener('click', () => { $('#repOv').hidden = true; });
 
 /* ===== 👀 観戦 (2026-11-21 예준이 요청) =====
    게임하는 사람은 0.25秒ごと いま 화면(캐릭터 · 敵 · 무기)을 작게 줄여서 room presence로 보내고,
