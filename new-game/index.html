@@ -639,8 +639,7 @@ function newBattle() {
   });
   S.deck.forEach((id) => { S.levels[id] = 1; });
   placeUnit('sword', 2);
-  S.traps.push({ x: W / 2, y: WALL_Y + BAL.trapY, cd: 1, anim: 0, born: 0 });   // 트랩은 처음부터
-  S.cannon = { x: 222, y: WALL_Y + 16, lv: 1, awake: false, cd: 1.5, face: 1, anim: 0, born: 0 };   // 캐논도 처음부터
+  // 트랩 · 캐논은 처음엔 없고, 선물 카드 '설치'를 고르면 생겨요 (2026-11-21 예준이 결정)
 }
 const xpNeed = () => 10 + 5 * (S.lv - 1);   // 적 1마리 = 경험치 1, 보스 = 10
 const upCost = (id) => BAL.upBase * S.levels[id];
@@ -1154,8 +1153,10 @@ function rollOffer() {
   for (const b of BUFFS) if (!b.max || (S.stacks[b.id] || 0) < b.max) pool.push({ k: 'buff', id: b.id, w: 3 });
   if (freeSpot(BAL.turretSpots, S.turrets) != null) pool.push({ k: 'turret', w: 4 });
   if (S.turrets.some((t) => !t.awake) && S.turretLv < TURRET.maxLv) pool.push({ k: 'turretUp', w: 4 });
-  if (S.trapLv < TRAP.maxLv) pool.push({ k: 'trapUp', w: 3 });
-  if (S.cannon && !S.cannon.awake) pool.push({ k: 'cannonUp', w: 3 });
+  if (!S.traps.length) pool.push({ k: 'trapNew', w: 3 });
+  else if (S.trapLv < TRAP.maxLv) pool.push({ k: 'trapUp', w: 3 });
+  if (!S.cannon) pool.push({ k: 'cannonNew', w: 3 });
+  else if (!S.cannon.awake) pool.push({ k: 'cannonUp', w: 3 });
   const out = [];
   while (out.length < 3 && pool.length) {
     let r = Math.random() * pool.reduce((a, o) => a + o.w, 0), i = 0;
@@ -1201,6 +1202,16 @@ function offerHTML(o, i) {
     name = b.name; tag = '<span class="rc-tag buff">버프템</span>';
     desc = b.d(buffVal(b));
     note = buffNote(b);
+  } else if (o.k === 'cannonNew') {
+    ico = '<span class="rc-ico" style="--c:#DDE0E7"><img src="' + CANNON.img + '" alt="" style="max-width:44px;max-height:36px"></span>';
+    tag = '<span class="rc-tag turret">캐논</span>'; name = '캐논 설치';
+    desc = '성벽에 캐논을 세워요. Lv.1: 데미지 ' + CANNON_LV[1].dmg + ' · ' + CANNON_LV[1].every + '초마다';
+    note = '레벨업하면 세지고, Lv.5 다음엔 각성 캐논!';
+  } else if (o.k === 'trapNew') {
+    ico = '<span class="rc-ico" style="--c:#DDE0E7"><img src="' + TRAP.img + '" alt="" style="max-width:46px;max-height:30px"></span>';
+    tag = '<span class="rc-tag turret">트랩</span>'; name = '트랩 설치';
+    desc = '성벽 앞에 가시 트랩을 한 줄로 쭉 깔아요. 위에 있는 적을 1초마다 찔러요 (Lv.1: 데미지 ' + TRAP_LV[1] + ')';
+    note = '레벨업하면 세지고, Lv.5가 되면 바로 각성 트랩!';
   } else if (o.k === 'cannonUp') {
     const cn = S.cannon, L = CANNON_LV[cn.lv], N = CANNON_LV[cn.lv + 1];
     tag = '<span class="rc-tag turret">캐논</span>';
@@ -1325,6 +1336,11 @@ function pick(i) {
     if (o.id === 'chest') S.gold += v; else S.buff[o.id] += v;
     S.stacks[o.id] = (S.stacks[o.id] || 0) + 1;
     fx({ k: 'text', x: W / 2, y: WALL_Y - 60, s: BUFF_BY[o.id].name + '!', c: YEL, life: 1.4, size: 16 });
+  } else if (o.k === 'cannonNew') {
+    S.cannon = { x: 222, y: WALL_Y + 16, lv: 1, awake: false, cd: 1, face: 1, anim: 0, born: 0 };
+    fx({ k: 'pop', x: 222, y: WALL_Y, life: 0.45 }); say('💣 캐논 설치!');
+  } else if (o.k === 'trapNew') {
+    S.traps.push({ x: W / 2, y: WALL_Y + BAL.trapY, cd: 1, anim: 0, born: 0 }); say('🦷 트랩 설치!');
   } else if (o.k === 'cannonUp') {
     const cn = S.cannon;
     if (cn.lv >= CANNON.maxLv) { cn.awake = true; cn.born = 0; S.banner = { s: AWAKE.cannon.name + '!', t: 0, c: '#2F4FB8' }; }
