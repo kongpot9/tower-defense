@@ -79,6 +79,14 @@ h1,h2,p{margin:0}
 .best{display:flex;justify-content:center;align-items:baseline;gap:8px;font-size:15px}
 .best b{font-family:var(--f-display);font-weight:400;font-size:26px;color:var(--yellow)}
 .home-actions{display:grid;gap:12px}
+.lobby-top{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding-top:4px}
+.lobby-top .btn-sm{font-size:14px;padding:7px 11px}
+.lobby-title{padding:16px 14px 12px;text-align:center}
+.lobby-title .studio{color:var(--muted,#5B6478);padding-top:0}
+.lobby-title .title{font-size:clamp(40px,12vw,54px)}
+.yard{position:relative;border:3px solid var(--ink);border-radius:18px;overflow:hidden;box-shadow:0 5px 0 var(--ink);background:#d9dcd6;aspect-ratio:360/300;flex-shrink:0}
+.yard canvas{display:block;width:100%;height:100%;touch-action:manipulation}
+.yard-tip{position:absolute;left:10px;top:8px;font-size:12px;color:var(--ink);background:rgba(244,246,241,.85);border:1.5px solid var(--ink);border-radius:8px;padding:2px 7px;pointer-events:none}
 .big{font-size:24px;padding:16px;font-family:var(--f-display);font-weight:400;letter-spacing:.02em}
 .foot{font-size:12px;text-align:center;color:color-mix(in srgb,var(--paper) 60%,var(--desk));line-height:1.5}
 
@@ -246,34 +254,25 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
 
   <!-- ===== 홈 ===== -->
   <section id="home" class="screen home">
-    <div class="studio">구예준 STUDIO</div>
-    <div class="title-card">
-      <div class="eyebrow">타워 디펜스 777 다음, 두 번째 게임</div>
+    <!-- 🏰 로비: 성 앞 마당 (2026-11-21 예준이가 C안 고름) — 위에 버튼 · 가운데 마당에 덱 캐릭터들이 돌아다녀요 · 아래 큰 전투 버튼 -->
+    <div class="lobby-top">
+      <button class="btn btn-sm" id="bDeck" type="button">🃏 덱 편성</button>
+      <button class="btn btn-sm" id="bRank" type="button">🏆 랭킹</button>
+      <button class="btn btn-sm" id="bWatch" type="button" hidden>👀 관전</button>
+      <button class="btn btn-sm" id="bLang" type="button" hidden>🌐 日本語</button>
+    </div>
+    <div class="title-card lobby-title">
+      <div class="studio">구예준 STUDIO</div>
       <h1 class="title">무지성<br>디펜스</h1>
       <p class="title-note">⬜ 네모 머리 친구들이 성을 지킨다!</p>
-      <p class="title-sub">전사 혼자 시작해서 웨이브마다 강해져라!<br>몰려오는 적을 썰어 버리는 성장형 디펜스</p>
     </div>
-    <div class="card">
-      <div class="card-head"><span>내 덱</span><span class="chip" id="homeDeckCount">8/8</span></div>
-      <div class="mini-deck" id="homeDeck"></div>
-    </div>
-    <div class="rules">
-      <b>시작</b><span>전사 혼자 전장에 나가요</span>
-      <b>선물</b><span>웨이브가 끝나면 카드 3장 중 1장을 골라요. 캐릭터·버프템·터렛!</span>
-      <b>합성</b><span>같은 캐릭터 둘을 합치면 한 등급 위 캐릭터! 5%는 2단계 대박</span>
-      <b>강화</b><span>돈으로 아래 카드를 눌러 캐릭터를 강화해요</span>
-      <b>100</b><span>적이 100마리 쌓이면 패배!</span>
-    </div>
+    <div class="yard" id="yard"><canvas id="yardCv" aria-label="성 앞 마당"></canvas><span class="yard-tip">친구를 눌러 봐요!</span></div>
     <div class="best">최고 기록 <b id="homeBest">-</b></div>
     <div class="plays" id="homePlays" hidden></div>
     <div class="plays" id="homeOnline" hidden></div>
     <div class="home-actions">
       <button class="btn btn-blue big" id="bLoad" type="button" hidden>▶ 이어하기</button>
       <button class="btn btn-blue big" id="bPlay" type="button">전투 시작</button>
-      <button class="btn" id="bDeck" type="button">덱 편성</button>
-      <button class="btn" id="bRank" type="button">🏆 랭킹</button>
-      <button class="btn" id="bWatch" type="button" hidden>👀 관전</button>
-      <button class="btn" id="bLang" type="button" hidden>🌐 日本語</button>
     </div>
     <p class="foot">캐릭터 32명 · 적 6종 · 터렛 · 트랩 · 성까지 전부 예준이 그림! 버프템만 아직 임시예요.</p>
   </section>
@@ -2013,8 +2012,7 @@ function stickerHTML(def, size) {
   return '<span class="stk" style="--c:' + def.color + ';width:' + size + 'px;height:' + size + 'px;font-size:' + Math.round(size * 0.5) + 'px">' + faceHTML(def, Math.round(size * 0.86)) + '</span>';
 }
 function renderHome() {
-  $('#homeDeck').innerHTML = S.deck.map((id) => '<figure>' + stickerHTML(BY[id], 44) + '<figcaption>' + BY[id].name + '</figcaption></figure>').join('');
-  $('#homeDeckCount').textContent = S.deck.length + '/8';
+  yardInit();
   $('#homeBest').textContent = S.best ? 'WAVE ' + S.best : '아직 없음';
   playWrite.then(showPlays);
   const sv = loadSave(), bl = $('#bLoad');
@@ -2154,6 +2152,67 @@ function setPaused(p) {
   S.paused = p; $('#pauseOv').hidden = !p;
   if (p) saveGame();
 }
+/* ===== 🏰 로비 마당 — 예준이 성 그림 앞에서 덱 캐릭터들이 돌아다녀요 · 누르면 이름이 떠요 ===== */
+const YARD = { W: 360, H: 300, top: 118, bottom: 290, walkers: [], deckKey: '', cv: null, ctx: null, dpr: 1, bubble: null };
+function yardInit() {
+  const key = S.deck.join();
+  if (key === YARD.deckKey) return;
+  YARD.deckKey = key;
+  YARD.walkers = S.deck.map((id, i) => ({ id, x: 40 + (i % 4) * 90 + Math.random() * 20, y: YARD.top + 20 + Math.floor(i / 4) * 80 + Math.random() * 20,
+    tx: 0, ty: 0, wait: Math.random() * 2, dir: Math.random() < 0.5 ? -1 : 1, t: Math.random() * 6, hop: 0 }));
+  YARD.walkers.forEach(yardTarget);
+}
+function yardTarget(w) { w.tx = 24 + Math.random() * (YARD.W - 48); w.ty = YARD.top + Math.random() * (YARD.bottom - YARD.top); }
+function yardTick(dt) {
+  const cv = YARD.cv || (YARD.cv = $('#yardCv'));
+  if (!cv || !cv.isConnected) return;
+  const r = cv.getBoundingClientRect(); if (!r.width) return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1), pw = Math.round(r.width * dpr), ph = Math.round(r.height * dpr);
+  if (cv.width !== pw || cv.height !== ph) { cv.width = pw; cv.height = ph; }
+  const c = YARD.ctx || (YARD.ctx = cv.getContext('2d')), k = pw / YARD.W;
+  c.setTransform(k, 0, 0, k, 0, 0);
+  if (FIELD.complete && FIELD.naturalWidth) c.drawImage(FIELD, 0, FIELD.naturalHeight * 0.34, FIELD.naturalWidth, FIELD.naturalHeight * 0.66, 0, 0, YARD.W, YARD.H * 1.05);
+  else { c.fillStyle = '#d9dcd6'; c.fillRect(0, 0, YARD.W, YARD.H); }
+  for (const w of YARD.walkers) {                             // 걷기 → 잠깐 쉬기 → 다른 곳으로
+    w.t += dt; if (w.hop > 0) w.hop -= dt;
+    if (w.wait > 0) { w.wait -= dt; continue; }
+    const dx = w.tx - w.x, dy = w.ty - w.y, d = Math.hypot(dx, dy), sp = 26 * dt;
+    if (d < sp) { w.wait = 1 + Math.random() * 2.5; yardTarget(w); continue; }
+    w.x += dx / d * sp; w.y += dy / d * sp * 0.7; if (Math.abs(dx) > 2) w.dir = dx < 0 ? -1 : 1;
+  }
+  const order = YARD.walkers.slice().sort((a, b) => a.y - b.y);
+  for (const w of order) {
+    const def = BY[w.id], im = IMGS[w.id]; if (!def) continue;
+    const gs = Math.min(1.25, GRADE_SIZE[def.grade] || 1), walking = w.wait <= 0;
+    const bob = walking ? Math.abs(Math.sin(w.t * 9)) * 3 : 0, hop = w.hop > 0 ? Math.sin((w.hop / 0.4) * Math.PI) * 14 : 0;
+    c.save(); c.fillStyle = 'rgba(27,34,50,.18)'; c.beginPath(); c.ellipse(w.x, w.y, 16 * gs, 4.5, 0, 0, Math.PI * 2); c.fill(); c.restore();
+    if (im && im.complete && im.naturalWidth) {
+      const h = 54 * gs, sc = Math.min(h / im.naturalHeight, 52 * gs / im.naturalWidth), dw = im.naturalWidth * sc, dh = im.naturalHeight * sc;
+      c.save(); c.translate(w.x, w.y - bob - hop); c.scale(w.dir, 1); c.rotate(walking ? Math.sin(w.t * 9) * 0.05 : 0);
+      c.drawImage(im, -dw / 2, -dh, dw, dh); c.restore();
+    }
+  }
+  const b = YARD.bubble;                                      // 💬 누른 친구 이름
+  if (b) {
+    b.t -= dt; if (b.t <= 0) YARD.bubble = null;
+    else {
+      const w = b.w, def = BY[w.id], gs = Math.min(1.25, GRADE_SIZE[def.grade] || 1), y = w.y - 60 * gs - 10;
+      c.font = '14px ' + UIF; const tw = c.measureText(def.name).width + 18;
+      const x = Math.max(tw / 2 + 4, Math.min(YARD.W - tw / 2 - 4, w.x));
+      c.fillStyle = PAPER; c.strokeStyle = INK; c.lineWidth = 2;
+      c.beginPath(); c.roundRect ? c.roundRect(x - tw / 2, y - 24, tw, 24, 8) : c.rect(x - tw / 2, y - 24, tw, 24); c.fill(); c.stroke();
+      c.fillStyle = GRADE_C[def.grade] || INK; c.fillRect(x - tw / 2 + 4, y - 4, tw - 8, 2);
+      c.fillStyle = INK; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(def.name, x, y - 12);
+    }
+  }
+}
+$('#yardCv').addEventListener('pointerdown', (e) => {
+  const r = e.currentTarget.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * YARD.W, y = (e.clientY - r.top) / r.height * YARD.H;
+  let best = null, bd = 1e9;
+  for (const w of YARD.walkers) { const d = Math.hypot(w.x - x, (w.y - 26) - y); if (d < 36 && d < bd) { bd = d; best = w; } }
+  if (best) { best.hop = 0.4; best.wait = Math.max(best.wait, 1.2); YARD.bubble = { w: best, t: 1.8 }; }
+});
+
 /* ===== 👀 관전 (2026-11-21 예준이 요청) =====
    게임하는 사람은 0.25초마다 지금 화면(캐릭터 · 적 · 무기)을 작게 줄여서 room presence로 보내고,
    보는 사람은 그걸 받아서 같은 그림으로 그려요. claude.ai에 로그인한 사람끼리만 돼요. */
@@ -2540,6 +2599,7 @@ function frame(t) {
     else if (!S.paused && !S.over && !S.choosing && !S.equipping) for (let i = 0; i < S.speed && !S.over && !S.choosing; i++) update(dt);
     render(); syncHUD();
   }
+  if (S.screen === 'home') yardTick(dt);
   liveTick(t);
   requestAnimationFrame(frame);
 }
