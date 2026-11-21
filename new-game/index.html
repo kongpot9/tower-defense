@@ -240,7 +240,7 @@ h1,h2,p{margin:0}
       <button class="btn btn-blue big" id="bPlay" type="button">전투 시작</button>
       <button class="btn" id="bDeck" type="button">덱 편성</button>
     </div>
-    <p class="foot">캐릭터 31명 · 적 4종 · 터렛 · 트랩 · 성까지 전부 예준이 그림! 버프템만 아직 임시예요.</p>
+    <p class="foot">캐릭터 32명 · 적 4종 · 터렛 · 트랩 · 성까지 전부 예준이 그림! 버프템만 아직 임시예요.</p>
   </section>
 
   <!-- ===== 덱 편성 ===== -->
@@ -438,6 +438,8 @@ const ITEMS = [
 const ITEM_BY = {}; ITEMS.forEach((it) => { ITEM_BY[it.id] = it; });
 const ITEM_IMG = {};
 ITEMS.forEach((it) => { ITEM_IMG[it.id] = new Image(); ITEM_IMG[it.id].src = it.img; ITEM_IMG[it.id + ':a'] = new Image(); ITEM_IMG[it.id + ':a'].src = it.aimg; });
+const SKILL_IMG = { jaws: new Image(), kunai: new Image(), wave: new Image() };
+SKILL_IMG.jaws.src = 'art/skill-jaws.png'; SKILL_IMG.kunai.src = 'art/skill-kunai.png'; SKILL_IMG.wave.src = 'art/skill-wave.png';
 const itemOf = (u) => u && S.items.find((it) => it.unit === u);
 const itemName = (it) => it.awake ? ITEM_BY[it.id].aname : ITEM_BY[it.id].name + ' Lv.' + it.lv;   // 맹독: 777 콜드나이퍼 맹독탄과 같아요 (갈수록 아파짐)
 const TRAP_IMG = new Image(); TRAP_IMG.src = TRAP.img;
@@ -456,7 +458,8 @@ const CHARS = [
   { id: 'farmer',   name: '농부',         img: 'art/farmer.png',   grade: '일반', color: '#E9D27A', role: '근거리', pref: 'front',
     dmg: 140,  rate: 1 / 0.8,  range: 160, melee: 'slash', splash: 26, desc: '낫을 휘둘러 앞에 모인 적을 같이 베요.' },
   { id: 'jura',     name: '쥬라사우르스', img: 'art/jura.png',     grade: '희귀', color: '#B5DE85', role: '근거리', pref: 'front',
-    dmg: 50,   rate: 1 / 0.15, range: 140, melee: 'bite', desc: '공룡이 엄청 빠르게 물어뜯어요.' },
+    dmg: 50,   rate: 1 / 0.15, range: 140, melee: 'bite', skill: { kind: 'jaws', every: 15, dmg: 200, hits: 3 },
+    desc: '공룡이 엄청 빠르게 물어뜯어요. 스킬: 15초마다 초록 턱으로 200 × 3연타!' },
   { id: 'taein',    name: '원까태인',     img: 'art/taein.png',    grade: '희귀', color: '#9EC3F0', role: '원거리', pref: 'back',
     dmg: 55,   rate: 1 / 0.3,  range: 260, proj: 'ball', critP: 0.25, critX: 4, critName: '불꽃공!', desc: '야구공을 던져요. 4번에 1번은 불꽃공 (4배)!' },
   { id: 'tank',     name: '탱크보이',     img: 'art/tank.png',     grade: '희귀', color: '#A8C98A', role: '광역',   pref: 'back',
@@ -496,6 +499,11 @@ const CHARS = [
     dmg: 220,  rate: 1 / 0.75, range: 270, proj: 'songpyeon', multi: 4, noBoss: true, desc: '송편 4개를 적 4명에게 한꺼번에 던져요. 보스는 안 노려요.' },
   { id: 'angel',    name: '엔젤 푸들',   img: 'art/angel.png',   grade: '신화', color: '#FFF1B8', role: '즉사',   pref: 'back',
     dmg: 250,  rate: 1 / 0.6,  range: 260, proj: 'holy', smiteP: 0.08, desc: '빛으로 공격해요. 8% 확률로 적을 바로 데려가요 (보스 제외).' },
+  // ↓ 다시 입국 (2026-11-21): 에이트나 — 스킬이 생겨서 돌아옴
+  { id: 'aetna',    name: '에이트나',     img: 'art/aetna.png',    grade: '신화', color: '#F0A35E', role: '근거리', pref: 'front',
+    dmg: 1600, rate: 1 / 1.3,  range: 150, melee: 'slash', splash: 45, push: 18,
+    skill: { kind: 'kunai', every: 15, dmg: 500, n: 3, push: 40, radius: 150 },
+    desc: '광역 베기로 적을 밀쳐내요. 스킬: 15초마다 수리검 3개(500씩)를 던지고, 파장이 퍼져서 적을 밀쳐내요!' },
   { id: 'sunin',    name: '선인탈',       img: 'art/sunin.png',    grade: '신화', color: '#E8C49A', role: '근거리', pref: 'front',
     dmg: 1500, rate: 1 / 1.2,  range: 150, melee: 'slash', sunin: { every: 3, luckyP: 0.2, luckyX: 4, stunP: 0.15 },
     desc: '3웨이브마다 모드가 바뀌어요. 선인 모드: 20% 럭키샷(4배). 봉산 모드: 때릴 때마다 맹독 + 15% 기절 (보스 제외).' },
@@ -626,7 +634,32 @@ function waveHooks() {
     else { for (const e of S.enemies) if (!e.dead && !e.boss) e.hp *= 0.8; fx({ k: 'text', x: W / 2, y: WALL_Y - 152, s: '⛏️ 호치: 폭발의 캔디! 적 체력 20%↓', c: RED, life: 1.8, size: 14 }); }
   }
 }
-function unitTimers(u, def, dt) {                          // 시간마다 하는 일: 호스퍼 앙코르 · 셰프 요리
+function castSkill(u, def) {                               // ⚔️ 캐릭터 스킬 (그림·설정: 구예준)
+  const t = findTarget(u, def); if (!t) return false;
+  const p = slotXY(u.slot), sk = def.skill;
+  const mul = lvMult(def.id) * (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1) * teamMul() * itemDmgMul(u, def);
+  if (sk.kind === 'jaws') {                                  // 🦕 초록 턱 3연타
+    for (let i = 0; i < sk.hits; i++) hurt(t, sk.dmg * mul, def.id);
+    fx({ k: 'jaws', x: t.x, y: t.y, life: 0.6 });
+    fx({ k: 'text', x: t.x, y: t.y - 30, s: '콱콱콱!', c: '#5E9A2C', life: 0.9, size: 14 });
+  } else if (sk.kind === 'kunai') {                          // 🛡️ 수리검 3개 → 파장
+    const r2 = (300 + S.buff.rng) ** 2;
+    const tg = S.enemies.filter((e) => !e.dead && e.y > 0 && (e.x - p.x) ** 2 + (e.y - p.y) ** 2 <= r2).sort((a, b) => b.y - a.y).slice(0, sk.n);
+    for (const e of tg) S.projs.push({ k: 'kunai', x: p.x, y: p.y - 20, t: e, lx: e.x, ly: e.y, sp: 650, dmg: sk.dmg * mul, def: { id: def.id }, d0: 1, prog: 0 });
+    for (const e of S.enemies) {                             // 파장: 닿은 적을 밀쳐내요
+      const dx = e.x - p.x, dy = e.y - p.y, d = Math.hypot(dx, dy) || 1;
+      if (!e.dead && d < sk.radius + 90 && !e.boss) { e.y = Math.max(-20, e.y - sk.push); e.x = Math.min(W - e.r, Math.max(e.r, e.x + dx / d * 8)); }
+    }
+    fx({ k: 'wave', x: p.x, y: p.y - 30, r: sk.radius + 90, life: 0.6 });
+    fx({ k: 'text', x: p.x, y: p.y - 56, s: '수리검!', c: '#2F4FB8', life: 0.9, size: 14 });
+  }
+  return true;
+}
+function unitTimers(u, def, dt) {                          // 시간마다 하는 일: 스킬 · 호스퍼 앙코르 · 셰프 요리
+  if (def.skill) {
+    u.skillT = (u.skillT || 0) + dt;
+    if (u.skillT >= def.skill.every * (1 - cdCut(u)) && castSkill(u, def)) u.skillT = 0;
+  }
   if (def.encore) {
     u.skT = (u.skT || 0) + dt;
     if (u.skT >= def.encore.every * (1 - cdCut(u))) {
@@ -847,7 +880,11 @@ function hitTarget(def, t, dmg, x, y) {
     dmg *= def.critX; if (def.critSplash) r = def.critSplash;
     fx({ k: 'text', x, y: y - 16, s: def.critName, c: ORANGE, life: 0.8, size: 13 });
   }
-  if (r) { area(x, y, r, dmg, def.id, def.stunHit ? (e) => { if (S.time >= (e.stunFree || 0)) { e.stunT = Math.max(e.stunT, def.stunHit); e.stunFree = S.time + def.stunHit + 0.8; } } : null); fx({ k: 'boom', x, y, r, c: ORANGE, life: 0.3 }); }
+  const onHit = (def.stunHit || def.push) ? (e) => {
+    if (def.stunHit && S.time >= (e.stunFree || 0)) { e.stunT = Math.max(e.stunT, def.stunHit); e.stunFree = S.time + def.stunHit + 0.8; }
+    if (def.push && !e.boss) e.y = Math.max(-20, e.y - def.push);
+  } : null;
+  if (r) { area(x, y, r, dmg, def.id, onHit); fx({ k: 'boom', x, y, r, c: ORANGE, life: 0.3 }); }
   else if (alive) hurt(t, dmg, def.id);
   if (def.chainP && Math.random() < def.chainP) {
     const d2 = (e) => (e.x - x) ** 2 + (e.y - y) ** 2;
@@ -1542,6 +1579,11 @@ function drawProj(pr) {
       c.fillStyle = INK; c.beginPath(); c.moveTo(6, 0); c.lineTo(0, -3.5); c.lineTo(0, 3.5); c.fill();
       break;
     case 'ball': c.fillStyle = PAPER; circle(c, 0, 0, 3.8); c.fill(); c.stroke(); break;
+    case 'kunai': {
+      const im = SKILL_IMG.kunai;
+      if (im.complete && im.naturalWidth) { c.rotate(a + Math.PI / 2); c.drawImage(im, -6, -11, 12, 22); }
+      break;
+    }
     case 'zap': c.fillStyle = YEL; circle(c, 0, 0, 4.5); c.fill(); c.strokeStyle = INK; c.lineWidth = 1.2; c.stroke(); break;
     case 'paper': c.rotate(pr.spin); c.fillStyle = PAPER; c.fillRect(-4, -4, 8, 8); c.strokeRect(-4, -4, 8, 8); break;
     case 'orb': c.fillStyle = '#9B86D6'; circle(c, 0, 0, 5); c.fill(); c.stroke(); break;
@@ -1624,6 +1666,16 @@ function drawFx(f) {
       c.lineWidth = 2; circle(c, f.x2, f.y2, 9 + k * 6); c.stroke();
       c.beginPath(); c.moveTo(f.x2 - 15, f.y2); c.lineTo(f.x2 + 15, f.y2); c.moveTo(f.x2, f.y2 - 15); c.lineTo(f.x2, f.y2 + 15); c.stroke();
       break;
+    case 'jaws': {                                         // 초록 턱이 세 번 콱콱콱
+      const im = SKILL_IMG.jaws, snap = 1 + 0.25 * Math.abs(Math.sin(k * Math.PI * 3));
+      if (im.complete && im.naturalWidth) { c.translate(f.x, f.y); c.scale(snap, snap); c.drawImage(im, -20, -20, 40, 38); }
+      break;
+    }
+    case 'wave': {                                         // 파란 가시 파장이 퍼져요
+      const im = SKILL_IMG.wave, rr = f.r * (0.3 + 0.7 * k);
+      if (im.complete && im.naturalWidth) c.drawImage(im, f.x - rr, f.y - rr * 0.48, rr * 2, rr * 0.96);
+      break;
+    }
     case 'bite': {
       const g = 7 * (1 - Math.min(1, k * 2.5));
       c.strokeStyle = INK; c.lineWidth = 2.5;
@@ -1839,6 +1891,7 @@ function showPop() {
   $('#popDesc').textContent = d.desc + (d.support ? '' : ' (데미지 ' + Math.round(d.dmg * lvMult(d.id) * (1 + (u.bonus || 0))) + ' · ' + every(d) + ')') +
     (d.sunin ? (sunMode() ? ' · 지금 🧙선인 모드' : ' · 지금 🐀봉산 모드') : '') +
     (d.stack ? ' · 지금 +' + Math.round((u.stack || 0) * 100) + '%' : '') +
+    (d.skill ? ' · ⚔️ 스킬까지 ' + Math.max(0, Math.ceil(d.skill.every * (1 - cdCut(u)) - (u.skillT || 0))) + '초' : '') +
     (itemOf(u) ? ' · 🎁 ' + itemName(itemOf(u)) + ': ' + ITEM_BY[itemOf(u).id].d(itemOf(u).awake) : '') +
     (u.drillT > 0 ? ' · 🔩 드릴차 ' + Math.ceil(u.drillT) + '초 남음' : '') + (u.young ? ' · 🌱 27살!' : '') +
     (d.doctor ? (doctorOn(u) ? ' · ⚡ 닥터 대두 출동 중! ' + (u.drUntil - S.wave) + '웨이브 남음' : ' · 닥터 대두까지 ' + (u.dHits || 0) + '/' + d.doctor.hits + '번') : '') +
