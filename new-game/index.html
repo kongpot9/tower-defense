@@ -2588,7 +2588,7 @@ function openBld(b, i) {
       btns.appendChild(bldBtn(crysIco + '12,000 받기', () => take(0, 12000), !ready));
     } else btns.appendChild(bldBtn(b === 'mold' ? coinIco + '10,000 받기' : crysIco + '500 받기', () => b === 'mold' ? take(10000, 0) : take(0, 500), !ready));
   } else if (b === 'dungeon') {
-    $('#bldNote').textContent = '10분 동안 매 웨이브 보스가 나와요. 지면 거기서 끝 · 잡은 만큼 받아요';
+    $('#bldNote').textContent = '10분 동안 매 웨이브 보스가 나와요. 10분을 끝까지 버텨야 보상! 지면 보상 없음';
     btns.appendChild(bldBtn('🕳️ 던전 들어가기', () => { $('#bldOv').hidden = true; startBattle('dungeon'); }));
   } else if (b === 'dwarf') {
     const need = dwarfNeed(x);
@@ -2623,7 +2623,8 @@ function openDwarf() {
 function dungeonEnd() {                                             // 🕳️ 던전 끝: 잡은 보스 × 1000 크리스탈
   if (S.over) return;
   S.over = true; select(-1);
-  const k = S.dgKills || 0, gain = k * DUNGEON.reward, coin = k * DUNGEON.coin;
+  const k = S.dgKills || 0, clear = S.dgLeft <= 0;                 // 10분을 다 버텨야 보상! (지면 0 — 2026-11-21 예준이 결정)
+  const gain = clear ? k * DUNGEON.reward : 0, coin = clear ? k * DUNGEON.coin : 0;
   META.dgBoss = (META.dgBoss || 0) + k;
   META.crystal += gain; META.coin += coin; metaSave(); checkAch(false);
   $('#goWave').textContent = k;
@@ -2631,7 +2632,7 @@ function dungeonEnd() {                                             // 🕳️ �
   $('.go-title').textContent = S.dgLeft <= 0 ? '던전 끝!' : '던전에서 졌어요!';
   $('#goReason').textContent = S.dgLeft <= 0 ? '10분이 지났어요' : '적이 100마리 쌓였어요';
   $('#goBest').innerHTML = ''; $('#goRank').innerHTML = '';
-  $('#goEarn').innerHTML = '<span>' + coinIco + '+' + fmtNum(coin) + '</span><span>' + crysIco + '+' + fmtNum(gain) + '</span>';
+  $('#goEarn').innerHTML = clear ? '<span>' + coinIco + '+' + fmtNum(coin) + '</span><span>' + crysIco + '+' + fmtNum(gain) + '</span>' : '<span>10분을 버텨야 보상을 받아요</span>';
   $('#goSum').textContent = S.picks; $('#goKill').textContent = S.kills; $('#goUp').textContent = S.upN;
   $('#bRevive').hidden = true; $('#bGoRank').hidden = true;
   $('#overOv').hidden = false;
