@@ -565,7 +565,7 @@ const FOES = [
   { id: 'slime', name: '슬라임',   img: 'art/enemy-slime.png', hp: 1.0, speed: 8, r: 9.5, w: 2, dodge: 0.15 },  // 가끔 점프로 공격을 피함
 ];
 const BOSSES = [
-  { id: 'skullgen', name: '해골장수', img: 'art/boss-skullgen.png', skillImg: 'art/boss-skullgen-gumgi.png', hp: 4, speed: 10, r: 20, skill: 'gumgi' },
+  { id: 'skullgen', name: '해골장수', img: 'art/boss-skullgen.png', skillImg: 'art/boss-skullgen-gumgi.png', hp: 4, speed: 10, r: 28, skill: 'gumgi' },   // 보스는 1.5배 크게
   // ↑ 검기: 아군 공격력 10초간 ½ · 검기를 쓸 때만 보라색 검기가 있는 그림으로 바뀌어요
 ];
 const FOE_IMG = {};
@@ -719,10 +719,11 @@ function startWave() {
   const boss = S.wave % BAL.bossEvery === 0;
   let n = BAL.count(S.wave);
   const q = [];
-  if (boss) { q.push(true); n = Math.floor(n / 2); }
+  if (boss) { q.push(true); n = 0; }                     // 👹 보스 웨이브: 10웨이브마다 보스 혼자 (예준이 결정)
   for (let i = 0; i < n; i++) q.push(false);
   S.queue = q; S.spawnGap = BAL.spawnWindow / q.length; S.spawnT = 0;
-  S.banner = { s: boss ? BOSSES[0].name + ' 등장!' : 'WAVE ' + S.wave, t: 0, c: boss ? RED : INK };
+  S.banner = { s: boss ? '보스 웨이브!' : 'WAVE ' + S.wave, t: 0, c: boss ? RED : INK };
+  if (boss) fx({ k: 'text', x: W / 2, y: 160, s: '👹 ' + BOSSES[0].name + ' 등장!', c: RED, life: 2, size: 18 });
 }
 function makeEnemy(boss) {
   const w = S.wave;
@@ -1432,7 +1433,7 @@ function circle(c, x, y, r) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); }
 const easeBack = (k) => { const s = 1.7; k -= 1; return k * k * ((s + 1) * k + s) + 1; };
 
 function drawFoeSprite(e, im) {
-  const c = ctx, box = e.boss ? 58 : 26, k = Math.min(box / im.naturalHeight, box * 1.25 / im.naturalWidth);
+  const c = ctx, box = e.boss ? 88 : 26, k = Math.min(box / im.naturalHeight, box * 1.25 / im.naturalWidth);
   const dw = im.naturalWidth * k, dh = im.naturalHeight * k, t = S.time * 9 + e.wob;
   const jump = e.jumpT > 0 ? Math.sin((e.jumpT / 0.4) * Math.PI) * 14 : 0;
   const pop = e.flash > 0 ? 1.12 : 1;
@@ -1446,7 +1447,7 @@ function drawFoeSprite(e, im) {
   if (e.burnT > 0) { c.fillStyle = ORANGE; circle(c, e.x + dw * 0.3, e.y - dh * 0.5, 2.6 + Math.sin(S.time * 20) * 0.8); c.fill(); }
   if (e.stunT > 0) { c.fillStyle = YEL; c.font = '9px ' + UIF; c.textAlign = 'center'; c.fillText('★', e.x + Math.cos(S.time * 8) * 6, e.y - dh * 0.6); }
   if (e.boss || e.hp < e.maxHp) {
-    const bw = e.boss ? 44 : 18, by = e.y + e.r * 0.9 - dh - jump - (e.boss ? 8 : 5);
+    const bw = e.boss ? 64 : 18, by = e.y + e.r * 0.9 - dh - jump - (e.boss ? 8 : 5);
     c.fillStyle = INK; c.fillRect(e.x - bw / 2 - 1, by - 1, bw + 2, e.boss ? 6 : 4);
     c.fillStyle = e.boss ? RED : '#6BCB77'; c.fillRect(e.x - bw / 2, by, bw * Math.max(0, e.hp / e.maxHp), e.boss ? 4 : 2);
   }
