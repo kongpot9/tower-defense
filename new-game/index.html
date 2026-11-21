@@ -196,6 +196,19 @@ h1,h2,p{margin:0}
 .toast{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);z-index:12;background:var(--ink);color:var(--paper);
   border-radius:12px;padding:8px 14px;font-size:15px;pointer-events:none;white-space:nowrap}
 
+.ov-fixed{position:fixed!important;border-radius:0!important;z-index:40!important}
+.rank-card{max-height:calc(100% - 20px);overflow-y:auto}
+.rank-list{list-style:none;margin:0;padding:0;display:grid;gap:4px;text-align:left;max-height:46vh;overflow-y:auto}
+.rank-list li{display:grid;grid-template-columns:34px 1fr auto;gap:8px;align-items:center;padding:6px 10px;border-radius:10px;background:var(--paper-2);font-size:15px;font-variant-numeric:tabular-nums}
+.rank-list li b{font-family:var(--f-display);font-weight:400;font-size:17px}
+.rank-list li.me{background:var(--yellow);border:2px solid var(--ink)}
+.rank-list li .n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank-list .empty{display:block;text-align:center;color:var(--muted);background:none}
+.nick-row{display:grid;grid-template-columns:auto 1fr auto;gap:6px;align-items:center;font-size:13px;text-align:left}
+.nick-row input{min-width:0;font:inherit;font-size:15px;padding:7px 10px;border:2.5px solid var(--ink);border-radius:10px;background:var(--paper);color:var(--ink)}
+.rank-note{font-size:12px;color:var(--muted);line-height:1.4}
+.go-rank{font-size:14px;color:var(--muted)}
+.go-rank b{color:var(--ink)}
 .ov{position:absolute;inset:0;z-index:20;display:grid;place-items:center;padding:16px;background:color-mix(in srgb,var(--ink) 66%,transparent);border-radius:16px}
 .ov-card{width:min(330px,100%);background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:18px;box-shadow:0 7px 0 var(--ink);
   padding:22px 18px 18px;text-align:center;display:flex;flex-direction:column;gap:12px}
@@ -244,6 +257,7 @@ h1,h2,p{margin:0}
     <div class="home-actions">
       <button class="btn btn-blue big" id="bPlay" type="button">전투 시작</button>
       <button class="btn" id="bDeck" type="button">덱 편성</button>
+      <button class="btn" id="bRank" type="button">🏆 랭킹</button>
     </div>
     <p class="foot">캐릭터 32명 · 적 4종 · 터렛 · 트랩 · 성까지 전부 예준이 그림! 버프템만 아직 임시예요.</p>
   </section>
@@ -334,6 +348,7 @@ h1,h2,p{margin:0}
         <p class="sub" id="goReason">적이 100마리 쌓였어요</p>
         <div class="go-wave"><small>도달한 웨이브</small><span id="goWave">0</span></div>
         <div class="go-best" id="goBest"></div>
+        <div class="go-rank" id="goRank"></div>
         <div class="go-stats">
           <div><b id="goSum">0</b>선물</div>
           <div><b id="goKill">0</b>처치</div>
@@ -341,11 +356,28 @@ h1,h2,p{margin:0}
         </div>
         <div class="ov-btns">
           <button class="btn btn-blue big" id="bRetry" type="button">다시 하기</button>
+          <button class="btn" id="bGoRank" type="button">🏆 랭킹 보기</button>
           <button class="btn" id="bHome" type="button">홈으로</button>
         </div>
       </div>
     </div>
   </section>
+
+  <!-- ===== 🏆 랭킹 ===== -->
+  <div class="ov ov-fixed" id="rankOv" hidden>
+    <div class="ov-card rank-card">
+      <h2>🏆 랭킹</h2>
+      <p class="sub" id="rankSub">최고 웨이브 순서</p>
+      <ol class="rank-list" id="rankList"></ol>
+      <div class="nick-row">
+        <label for="nickIn">내 닉네임</label>
+        <input id="nickIn" maxlength="12" placeholder="닉네임 (12자까지)" autocomplete="off">
+        <button class="btn btn-sm btn-blue" id="bNick" type="button">저장</button>
+      </div>
+      <p class="rank-note" id="rankNote"></p>
+      <div class="ov-btns"><button class="btn" id="bRankClose" type="button">닫기</button></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -1950,6 +1982,90 @@ function startBattle() {
   show('battle');
   if (!store.get('yj2.coach', false)) { S.paused = true; $('#coach').hidden = false; }
 }
+/* ===== 🏆 랭킹 (2026-11-21 예준이 요청) =====
+   claude.ai 게임 페이지에서는 페이지 안의 공유 저장소(db)에, 그 밖(GitHub Pages · 앱)에서는 777과 같은 Firebase 서버에 올려요. */
+const RANK = { mode: 'none', db: null, uid: null,
+  fb: 'https://tower-defense-777-default-rtdb.asia-southeast1.firebasedatabase.app/musung/rank' };
+const NICK_OK = /^[가-힣a-zA-Z0-9_ ]{1,12}$/;
+let rankReady = null;
+function rankInit() {
+  if (rankReady) return rankReady;
+  rankReady = (async () => {
+    const C = window.claude;
+    if (C && typeof C.use === 'function') {
+      try {
+        const db = await C.use('db'), user = await C.use('user');
+        if (db) { RANK.db = db; RANK.mode = 'db'; if (user) { try { RANK.uid = await user.id(); } catch (e) { /* 읽기만 */ } } return; }
+      } catch (e) { /* 아래로 */ }
+      RANK.mode = 'off'; return;                              // claude.ai 안인데 저장소가 없으면 (로그아웃 등)
+    }
+    RANK.mode = 'fb';
+  })();
+  return rankReady;
+}
+async function rankFetch() {
+  await rankInit();
+  if (RANK.mode === 'db') {
+    const snap = await RANK.db.collection('rank').orderBy('wave', 'desc').limit(50).get();
+    return snap.docs.map((d) => Object.assign({ me: d.id === RANK.uid }, d.data()));
+  }
+  if (RANK.mode === 'fb') {
+    const r = await fetch(RANK.fb + '.json'); if (!r.ok) throw new Error('http ' + r.status);
+    const o = (await r.json()) || {};
+    return Object.keys(o).map((k) => ({ nick: k, wave: o[k].wave, me: k === store.get('yj2.nick', '') })).sort((a, b) => b.wave - a.wave).slice(0, 50);
+  }
+  throw new Error('off');
+}
+async function rankSubmit() {
+  const nick = store.get('yj2.nick', ''), wave = S.best;
+  if (!nick || !wave) return 'skip';
+  await rankInit();
+  if (RANK.mode === 'db') {
+    if (!RANK.uid) return 'readonly';
+    const ref = RANK.db.doc('rank/' + RANK.uid), old = await ref.get();
+    const ow = old.exists ? (old.data().wave || 0) : 0, on = old.exists ? old.data().nick : '';
+    if (wave > ow || nick !== on) await ref.set({ nick, wave: Math.max(wave, ow), t: Date.now() });
+    return 'ok';
+  }
+  if (RANK.mode === 'fb') {
+    const r = await fetch(RANK.fb + '/' + encodeURIComponent(nick) + '.json', { method: 'PUT', body: JSON.stringify({ wave, t: Date.now() }) });
+    return r.ok ? 'ok' : 'denied';
+  }
+  return 'off';
+}
+async function openRank() {
+  const ov = $('#rankOv'), list = $('#rankList'), note = $('#rankNote');
+  $('#nickIn').value = store.get('yj2.nick', '');
+  list.innerHTML = '<li class="empty">불러오는 중…</li>'; note.textContent = '';
+  ov.hidden = false;
+  const timer = setTimeout(() => { if (list.textContent === '불러오는 중…') list.innerHTML = '<li class="empty">랭킹 서버가 아직 대답이 없어요</li>'; }, 10000);
+  try {
+    const rows = await rankFetch(); clearTimeout(timer);
+    list.innerHTML = rows.length ? '' : '<li class="empty">아직 아무도 없어요. 1등을 차지해요!</li>';
+    rows.forEach((r, i) => {
+      const li = document.createElement('li'); if (r.me) li.className = 'me';
+      const no = document.createElement('b'); no.textContent = (i + 1) + '';
+      const nm = document.createElement('span'); nm.className = 'n'; nm.textContent = r.nick || '???';
+      const wv = document.createElement('span'); wv.textContent = 'WAVE ' + r.wave;
+      li.append(no, nm, wv); list.appendChild(li);
+    });
+    if (RANK.mode === 'db' && !RANK.uid) note.textContent = '이 화면에서는 랭킹을 볼 수만 있어요';
+  } catch (e) {
+    clearTimeout(timer);
+    list.innerHTML = '<li class="empty">랭킹 서버에 연결할 수 없어요</li>';
+  }
+}
+$('#bRank').addEventListener('click', openRank);
+$('#bGoRank').addEventListener('click', openRank);
+$('#bRankClose').addEventListener('click', () => { $('#rankOv').hidden = true; });
+$('#bNick').addEventListener('click', async () => {
+  const v = $('#nickIn').value.trim(), note = $('#rankNote');
+  if (!NICK_OK.test(v)) { note.textContent = '닉네임은 한글·영어·숫자로 12자까지예요'; return; }
+  store.set('yj2.nick', v); note.textContent = '저장했어요! 최고 기록을 올리는 중…';
+  try { const r = await rankSubmit(); note.textContent = r === 'ok' ? '랭킹에 올렸어요!' : r === 'skip' ? '게임을 한 판 하면 기록이 올라가요' : '기록을 올리지 못했어요 (' + r + ')'; openRankListOnly(); }
+  catch (e) { note.textContent = '기록을 올리지 못했어요'; }
+});
+async function openRankListOnly() { const n = $('#rankNote').textContent; await openRank(); $('#rankNote').textContent = n; }
 function gameOver() {
   if (S.over) return;
   S.over = true; select(-1);
@@ -1959,6 +2075,13 @@ function gameOver() {
   $('#goBest').innerHTML = nb ? '<span class="stamp">신기록!</span>' : '최고 기록 WAVE ' + S.best;
   $('#goSum').textContent = S.picks; $('#goKill').textContent = S.kills; $('#goUp').textContent = S.upN;
   $('#overOv').hidden = false;
+  const gr = $('#goRank');
+  if (!store.get('yj2.nick', '')) gr.innerHTML = '🏆 닉네임을 정하면 랭킹에 올라가요';
+  else {
+    gr.textContent = '🏆 랭킹에 올리는 중…';
+    rankSubmit().then((r) => { gr.innerHTML = r === 'ok' ? '🏆 <b>' + store.get('yj2.nick', '') + '</b>의 최고 기록 WAVE ' + S.best + ' 등록!' : '🏆 랭킹에 올리지 못했어요'; })
+      .catch(() => { gr.textContent = '🏆 랭킹에 올리지 못했어요'; });
+  }
 }
 $('#bPlay').addEventListener('click', startBattle);
 $('#bRetry').addEventListener('click', startBattle);
@@ -2023,6 +2146,7 @@ function frame(t) {
 }
 
 function start(data) {
+  rankInit();
   S.deck = validDeck(data && data.deck) || validDeck(store.get('yj2.deck', null)) || CHARS.slice(0, 8).map((c) => c.id);
   S.best = store.get('yj2.best', 0) || 0;
   show('home');

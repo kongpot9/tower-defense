@@ -5,26 +5,46 @@
       "classic": {
         "$nick": {
           ".write": "$nick.length <= 20 && newData.exists() && newData.hasChildren(['wave','t']) && newData.child('wave').isNumber() && newData.child('wave').val() >= 1 && newData.child('wave').val() <= 200 && (!data.exists() || newData.child('wave').val() > data.child('wave').val()) && newData.child('t').isNumber() && newData.child('t').val() <= now + 60000",
-          "wave": { ".validate": "newData.isNumber()" },
-          "t": { ".validate": "newData.isNumber()" },
-          "$other": { ".validate": false }
+          "wave": {
+            ".validate": "newData.isNumber()"
+          },
+          "t": {
+            ".validate": "newData.isNumber()"
+          },
+          "$other": {
+            ".validate": false
+          }
         }
       },
       "story": {
         "$nick": {
           ".write": "$nick.length <= 20 && newData.exists() && newData.hasChildren(['stars','t']) && newData.child('stars').isNumber() && newData.child('stars').val() >= 1 && newData.child('stars').val() <= 42 && (!data.exists() || newData.child('stars').val() > data.child('stars').val()) && newData.child('t').isNumber() && newData.child('t').val() <= now + 60000",
-          "stars": { ".validate": "newData.isNumber()" },
-          "t": { ".validate": "newData.isNumber()" },
-          "$other": { ".validate": false }
+          "stars": {
+            ".validate": "newData.isNumber()"
+          },
+          "t": {
+            ".validate": "newData.isNumber()"
+          },
+          "$other": {
+            ".validate": false
+          }
         }
       },
       "duo": {
         "$key": {
           ".write": "$key.length <= 24 && newData.exists() && newData.hasChildren(['wave','t']) && newData.child('wave').isNumber() && newData.child('wave').val() >= 1 && newData.child('wave').val() <= 200 && (!data.exists() || newData.child('wave').val() > data.child('wave').val()) && newData.child('t').isNumber() && newData.child('t').val() <= now + 60000",
-          "wave": { ".validate": "newData.isNumber()" },
-          "t": { ".validate": "newData.isNumber()" },
-          "nicks": { ".validate": true },
-          "$other": { ".validate": false }
+          "wave": {
+            ".validate": "newData.isNumber()"
+          },
+          "t": {
+            ".validate": "newData.isNumber()"
+          },
+          "nicks": {
+            ".validate": true
+          },
+          "$other": {
+            ".validate": false
+          }
         }
       }
     },
@@ -35,6 +55,23 @@
     "duoqueue": {
       ".read": true,
       ".write": true
+    },
+    "musung": {
+      "rank": {
+        ".read": true,
+        "$nick": {
+          ".write": "$nick.length <= 12 && newData.exists() && newData.hasChildren(['wave','t']) && newData.child('wave').isNumber() && newData.child('wave').val() >= 1 && newData.child('wave').val() <= 500 && (!data.exists() || newData.child('wave').val() > data.child('wave').val()) && newData.child('t').isNumber() && newData.child('t').val() <= now + 60000",
+          "wave": {
+            ".validate": "newData.isNumber()"
+          },
+          "t": {
+            ".validate": "newData.isNumber()"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
     }
   }
 }
