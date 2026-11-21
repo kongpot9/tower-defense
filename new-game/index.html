@@ -1185,10 +1185,11 @@ function offerHTML(o, i) {
     const d = ITEM_BY[o.id], it = S.items.find((x) => x.id === o.id), aw = o.k === 'itemAwake';
     ico = '<span class="rc-ico" style="--c:#F5E6B8"><img src="' + (aw ? d.aimg : d.img) + '" alt="" style="max-width:46px;max-height:46px"></span>';
     tag = '<span class="rc-tag" style="background:#B8860B">장비</span>';
-    if (o.k === 'itemNew') { name = d.name; desc = d.d(false); note = '받으면 끼울 캐릭터를 골라요 · Lv.5 다음엔 각성'; }
+    if (o.k === 'itemNew') { name = it ? (it.awake ? d.aname : d.name) + ' 하나 더' : d.name; desc = d.d(it ? it.awake : false); note = it ? '다른 캐릭터한테도 끼울 수 있어요 · 레벨과 각성은 같이 올라가요' : '받으면 끼울 캐릭터를 골라요 · Lv.5 다음엔 각성'; }
     else if (o.k === 'itemUp') { name = d.name + ' 레벨업'; desc = 'Lv.' + it.lv + ' → Lv.' + (it.lv + 1) + ' · ' + d.d(false); note = it.lv + 1 >= 5 ? '다음엔 각성!' : '레벨이 오를수록 각성에 가까워져요'; }
     else { name = d.aname + '!'; desc = d.d(true); note = d.name + '이(가) 각성해요'; }
-    if (it && it.unit) note += ' · 지금 ' + BY[it.unit.type].name + '이(가) 끼고 있음';
+    const cnt = S.items.filter((x) => x.id === o.id).length;
+    if (cnt) note += ' · 지금 ' + cnt + '개';
   } else if (o.k === 'char' || o.k === 'up') {
     const d = BY[o.id], n = S.units.filter((u) => u && u.type === o.id).length;
     ico = stickerHTML(d, 50);
@@ -1287,9 +1288,8 @@ function openLvGift() {
   const opts = [];
   for (const d of ITEMS) {
     const it = S.items.find((x) => x.id === d.id);
-    if (!it) opts.push({ k: 'itemNew', id: d.id });
-    else if (it.awake) continue;
-    else opts.push({ k: it.lv < 5 ? 'itemUp' : 'itemAwake', id: d.id });
+    opts.push({ k: 'itemNew', id: d.id });                     // 같은 장비도 하나 더 받을 수 있어요 (예준이 결정)
+    if (it && !it.awake) opts.push({ k: it.lv < 5 ? 'itemUp' : 'itemAwake', id: d.id });
   }
   opts.sort(() => Math.random() - 0.5);
   const out = opts.slice(0, 3);
@@ -1313,9 +1313,10 @@ function pickLv(o) {
   const d = o.id && ITEM_BY[o.id], it = o.id && S.items.find((x) => x.id === o.id);
   S.pendingLv--; S.offer = null; S.chooseMode = null; S.choosing = false; $('#rewardOv').hidden = true;
   if (o.k === 'lvGold') { const g = 100 + 10 * S.wave; S.gold += g; say('💰 돈 +' + g); return; }
-  if (o.k === 'itemUp') { it.lv++; say('🎁 ' + d.name + ' Lv.' + it.lv + '!', '#B8860B'); return; }
-  if (o.k === 'itemAwake') { it.awake = true; S.banner = { s: d.aname + '!', t: 0, c: '#B8860B' }; return; }
-  const ni = { id: o.id, lv: 1, awake: false, unit: null, kills: 0 };
+  const same = S.items.filter((x) => x.id === o.id);          // 같은 장비는 레벨 · 각성을 같이 써요
+  if (o.k === 'itemUp') { same.forEach((x) => x.lv++); say('🎁 ' + d.name + ' Lv.' + it.lv + '!' + (same.length > 1 ? ' (' + same.length + '개 같이)' : ''), '#B8860B'); return; }
+  if (o.k === 'itemAwake') { same.forEach((x) => { x.awake = true; }); S.banner = { s: d.aname + '!', t: 0, c: '#B8860B' }; return; }
+  const ni = { id: o.id, lv: it ? it.lv : 1, awake: it ? it.awake : false, unit: null, kills: 0 };
   S.items.push(ni);
   if (S.units.some(Boolean)) { S.equipping = ni; equipBar().textContent = '🎁 ' + d.name + ' — 끼울 캐릭터를 눌러요'; equipBar().hidden = false; }
 }
