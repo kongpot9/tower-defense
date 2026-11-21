@@ -104,6 +104,12 @@ h1,h2,p{margin:0}
 .cc:active{transform:translateY(2px);box-shadow:0 2px 0 var(--ink)}
 .cc[aria-pressed="true"]{background:var(--yellow)}
 .cc.locked{filter:grayscale(.85);opacity:.6}
+.rep-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 6px;max-height:50vh;overflow-y:auto;padding:4px}
+.rep-pick{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:2px solid transparent;border-radius:12px;padding:6px 2px;font:inherit;font-size:12px;color:var(--ink);cursor:pointer}
+.rep-pick:active{background:var(--yellow);border-color:var(--ink)}
+.rep-pick span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.starter{animation:bob 1.2s ease-in-out infinite}
+.up-list .btns{display:flex;gap:4px}
 .cc.locked.buy{filter:grayscale(.4);opacity:.85}
 .cc-how{font-size:12px;font-weight:700;color:var(--ink);background:var(--paper-2,#E4E7EE);border:1.5px dashed var(--ink);border-radius:8px;padding:3px 7px}
 .box-got{display:flex;flex-direction:column;align-items:center;gap:6px;margin:6px 0;animation:pop .35s ease-out}
@@ -300,6 +306,7 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
     <div class="yard" id="yard"><canvas id="yardCv" aria-label="내 마을"></canvas><div class="village" id="village"></div></div>
     <div class="wallet"><span><img src="art/coin.png" alt="코인"><b id="wCoin">0</b></span><span><img src="art/crystal.png" alt="크리스탈"><b id="wCrystal">0</b></span></div>
     <div class="lobby-top">
+      <button class="btn btn-sm btn-gold starter" id="bStarter" type="button" hidden>🎁 입문 상자 세트</button>
       <button class="btn btn-sm" id="bUpg" type="button">⭐ 강화</button>
       <button class="btn btn-sm" id="bDeck" type="button">🃏 덱 편성</button>
       <button class="btn btn-sm" id="bBox" type="button">🎁 상자</button>
@@ -425,6 +432,15 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
   </section>
 
   <!-- ===== 🏆 랭킹 ===== -->
+  <div class="ov ov-fixed" id="starterOv" hidden>
+    <div class="ov-card rank-card">
+      <h2>🎁 입문 상자 세트</h2>
+      <p class="sub">처음 온 친구를 위한 선물! <b>신화 캐릭터 하나</b>를 골라서 열고, <b>🔄 초기화권 1장</b>도 받아요</p>
+      <div class="rep-grid" id="starterGrid"></div>
+      <p class="bld-note">초기화권: ⭐강화한 캐릭터 하나를 ⭐0으로 되돌리고 쓴 크리스탈을 전부 돌려받아요</p>
+      <div class="ov-btns"><button class="btn" id="bStarterClose" type="button">나중에</button></div>
+    </div>
+  </div>
   <div class="ov ov-fixed" id="boxOv" hidden>
     <div class="ov-card">
       <h2>🎁 캐릭터 상자</h2>
@@ -457,6 +473,7 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
     <div class="ov-card rank-card">
       <h2>⭐ 캐릭터 강화</h2>
       <p class="sub">크리스탈로 강화하면 <b>다음 판에도 계속</b> 세져요 · 한 번에 공격력 +5% · 최대 ⭐10</p>
+      <p class="bld-note" id="upTix"></p>
       <div class="wallet wallet-sm"><span><img src="art/crystal.png" alt="크리스탈"><b id="upCrys">0</b></span></div>
       <ol class="rank-list up-list" id="upList"></ol>
       <div class="ov-btns"><button class="btn" id="bUpClose" type="button">닫기</button></div>
@@ -2244,7 +2261,7 @@ function stickerHTML(def, size) {
   return '<span class="stk" style="--c:' + def.color + ';width:' + size + 'px;height:' + size + 'px;font-size:' + Math.round(size * 0.5) + 'px">' + faceHTML(def, Math.round(size * 0.86)) + '</span>';
 }
 function renderHome() {
-  yardInit(); showWallet(); renderVillage();
+  yardInit(); showWallet(); renderVillage(); syncStarter();
   $('#homeBest').textContent = S.best ? 'WAVE ' + S.best : '아직 없음';
   playWrite.then(showPlays);
   const sv = loadSave(), bl = $('#bLoad');
@@ -2427,10 +2444,17 @@ function openUpg() {
     bt.addEventListener('click', () => {
       const c = META_UP.cost(metaLv(d.id), d.grade);
       if (META.crystal < c || metaLv(d.id) >= META_UP.max) return;
-      META.crystal -= c; META.up[d.id] = metaLv(d.id) + 1; metaSave(); openUpg();
+      META.crystal -= c; META.up[d.id] = metaLv(d.id) + 1; META.paid = META.paid || {}; META.paid[d.id] = (META.paid[d.id] || 0) + c; metaSave(); openUpg();
     });
-    li.append(ic, nm, bt); list.appendChild(li);
+    const box = document.createElement('span'); box.className = 'btns';
+    if (lv > 0 && META.resetTix > 0) {
+      const rb = document.createElement('button'); rb.type = 'button'; rb.className = 'btn btn-sm'; rb.textContent = '🔄';
+      rb.title = '초기화권'; rb.addEventListener('click', () => resetChar(d.id)); box.appendChild(rb);
+    }
+    box.appendChild(bt);
+    li.append(ic, nm, box); list.appendChild(li);
   }
+  $('#upTix').textContent = META.resetTix > 0 ? '🔄 초기화권 ' + META.resetTix + '장 · 🔄을 누르면 그 캐릭터를 ⭐0으로 되돌리고 쓴 크리스탈을 돌려받아요' : '';
   showWallet(); $('#upOv').hidden = false;
 }
 function revive() {                                           // 💎 부활: 한 판에 1번 · 잡몹을 모두 치워요 (보스는 남아요)
@@ -2492,6 +2516,31 @@ function rollBox() {
   const b = $('#bBoxOpen'), l2 = boxLeft(); b.disabled = !l2.length || META.crystal < BOX.price; b.innerHTML = l2.length ? crysIco + BOX.price + ' 한 번 더' : '다 모았어요!';
   $('#boxOdds').textContent = '영웅 ' + BOX.odds['영웅'] + '% · 신화 ' + BOX.odds['신화'] + '% · 전설 ' + BOX.odds['전설'] + '% · 아직 없는 캐릭터만 나와요 (남은 ' + l2.length + '명)';
 }
+/* 🎁 입문 상자 세트 (2026-11-21 예준이 결정): 한 번만 · 신화 캐릭터 하나 골라서 해금 + 🔄 초기화권 1장 */
+const starterMyth = () => CHARS.filter((c) => c.grade === '신화' && isCrysChar(c.id) && !unlocked(c.id));
+function syncStarter() { $('#bStarter').hidden = !!META.starter; }
+function openStarter() {
+  const g = $('#starterGrid'); g.innerHTML = '';
+  for (const d of starterMyth()) {
+    const f = document.createElement('button'); f.type = 'button'; f.className = 'rep-pick';
+    f.innerHTML = stickerHTML(d, 54) + '<span></span>'; f.lastChild.textContent = d.name;
+    f.addEventListener('click', () => {
+      if (META.starter) return;
+      META.starter = d.id; META.unlock = META.unlock || {}; META.unlock[d.id] = true; META.resetTix = (META.resetTix || 0) + 1; metaSave();
+      $('#starterOv').hidden = true; syncStarter(); toast('🎁 ' + d.name + ' 해금! + 🔄 초기화권 1장');
+    });
+    g.appendChild(f);
+  }
+  $('#starterOv').hidden = false;
+}
+function resetChar(id) {                                      // 🔄 초기화권: ⭐0으로 · 쓴 크리스탈 전부 돌려받기
+  if (!(META.resetTix > 0) || !metaLv(id)) return;
+  const back = (META.paid && META.paid[id]) || 0;
+  META.resetTix--; META.up[id] = 0; if (META.paid) META.paid[id] = 0; META.crystal += back; metaSave();
+  toast('🔄 ' + BY[id].name + ' ⭐0 · 💎+' + back.toLocaleString() + ' 돌려받았어요'); openUpg();
+}
+$('#bStarter').addEventListener('click', openStarter);
+$('#bStarterClose').addEventListener('click', () => { $('#starterOv').hidden = true; });
 $('#bBox').addEventListener('click', openBox);
 $('#bBoxOpen').addEventListener('click', rollBox);
 $('#bBoxClose').addEventListener('click', () => { $('#boxOv').hidden = true; });

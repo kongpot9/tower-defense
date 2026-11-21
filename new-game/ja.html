@@ -104,6 +104,12 @@ h1,h2,p{margin:0}
 .cc:active{transform:translateY(2px);box-shadow:0 2px 0 var(--ink)}
 .cc[aria-pressed="true"]{background:var(--yellow)}
 .cc.locked{filter:grayscale(.85);opacity:.6}
+.rep-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 6px;max-height:50vh;overflow-y:auto;padding:4px}
+.rep-pick{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:2px solid transparent;border-radius:12px;padding:6px 2px;font:inherit;font-size:12px;color:var(--ink);cursor:pointer}
+.rep-pick:active{background:var(--yellow);border-color:var(--ink)}
+.rep-pick span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.starter{animation:bob 1.2s ease-in-out infinite}
+.up-list .btns{display:flex;gap:4px}
 .cc.locked.buy{filter:grayscale(.4);opacity:.85}
 .cc-how{font-size:12px;font-weight:700;color:var(--ink);background:var(--paper-2,#E4E7EE);border:1.5px dashed var(--ink);border-radius:8px;padding:3px 7px}
 .box-got{display:flex;flex-direction:column;align-items:center;gap:6px;margin:6px 0;animation:pop .35s ease-out}
@@ -301,6 +307,7 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
     <div class="yard" id="yard"><canvas id="yardCv" aria-label="わたしの村"></canvas><div class="village" id="village"></div></div>
     <div class="wallet"><span><img src="art/coin.png" alt="コイン"><b id="wCoin">0</b></span><span><img src="art/crystal.png" alt="クリスタル"><b id="wCrystal">0</b></span></div>
     <div class="lobby-top">
+      <button class="btn btn-sm btn-gold starter" id="bStarter" type="button" hidden>🎁 スターターボックスセット</button>
       <button class="btn btn-sm" id="bUpg" type="button">⭐ 強化</button>
       <button class="btn btn-sm" id="bDeck" type="button">🃏 デッキ編成</button>
       <button class="btn btn-sm" id="bBox" type="button">🎁 ボックス</button>
@@ -426,6 +433,15 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
   </section>
 
   <!-- ===== 🏆 ランキング ===== -->
+  <div class="ov ov-fixed" id="starterOv" hidden>
+    <div class="ov-card rank-card">
+      <h2>🎁 スターターボックスセット</h2>
+      <p class="sub">はじめての友だちへのプレゼント！ <b>神話キャラひとり</b>をえらんで解放して、 <b>🔄 リセット券1枚</b>ももらえます</p>
+      <div class="rep-grid" id="starterGrid"></div>
+      <p class="bld-note">リセット券：⭐強化したキャラひとりを⭐0にもどして、使ったクリスタルを全部返してもらえます</p>
+      <div class="ov-btns"><button class="btn" id="bStarterClose" type="button">あとで</button></div>
+    </div>
+  </div>
   <div class="ov ov-fixed" id="boxOv" hidden>
     <div class="ov-card">
       <h2>🎁 キャラボックス</h2>
@@ -458,6 +474,7 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
     <div class="ov-card rank-card">
       <h2>⭐ キャラ強化</h2>
       <p class="sub">クリスタルで強化すると <b>次のゲームでもずっと</b> 強いまま・1回で攻撃力+5%・最大⭐10</p>
+      <p class="bld-note" id="upTix"></p>
       <div class="wallet wallet-sm"><span><img src="art/crystal.png" alt="クリスタル"><b id="upCrys">0</b></span></div>
       <ol class="rank-list up-list" id="upList"></ol>
       <div class="ov-btns"><button class="btn" id="bUpClose" type="button">とじる</button></div>
@@ -2245,7 +2262,7 @@ function stickerHTML(def, size) {
   return '<span class="stk" style="--c:' + def.color + ';width:' + size + 'px;height:' + size + 'px;font-size:' + Math.round(size * 0.5) + 'px">' + faceHTML(def, Math.round(size * 0.86)) + '</span>';
 }
 function renderHome() {
-  yardInit(); showWallet(); renderVillage();
+  yardInit(); showWallet(); renderVillage(); syncStarter();
   $('#homeBest').textContent = S.best ? 'WAVE ' + S.best : 'まだなし';
   playWrite.then(showPlays);
   const sv = loadSave(), bl = $('#bLoad');
@@ -2389,7 +2406,7 @@ function setPaused(p) {
   if (p) saveGame();
 }
 /* ===== 🪙 コイン · 💎 クリスタル (그림 · 쓰는 곳: グ・イェジュン, 2026-11-21) =====
-   🪙 コイン: 캐릭터 영구 強化 (나중에 마을 건축 재료도) · 💎 クリスタル: 復活(1回のゲームで1回) · プレゼントカード 引き直し (나중에 스킨도)
+   🪙 コイン: 캐릭터 영구 強化 (あとで 마을 건축 재료도) · 💎 クリスタル: 復活(1回のゲームで1回) · プレゼントカード 引き直し (あとで 스킨도)
    버는 양 · 가격은 Claude가 정함 — README 'コイン · クリスタル' 표를 보고 예준이가 바꿔요 */
 // 한 回 보상은 건물 가격에 맞춰 크게 (2026-11-21 예준이 결정, 숫자는 Claude가 정함)
 const EARN = { coinPerWave: 100, crystalPerWave: 3, crystalBoss: 50, crystalRecord: 100, welcomeCrystal: 50 };
@@ -2428,10 +2445,17 @@ function openUpg() {
     bt.addEventListener('click', () => {
       const c = META_UP.cost(metaLv(d.id), d.grade);
       if (META.crystal < c || metaLv(d.id) >= META_UP.max) return;
-      META.crystal -= c; META.up[d.id] = metaLv(d.id) + 1; metaSave(); openUpg();
+      META.crystal -= c; META.up[d.id] = metaLv(d.id) + 1; META.paid = META.paid || {}; META.paid[d.id] = (META.paid[d.id] || 0) + c; metaSave(); openUpg();
     });
-    li.append(ic, nm, bt); list.appendChild(li);
+    const box = document.createElement('span'); box.className = 'btns';
+    if (lv > 0 && META.resetTix > 0) {
+      const rb = document.createElement('button'); rb.type = 'button'; rb.className = 'btn btn-sm'; rb.textContent = '🔄';
+      rb.title = 'リセット券'; rb.addEventListener('click', () => resetChar(d.id)); box.appendChild(rb);
+    }
+    box.appendChild(bt);
+    li.append(ic, nm, box); list.appendChild(li);
   }
+  $('#upTix').textContent = META.resetTix > 0 ? '🔄 リセット券 ' + META.resetTix + '枚・🔄を押すとそのキャラを⭐0にもどしてクリスタルを返してもらえます' : '';
   showWallet(); $('#upOv').hidden = false;
 }
 function revive() {                                           // 💎 復活: 1回のゲームで1回 · 잡몹을 모두 치워요 (보스는 남아요)
@@ -2493,6 +2517,31 @@ function rollBox() {
   const b = $('#bBoxOpen'), l2 = boxLeft(); b.disabled = !l2.length || META.crystal < BOX.price; b.innerHTML = l2.length ? crysIco + BOX.price + ' もう一回' : '全部集めました！';
   $('#boxOdds').textContent = 'ヒーロー ' + BOX.odds['ヒーロー'] + '% · 神話 ' + BOX.odds['神話'] + '% · 伝説 ' + BOX.odds['伝説'] + '% · まだ持っていないキャラだけ出ます（のこり ' + l2.length + '人)';
 }
+/* 🎁 スターターボックスセット (2026-11-21 예준이 결정): 한 번만 · 神話キャラひとり 골라서 해금 + 🔄 リセット券1枚 */
+const starterMyth = () => CHARS.filter((c) => c.grade === '神話' && isCrysChar(c.id) && !unlocked(c.id));
+function syncStarter() { $('#bStarter').hidden = !!META.starter; }
+function openStarter() {
+  const g = $('#starterGrid'); g.innerHTML = '';
+  for (const d of starterMyth()) {
+    const f = document.createElement('button'); f.type = 'button'; f.className = 'rep-pick';
+    f.innerHTML = stickerHTML(d, 54) + '<span></span>'; f.lastChild.textContent = d.name;
+    f.addEventListener('click', () => {
+      if (META.starter) return;
+      META.starter = d.id; META.unlock = META.unlock || {}; META.unlock[d.id] = true; META.resetTix = (META.resetTix || 0) + 1; metaSave();
+      $('#starterOv').hidden = true; syncStarter(); toast('🎁 ' + d.name + ' 解放！＋ 🔄 リセット券1枚');
+    });
+    g.appendChild(f);
+  }
+  $('#starterOv').hidden = false;
+}
+function resetChar(id) {                                      // 🔄 リセット券: ⭐0으로 · 쓴 クリスタル 전부 돌려받기
+  if (!(META.resetTix > 0) || !metaLv(id)) return;
+  const back = (META.paid && META.paid[id]) || 0;
+  META.resetTix--; META.up[id] = 0; if (META.paid) META.paid[id] = 0; META.crystal += back; metaSave();
+  toast('🔄 ' + BY[id].name + ' ⭐0 · 💎+' + back.toLocaleString() + ' 返してもらいました'); openUpg();
+}
+$('#bStarter').addEventListener('click', openStarter);
+$('#bStarterClose').addEventListener('click', () => { $('#starterOv').hidden = true; });
 $('#bBox').addEventListener('click', openBox);
 $('#bBoxOpen').addEventListener('click', rollBox);
 $('#bBoxClose').addEventListener('click', () => { $('#boxOv').hidden = true; });
@@ -2644,7 +2693,7 @@ $('#bBldClose').addEventListener('click', () => { $('#bldOv').hidden = true; });
 $('#bDwarfClose').addEventListener('click', () => { $('#dwarfOv').hidden = true; });
 setInterval(() => { if (S.screen === 'home') renderVillage(); }, 30000);   // 시간이 지나 받을 게 생기면 ! 표시
 
-/* ===== 🏰 로비 = わたしの村 (그림: グ・イェジュン, 2026-11-21) — 마을 성 그림이 화면을 꽉 채워요 · 성벽 뒤(하늘 쪽)는 나중에 건물을 짓는 자리
+/* ===== 🏰 로비 = わたしの村 (그림: グ・イェジュン, 2026-11-21) — 마을 성 그림이 화면을 꽉 채워요 · 성벽 뒤(하늘 쪽)는 あとで 건물을 짓는 자리
    (代表キャラ 기능 · 제목 글자는 예준이 결정으로 뺌, 2026-11-21) */
 const VILLAGE = new Image(); VILLAGE.src = 'art/village.jpg';
 const YARD = { wall: 0.6, wallAt: 0.42, cv: null, ctx: null, key: '' };
