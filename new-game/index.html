@@ -187,6 +187,7 @@ h1,h2,p{margin:0}
 .pop .pop-hint{font-size:11.5px;color:var(--muted)}
 .pop .btn{align-self:flex-start;display:flex;align-items:center;gap:5px;pointer-events:auto}
 
+.equipbar{position:absolute;left:50%;top:12px;transform:translateX(-50%);z-index:11;background:#B8860B;color:var(--paper);border:2.5px solid var(--ink);border-radius:12px;padding:8px 14px;font-size:15px;pointer-events:none;white-space:nowrap;box-shadow:0 3px 0 var(--ink)}
 .toast{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);z-index:12;background:var(--ink);color:var(--paper);
   border-radius:12px;padding:8px 14px;font-size:15px;pointer-events:none;white-space:nowrap}
 
@@ -273,9 +274,11 @@ h1,h2,p{margin:0}
         <p id="popDesc"></p>
         <p class="pop-hint">빈 칸 → 이동 · 다른 캐릭터 → 자리 바꾸기 · <b>같은 캐릭터 → 합성!</b><br>꾹 눌러서 끌어 옮겨도 돼요</p>
         <button class="btn btn-sm" id="popSkill" type="button" hidden></button>
+        <button class="btn btn-sm" id="popEquip" type="button" hidden></button>
         <button class="btn btn-sm" id="popSell" type="button">팔기 <i class="coin"></i>+<span id="popRefund">0</span></button>
       </div>
       <div class="toast" id="toast" hidden></div>
+      <div class="equipbar" id="equipBar" hidden></div>
     </div>
     <div class="tray">
       <div class="row-main">
@@ -301,7 +304,7 @@ h1,h2,p{margin:0}
 
     <div class="ov" id="rewardOv" hidden>
       <div class="rw">
-        <div class="rw-head"><b id="rwTitle">웨이브 1 끝!</b><span>선물을 하나 골라요</span></div>
+        <div class="rw-head"><b id="rwTitle">웨이브 1 끝!</b><span id="rwSub">선물을 하나 골라요</span></div>
         <div class="rw-cards" id="rwCards"></div>
       </div>
     </div>
@@ -419,7 +422,24 @@ const CANNON_LV = [null,
   { dmg: 1900, every: 1 },     // Lv.5
 ];
 const CANNON_IMG = new Image(); CANNON_IMG.src = CANNON.img;
-const POISON = { time: 6, tick: 0.5, step: 0.03 };   // 맹독: 777 콜드나이퍼 맹독탄과 같아요 (갈수록 아파짐)
+const POISON = { time: 6, tick: 0.5, step: 0.03 };
+// 🎁 장비 (그림·설정: 구예준, 2026-11-21) — 레벨 업 특수 선물 · 캐릭터 하나에 하나씩 끼워요 · Lv.1~5 다음에 각성
+const ARROW_GOLD = { base: 2000, awake: 5000 };   // 🏹 황금스탯 돈 (예준이 숫자)
+const ITEMS = [
+  { id: 'arrow',  name: '황금화살',        aname: '각성 황금화살',        img: 'art/item-arrow.png',  aimg: 'art/item-arrow-awake.png',
+    d: (a) => '장착 캐릭터가 10마리 잡을 때마다 황금스탯: 돈 +' + (a ? ARROW_GOLD.awake : ARROW_GOLD.base) },
+  { id: 'guitar', name: '성탄절 어쿠스틱',  aname: '각성 성탄절 일렉기타',  img: 'art/item-guitar.png', aimg: 'art/item-guitar-awake.png',
+    d: (a) => a ? '공격 속도 +50% · 공격력 +30%' : '공격 속도 +20%' },
+  { id: 'orb',    name: '진리의 구슬',      aname: '각성 진리의 구슬',      img: 'art/item-orb.png',    aimg: 'art/item-orb-awake.png',
+    d: (a) => '스킬 쿨타임 ' + (a ? 50 : 15) + '% 감소 (앙코르 · 요리 같은 스킬)' },
+  { id: 'glove',  name: '권투글러브',       aname: '각성 권투글러브',       img: 'art/item-glove.png',  aimg: 'art/item-glove-awake.png',
+    d: (a) => a ? '공격력 +90% (기본 공격력 100 이하면 +200%)' : '공격력 +60% · 대신 공격이 1초 느려짐' },
+];
+const ITEM_BY = {}; ITEMS.forEach((it) => { ITEM_BY[it.id] = it; });
+const ITEM_IMG = {};
+ITEMS.forEach((it) => { ITEM_IMG[it.id] = new Image(); ITEM_IMG[it.id].src = it.img; ITEM_IMG[it.id + ':a'] = new Image(); ITEM_IMG[it.id + ':a'].src = it.aimg; });
+const itemOf = (u) => u && S.items.find((it) => it.unit === u);
+const itemName = (it) => it.awake ? ITEM_BY[it.id].aname : ITEM_BY[it.id].name + ' Lv.' + it.lv;   // 맹독: 777 콜드나이퍼 맹독탄과 같아요 (갈수록 아파짐)
 const TRAP_IMG = new Image(); TRAP_IMG.src = TRAP.img;
 const AWAKE_IMG = { turret: new Image(), trap: new Image() };
 AWAKE_IMG.turret.src = AWAKE.turret.img; AWAKE_IMG.trap.src = AWAKE.trap.img;
@@ -566,7 +586,7 @@ function newBattle() {
     wave: 0, waveT: BAL.waveLen - 3, queue: [], spawnT: 0, spawnGap: 1,
     gold: BAL.startGold, picks: 0, upN: 0, kills: 0, time: 0,
     units: new Array(SLOTS).fill(null), enemies: [], projs: [], fx: [], pools: [],
-    levels: {}, count: 0, weakT: 0, shake: 0, party: false, candy: false, poolT: 0, tDmgT: 0, tDmgV: 0, tSpdT: 0, tSpdV: 0, drag: null, merges: 0, paused: false, over: false, choosing: false, offer: null, sel: -1, banner: null,
+    levels: {}, count: 0, weakT: 0, shake: 0, items: [], pendingLv: 0, chooseMode: null, equipping: null, party: false, candy: false, poolT: 0, tDmgT: 0, tDmgV: 0, tSpdT: 0, tSpdV: 0, drag: null, merges: 0, paused: false, over: false, choosing: false, offer: null, sel: -1, banner: null,
     buff: { dmg: 0, spd: 0, rng: 0, gold: 0, thorn: 0 }, stacks: {}, turrets: [], turretLv: 1, traps: [], trapLv: 1, lv: 1, xp: 0,
   });
   S.deck.forEach((id) => { S.levels[id] = 1; });
@@ -609,7 +629,7 @@ function waveHooks() {
 function unitTimers(u, def, dt) {                          // 시간마다 하는 일: 호스퍼 앙코르 · 셰프 요리
   if (def.encore) {
     u.skT = (u.skT || 0) + dt;
-    if (u.skT >= def.encore.every) {
+    if (u.skT >= def.encore.every * (1 - cdCut(u))) {
       u.skT = 0;
       const pool = S.enemies.filter((e) => !e.dead && !e.boss && e.y > 0);
       for (const e of pool) if (Math.random() < def.encore.pct) e.stunT = Math.max(e.stunT, def.encore.stun);
@@ -618,7 +638,7 @@ function unitTimers(u, def, dt) {                          // 시간마다 하�
   }
   if (def.cook) {
     u.skT = (u.skT || 0) + dt;
-    if (u.skT >= def.cook) {
+    if (u.skT >= def.cook * (1 - cdCut(u))) {
       u.skT = 0;
       const r = Math.floor(Math.random() * 5), p = slotXY(u.slot);
       const dish = ['🥞 팬케이크! 아군 공격력 +30%', '🧁 컵케이크! 아군 공속 +30%', '🍲 수프! 돈 +200', '🍜 우동! 적이 느려져요', '🍭 사탕! 적이 기절해요'][r];
@@ -633,10 +653,20 @@ function unitTimers(u, def, dt) {                          // 시간마다 하�
 }
 const sunMode = () => Math.floor((Math.max(1, S.wave) - 1) / BY.sunin.sunin.every) % 2 === 0;   // true = 선인, false = 봉산
 function unitRate(u, def) {
-  if (u.drillT > 0) return 1 / def.drill.every;
-  if (u.young) return def.senior.young.rate;
-  return def.rate;
+  let r = u.drillT > 0 ? 1 / def.drill.every : u.young ? def.senior.young.rate : def.rate;
+  const it = itemOf(u);
+  if (it && it.id === 'guitar') r *= it.awake ? 1.5 : 1.2;                       // 🎸 공격 속도
+  if (it && it.id === 'glove' && !it.awake) r = 1 / (1 / r + 1);                 // 🥊 대신 1초 느려짐
+  return r;
 }
+function itemDmgMul(u, def) {
+  const it = itemOf(u);
+  if (!it) return 1;
+  if (it.id === 'glove') return it.awake ? (BY[u.type].dmg <= 100 ? 3 : 1.9) : 1.6;  // 🥊
+  if (it.id === 'guitar' && it.awake) return 1.3;                                 // 🎸 일렉기타
+  return 1;
+}
+const cdCut = (u) => { const it = itemOf(u); return it && it.id === 'orb' ? (it.awake ? 0.5 : 0.15) : 0; };   // 🔮
 function startWave() {
   if (S.wave > 0) {
     const b = BAL.waveBonus(S.wave);
@@ -684,11 +714,18 @@ function hurt(e, a, src) {
   if (a > 0.6) e.flash = 0.07;
   if (e.hp <= 0) {
     e.dead = true; S.kills++;
+    if (src) for (const it of S.items) if (it.id === 'arrow' && it.unit && it.unit.type === src) {
+      it.kills = (it.kills || 0) + 1;
+      if (it.kills % 10 === 0) {
+        const g = it.awake ? ARROW_GOLD.awake : ARROW_GOLD.base; S.gold += g;
+        const q = slotXY(it.unit.slot); fx({ k: 'text', x: q.x, y: q.y - 54, s: '✨ 황금스탯! +' + g, c: YEL, life: 1.4, size: 15 });
+      }
+    }
     if (src !== 'gail') for (const g of S.units) if (g && g.type === 'gail' && g.lastT === e) {
       S.gold += BY.gail.steal; g.lastT = null; fx({ k: 'text', x: e.x, y: e.y - 20, s: '막타 뺏김 +' + BY.gail.steal, c: YEL, life: 0.9, size: 11 });
     }
     S.xp += e.boss ? 10 : 1;
-    while (S.xp >= xpNeed()) { S.xp -= xpNeed(); S.lv++; fx({ k: 'text', x: W / 2, y: 140, s: '레벨 업! Lv.' + S.lv, c: BLUE, life: 1.3, size: 20 }); }
+    while (S.xp >= xpNeed()) { S.xp -= xpNeed(); S.lv++; S.pendingLv++; fx({ k: 'text', x: W / 2, y: 140, s: '레벨 업! Lv.' + S.lv, c: BLUE, life: 1.3, size: 20 }); }
     S.gold += (e.boss ? BAL.bossGold : BAL.killGold) + S.buff.gold;
     const n = e.boss ? 18 : 5;
     if (S.fx.length < 500) {
@@ -759,7 +796,7 @@ function attack(u, def, t) {   // def는 드릴차·27살일 때 잠깐 바뀌�
     if (!(S.tDmgT > 0)) fx({ k: 'text', x: p.x, y: p.y - 50, s: '🐺 급소 발견! 아군 +30%', c: '#8B5A2B', life: 1.3, size: 14 });
     S.tDmgT = Math.max(S.tDmgT, def.weakSpot.time); S.tDmgV = Math.max(S.tDmgV, def.weakSpot.team);
   }                                                         // 👊 가일: 누구를 노렸는지 기억
-  const dmg = base * lvMult(def.id) * BAL.dmgMul * (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1) * own * teamMul();
+  const dmg = base * lvMult(def.id) * BAL.dmgMul * (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1) * own * teamMul() * itemDmgMul(u, def);
   const ang = Math.atan2(t.y - p.y, t.x - p.x);
   u.anim = 0.12;
   if (def.melee) {
@@ -1007,6 +1044,7 @@ function update(dt) {
   for (const e of S.enemies) c += e.weight;
   S.count = c;
   if (c >= BAL.maxEnemies) gameOver();
+  if (S.pendingLv > 0 && !S.over && !S.choosing) openLvGift();
 }
 
 /* ===== 플레이어 행동 ===== */
@@ -1061,7 +1099,18 @@ function buffNote(b) {
 }
 function offerHTML(o, i) {
   let ico, name, tag, desc, note = '';
-  if (o.k === 'char' || o.k === 'up') {
+  if (o.k === 'lvGold') {
+    ico = '<span class="rc-ico" style="--c:#EDD38A">💰</span>'; name = '돈'; tag = '<span class="rc-tag" style="background:#B8860B">특수</span>';
+    desc = '돈 ' + (100 + 10 * S.wave) + '을 바로 받아요'; note = '장비를 다 각성시켜서 나온 선물';
+  } else if (o.k === 'itemNew' || o.k === 'itemUp' || o.k === 'itemAwake') {
+    const d = ITEM_BY[o.id], it = S.items.find((x) => x.id === o.id), aw = o.k === 'itemAwake';
+    ico = '<span class="rc-ico" style="--c:#F5E6B8"><img src="' + (aw ? d.aimg : d.img) + '" alt="" style="max-width:46px;max-height:46px"></span>';
+    tag = '<span class="rc-tag" style="background:#B8860B">장비</span>';
+    if (o.k === 'itemNew') { name = d.name; desc = d.d(false); note = '받으면 끼울 캐릭터를 골라요 · Lv.5 다음엔 각성'; }
+    else if (o.k === 'itemUp') { name = d.name + ' 레벨업'; desc = 'Lv.' + it.lv + ' → Lv.' + (it.lv + 1) + ' · ' + d.d(false); note = it.lv + 1 >= 5 ? '다음엔 각성!' : '레벨이 오를수록 각성에 가까워져요'; }
+    else { name = d.aname + '!'; desc = d.d(true); note = d.name + '이(가) 각성해요'; }
+    if (it && it.unit) note += ' · 지금 ' + BY[it.unit.type].name + '이(가) 끼고 있음';
+  } else if (o.k === 'char' || o.k === 'up') {
     const d = BY[o.id], n = S.units.filter((u) => u && u.type === o.id).length;
     ico = stickerHTML(d, 50);
     name = d.name + (o.k === 'char' ? ' 소환' : ' 무료 강화');
@@ -1141,12 +1190,50 @@ function endWave() {
   S.choosing = true; select(-1);
   S.offer = rollOffer();
   $('#rwTitle').textContent = '웨이브 ' + S.wave + ' 끝!';
+  $('#rwSub').textContent = '선물을 하나 골라요';
   $('#rwCards').innerHTML = S.offer.map(offerHTML).join('');
   $('#rewardOv').hidden = false;
+}
+function openLvGift() {
+  const opts = [];
+  for (const d of ITEMS) {
+    const it = S.items.find((x) => x.id === d.id);
+    if (!it) opts.push({ k: 'itemNew', id: d.id });
+    else if (it.awake) continue;
+    else opts.push({ k: it.lv < 5 ? 'itemUp' : 'itemAwake', id: d.id });
+  }
+  opts.sort(() => Math.random() - 0.5);
+  const out = opts.slice(0, 3);
+  if (out.length < 3) out.push({ k: 'lvGold' });
+  S.choosing = true; S.chooseMode = 'lv'; S.offer = out; select(-1);
+  $('#rwTitle').textContent = '레벨 업! Lv.' + (S.lv - S.pendingLv + 1);
+  $('#rwSub').textContent = '특수 선물을 하나 골라요';
+  $('#rwCards').innerHTML = out.map(offerHTML).join('');
+  $('#rewardOv').hidden = false;
+}
+function equip(it, u) {
+  const old = itemOf(u);
+  if (old && old !== it) old.unit = null;                    // 원래 있던 장비는 가방으로
+  it.unit = u;
+  const p = slotXY(u.slot);
+  fx({ k: 'pop', x: p.x, y: p.y, life: 0.45 });
+  fx({ k: 'text', x: p.x, y: p.y - 50, s: '🎁 ' + itemName(it) + ' 장착!', c: '#B8860B', life: 1.3, size: 13 });
+}
+const equipBar = () => $('#equipBar');
+function pickLv(o) {
+  const d = o.id && ITEM_BY[o.id], it = o.id && S.items.find((x) => x.id === o.id);
+  S.pendingLv--; S.offer = null; S.chooseMode = null; S.choosing = false; $('#rewardOv').hidden = true;
+  if (o.k === 'lvGold') { const g = 100 + 10 * S.wave; S.gold += g; say('💰 돈 +' + g); return; }
+  if (o.k === 'itemUp') { it.lv++; say('🎁 ' + d.name + ' Lv.' + it.lv + '!', '#B8860B'); return; }
+  if (o.k === 'itemAwake') { it.awake = true; S.banner = { s: d.aname + '!', t: 0, c: '#B8860B' }; return; }
+  const ni = { id: o.id, lv: 1, awake: false, unit: null, kills: 0 };
+  S.items.push(ni);
+  if (S.units.some(Boolean)) { S.equipping = ni; equipBar().textContent = '🎁 ' + d.name + ' — 끼울 캐릭터를 눌러요'; equipBar().hidden = false; }
 }
 function pick(i) {
   const o = S.offer && S.offer[i];
   if (!o) return;
+  if (S.chooseMode === 'lv') { pickLv(o); return; }
   S.picks++;
   if (o.k === 'char') placeUnit(o.id);
   else if (o.k === 'turretUp') {
@@ -1219,6 +1306,7 @@ function sell() {
   const u = S.units[S.sel];
   if (!u || S.over) return;
   const g = SELL[BY[u.type].grade] || 20, p = slotXY(u.slot);
+  const it0 = itemOf(u); if (it0) it0.unit = null;          // 장비는 가방으로
   S.gold += g; S.units[S.sel] = null;
   fx({ k: 'text', x: p.x, y: p.y - 30, s: '+' + g, c: YEL, life: 1.1, size: 15 });
   fx({ k: 'pop', x: p.x, y: p.y, life: 0.4 });
@@ -1233,8 +1321,11 @@ function tryMerge(from, to) {                                // 같은 캐릭터
   if (!pool.length && up === 2) { up = 1; pool = inDeck(gi + 1); }
   if (!pool.length) { toast('덱에 ' + GRADES[gi + 1] + ' 캐릭터가 없어서 합성할 수 없어요'); return false; }
   const id = pool[Math.floor(Math.random() * pool.length)], p = slotXY(to);
+  const itTo = itemOf(S.units[to]), itFrom = itemOf(S.units[from]);
   S.units[from] = null;
   S.units[to] = { type: id, slot: to, cd: 0, born: 0, anim: 0, lunge: 0, lx: 0, ly: 0 };
+  if (itTo) itTo.unit = S.units[to];                         // 장비는 합성된 캐릭터가 이어받고
+  if (itFrom) itFrom.unit = null;                            // 남은 장비는 가방으로
   S.merges++;
   fx({ k: 'pop', x: p.x, y: p.y, life: 0.5 });
   fx({ k: 'text', x: p.x, y: p.y - 44, s: (up === 2 ? '대박! ' : '합성! ') + BY[id].name, c: up === 2 ? RED : BLUE, life: 1.3, size: up === 2 ? 17 : 14 });
@@ -1252,6 +1343,11 @@ function act(from, to) {
 function onTap(x, y) {
   if (S.over) return;
   const i = pickSlot(x, y);
+  if (S.equipping) {
+    if (i >= 0 && S.units[i]) { equip(S.equipping, S.units[i]); S.equipping = null; equipBar().hidden = true; }
+    else toast('장비를 끼울 캐릭터를 눌러요');
+    return;
+  }
   if (S.sel >= 0) { if (i < 0 || i === S.sel) select(-1); else act(S.sel, i); return; }
   if (i >= 0 && S.units[i]) select(i); else select(-1);
 }
@@ -1398,6 +1494,15 @@ function drawTrap(tr) {                                    // 한 줄로 쭉: �
   c.fillStyle = tr.awake ? '#7A3FC4' : INK; circle(c, 14, tr.y - 2, tr.awake ? 11 : 8); c.fill();
   c.fillStyle = PAPER; c.font = (tr.awake ? 8 : 10) + 'px ' + UIF; c.textAlign = 'center'; c.textBaseline = 'middle';
   c.fillText(tr.awake ? '각성' : String(S.trapLv), 14, tr.y - 1.5);
+}
+function drawItemBadge(u) {                                   // 🎁 끼운 장비를 발밑에 작게
+  const it = itemOf(u); if (!it) return;
+  const im = ITEM_IMG[it.id + (it.awake ? ':a' : '')]; if (!im.complete || !im.naturalWidth) return;
+  const p = slotXY(u.slot), k = 16 / Math.max(im.naturalWidth, im.naturalHeight);
+  ctx.save(); ctx.fillStyle = 'rgba(244,246,241,.9)'; circle(ctx, p.x - 18, p.y + 19, 10); ctx.fill();
+  ctx.strokeStyle = it.awake ? '#B8860B' : INK; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.drawImage(im, p.x - 18 - im.naturalWidth * k / 2, p.y + 19 - im.naturalHeight * k / 2, im.naturalWidth * k, im.naturalHeight * k);
+  ctx.restore();
 }
 function drawUnit(u, at) {
   const c = ctx, def = BY[u.type], p = at || slotXY(u.slot);
@@ -1590,7 +1695,7 @@ function render() {
     for (const u of S.units) if (u && u !== holding && u.type === holding.type) { const q = slotXY(u.slot); c.beginPath(); c.ellipse(q.x, q.y + 27, 22, 7, 0, 0, Math.PI * 2); c.stroke(); }
     c.restore();
   }
-  for (const u of S.units) if (u && !(S.drag && u.slot === S.drag.from)) drawUnit(u);
+  for (const u of S.units) if (u && !(S.drag && u.slot === S.drag.from)) { drawUnit(u); drawItemBadge(u); }
   if (S.drag && S.units[S.drag.from]) {
     const t = pickSlot(S.drag.x, S.drag.y, S.drag.from);
     if (t >= 0) { const q = slotXY(t); c.save(); c.strokeStyle = BLUE; c.lineWidth = 3; c.strokeRect(q.x - 27, q.y - 27, 54, 56); c.restore(); }
@@ -1725,6 +1830,8 @@ function showPop() {
   $('#popEmo').innerHTML = faceHTML(d); $('#popName').textContent = d.name;
   $('#popLv').textContent = 'Lv.' + S.levels[u.type];
   $('#popRefund').textContent = SELL[d.grade] || 20;
+  const bag = S.items.filter((it) => !it.unit), pe = $('#popEquip');
+  if (bag.length) { pe.hidden = false; pe.textContent = '🎒 가방: ' + itemName(bag[0]) + ' 끼우기'; } else pe.hidden = true;
   const sk = $('#popSkill');
   if (d.drill && !(u.drillT > 0)) { sk.hidden = false; sk.textContent = '🔩 드릴러 변신 ' + d.drill.cost + 'G'; }
   else if (d.senior && !u.young) { sk.hidden = false; sk.textContent = '🌱 과성장 도전 ' + d.senior.cost + 'G (40%)'; }
@@ -1732,6 +1839,7 @@ function showPop() {
   $('#popDesc').textContent = d.desc + (d.support ? '' : ' (데미지 ' + Math.round(d.dmg * lvMult(d.id) * (1 + (u.bonus || 0))) + ' · ' + every(d) + ')') +
     (d.sunin ? (sunMode() ? ' · 지금 🧙선인 모드' : ' · 지금 🐀봉산 모드') : '') +
     (d.stack ? ' · 지금 +' + Math.round((u.stack || 0) * 100) + '%' : '') +
+    (itemOf(u) ? ' · 🎁 ' + itemName(itemOf(u)) + ': ' + ITEM_BY[itemOf(u).id].d(itemOf(u).awake) : '') +
     (u.drillT > 0 ? ' · 🔩 드릴차 ' + Math.ceil(u.drillT) + '초 남음' : '') + (u.young ? ' · 🌱 27살!' : '') +
     (d.doctor ? (doctorOn(u) ? ' · ⚡ 닥터 대두 출동 중! ' + (u.drUntil - S.wave) + '웨이브 남음' : ' · 닥터 대두까지 ' + (u.dHits || 0) + '/' + d.doctor.hits + '번') : '') +
     (d.bitePassive ? ' · 물기 ' + ((u.hits || 0) % d.bitePassive.every) + '/' + d.bitePassive.every + '번, 지금까지 +' + Math.round((u.bonus || 0) * 100) + '%' : '');
@@ -1757,7 +1865,7 @@ function startBattle() {
   newBattle();
   for (const k in ui) delete ui[k];
   buildDeckBar();
-  $('#overOv').hidden = true; $('#pauseOv').hidden = true; $('#rewardOv').hidden = true; pop.hidden = true;
+  $('#overOv').hidden = true; $('#pauseOv').hidden = true; $('#rewardOv').hidden = true; pop.hidden = true; $('#equipBar').hidden = true;
   $('#bSpeed').textContent = '×' + S.speed;
   show('battle');
   if (!store.get('yj2.coach', false)) { S.paused = true; $('#coach').hidden = false; }
@@ -1776,6 +1884,11 @@ $('#bPlay').addEventListener('click', startBattle);
 $('#bRetry').addEventListener('click', startBattle);
 $('#bHome').addEventListener('click', () => show('home'));
 $('#popSell').addEventListener('click', sell);
+$('#popEquip').addEventListener('click', () => {
+  const u = S.units[S.sel], bag = S.items.filter((it) => !it.unit);
+  if (!u || !bag.length) return;
+  equip(bag[0], u); showPop();
+});
 $('#popSkill').addEventListener('click', () => {           // 노에시 드릴차 · 구루투 과성장
   const u = S.units[S.sel]; if (!u || S.over) return;
   const d = BY[u.type], p = slotXY(u.slot), cost = d.drill ? d.drill.cost : d.senior ? d.senior.cost : 0;
@@ -1797,7 +1910,7 @@ let press = null;                                            // 누르기 → �
 cv.addEventListener('pointerdown', (e) => {
   if (S.over || S.screen !== 'battle') return;
   const q = toField(e), i = pickSlot(q.x, q.y);
-  press = { x: q.x, y: q.y, from: i >= 0 && S.units[i] ? i : -1 };
+  press = { x: q.x, y: q.y, from: i >= 0 && S.units[i] && !S.equipping ? i : -1 };
   try { cv.setPointerCapture(e.pointerId); } catch (err) { /* 괜찮아요 */ }
 });
 cv.addEventListener('pointermove', (e) => {
@@ -1823,7 +1936,7 @@ let last = 0;
 function frame(t) {
   const dt = Math.min(0.05, (t - last) / 1000 || 0); last = t;
   if (S.screen === 'battle') {
-    if (!S.paused && !S.over && !S.choosing) for (let i = 0; i < S.speed && !S.over && !S.choosing; i++) update(dt);
+    if (!S.paused && !S.over && !S.choosing && !S.equipping) for (let i = 0; i < S.speed && !S.over && !S.choosing; i++) update(dt);
     render(); syncHUD();
   }
   requestAnimationFrame(frame);
@@ -1837,7 +1950,7 @@ function start(data) {
   requestAnimationFrame(frame);
 }
 window.claude?.hot?.snapshot?.(() => ({ deck: S.deck }));
-window.__td = { S, BAL, CHARS, pick, offerHTML, upgrade: (id) => upgrade(id, deckbar.querySelector('[data-id="' + id + '"]')), startBattle };
+window.__td = { S, BAL, CHARS, pick, offerHTML, equip, upgrade: (id) => upgrade(id, deckbar.querySelector('[data-id="' + id + '"]')), startBattle };
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
 </script>
