@@ -239,6 +239,9 @@ h1,h2,p{margin:0}
 </style>
 </head>
 <body>
+<script>/* 🌐 언어: 한 번 고르면 기억 · 처음엔 기기 언어 (일본어면 일본판) — 한·일이 같은 랭킹 · 같은 접속 서버를 써요 */
+window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if (l === 'ko' || l === 'ja') return l; } catch (e) {} return /^ja/i.test(navigator.language || '') ? 'ja' : 'ko'; })();
+</script>
 <div id="app">
 
   <!-- ===== 홈 ===== -->
@@ -270,6 +273,7 @@ h1,h2,p{margin:0}
       <button class="btn" id="bDeck" type="button">덱 편성</button>
       <button class="btn" id="bRank" type="button">🏆 랭킹</button>
       <button class="btn" id="bWatch" type="button" hidden>👀 관전</button>
+      <button class="btn" id="bLang" type="button" hidden>🌐 日本語</button>
     </div>
     <p class="foot">캐릭터 32명 · 적 6종 · 터렛 · 트랩 · 성까지 전부 예준이 그림! 버프템만 아직 임시예요.</p>
   </section>
@@ -2349,7 +2353,7 @@ function startBattle() {
    claude.ai 게임 페이지에서는 페이지 안의 공유 저장소(db)에, 그 밖(GitHub Pages · 앱)에서는 777과 같은 Firebase 서버에 올려요. */
 const RANK = { mode: 'none', db: null, uid: null,
   fb: 'https://tower-defense-777-default-rtdb.asia-southeast1.firebasedatabase.app/musung/rank' };
-const NICK_OK = /^[가-힣a-zA-Z0-9_ ]{1,12}$/;
+const NICK_OK = /^[가-힣ぁ-んァ-ヶー一-龯々a-zA-Z0-9_ ]{1,12}$/;
 let rankReady = null;
 function rankInit() {
   if (rankReady) return rankReady;
@@ -2540,7 +2544,13 @@ function frame(t) {
   requestAnimationFrame(frame);
 }
 
+const BUILD_LANG = 'ko';
 function start(data) {
+  if (window.__LANG !== BUILD_LANG && window.__OTHER_SRC) { window.__startMain = () => { window.__LANG = BUILD_LANG; start(data); }; return; }   // 다른 언어판으로 바뀌는 중이면 이 판은 시작 안 해요 (바꾸기에 실패하면 __startMain으로 이 판을 시작)
+  if (window.__OTHER_SRC) {                                   // 두 언어가 같이 들어 있는 페이지에서만 언어 버튼이 보여요
+    const bl = $('#bLang'); bl.hidden = false;
+    bl.addEventListener('click', () => { try { localStorage.setItem('yj.lang', BUILD_LANG === 'ko' ? 'ja' : 'ko'); } catch (e) { /* 괜찮아요 */ } location.reload(); });
+  }
   rankInit(); liveInit();
   S.deck = validDeck(data && data.deck) || validDeck(store.get('yj2.deck', null)) || CHARS.slice(0, 8).map((c) => c.id);
   S.best = store.get('yj2.best', 0) || 0;

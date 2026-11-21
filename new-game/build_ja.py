@@ -7,6 +7,7 @@ import re, sys, os
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, 'index.html')
 OUT = os.path.join(HERE, 'ja.html')
+BOTH = os.path.join(HERE, 'both.html')   # 한·일 합친 페이지 (claude.ai에 올리는 것)
 
 JA = {
   # ── 게임 이름 · 홈 ──
@@ -73,7 +74,6 @@ JA = {
   '랭킹에 올렸어요!': 'ランキングにのりました！', '게임을 한 판 하면 기록이 올라가요': '1回プレイすると記録がのります',
   '기록을 올리지 못했어요': '記録を送れませんでした', '닉네임을 정하면 랭킹에 올라가요': 'ニックネームを決めるとランキングにのります',
   '랭킹에 올리는 중…': 'ランキングに送信中…', '의 최고 기록': 'の最高記録', '등록!': '登録！', '랭킹에 올리지 못했어요': 'ランキングに送れませんでした',
-  '가-힣': '가-힣ぁ-んァ-ヶー一-龯々',
   # ── 등급 · 역할 ──
   '일반': 'ノーマル', '희귀': 'レア', '영웅': 'ヒーロー', '신화': '神話', '전설': '伝説',
   '근거리': '近距離', '원거리': '遠距離', '광역': '範囲', '로봇': 'ロボット', '요리': '料理', '지원': 'サポート',
@@ -203,6 +203,8 @@ def build():
     out = re.sub(r"const UIF = '[^']*';", "const UIF = '\"M PLUS Rounded 1c\",\"Hiragino Maru Gothic ProN\",sans-serif';", out)
     out = out.replace("document.fonts.load('12px Jua')", "document.fonts.load('12px \"M PLUS Rounded 1c\"')")
     out = out.replace("'yj2.", "'yj2ja.")
+    out = out.replace("const BUILD_LANG = 'ko';", "const BUILD_LANG = 'ja';")
+    out = out.replace('🌐 日本語', '🌐 한국어')
     out = out.replace('</style>', '.title{font-size:clamp(38px,11.5vw,50px)}\n</style>', 1)   # 'ディフェンス'가 한 줄에 들어가게                     # 저장 칸을 한국판과 따로
     open(OUT, 'w', encoding='utf-8').write(out)
     # 코드 · 화면 글자에 남은 한국어 (주석은 빼고) 알려 주기
@@ -212,9 +214,21 @@ def build():
         line = re.sub(r'(?<![:\'"\\])//.*$', '', line)
         for m in re.finditer(r'[가-힣][가-힣 ]*', line):
             if m.group(0) not in ('가-힣',): left.add(m.group(0).strip())
-    left.discard('가-힣ぁ-んァ-ヶー一-龯々')
+    left -= {'가', '힣', '한국어'}
     if left: print('번역 없음:', sorted(left))
     print('만들었어요:', OUT)
+    # 🌐 한·일 합친 페이지: 한국판 + 일본판 통째로 → 일본어를 고르면 페이지를 일본판으로 바꿔 써요 (같은 랭킹 · 같은 접속 서버)
+    import json
+    ja_src = json.dumps(out, ensure_ascii=False).replace('</', '<\\/')
+    src = open(SRC, encoding='utf-8').read()
+    at = src.index('</script>', src.index('<body>')) + len('</script>\n')   # 언어 고르는 스크립트 바로 다음 (게임 스크립트보다 먼저)
+    both = src[:at] + '''<script>window.__OTHER_SRC = ''' + ja_src + ''';
+if (window.__LANG === 'ja') { document.documentElement.style.visibility = 'hidden';
+  setTimeout(function () { var h = window.__OTHER_SRC; try { document.open(); document.write(h); document.close(); } catch (e) { document.documentElement.style.visibility = ''; if (window.__startMain) window.__startMain(); } }, 0); }
+</script>
+''' + src[at:]
+    open(BOTH, 'w', encoding='utf-8').write(both)
+    print('만들었어요:', BOTH)
 
 if __name__ == '__main__':
     build()

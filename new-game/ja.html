@@ -240,6 +240,9 @@ h1,h2,p{margin:0}
 </style>
 </head>
 <body>
+<script>/* 🌐 언어: 한 回 고르면 기억 · さいしょは 기기 언어 (일본어면 일본판) — 한·일이 같은 ランキング · 같은 접속 서버를 써요 */
+window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if (l === 'ko' || l === 'ja') return l; } catch (e) {} return /^ja/i.test(navigator.language || '') ? 'ja' : 'ko'; })();
+</script>
 <div id="app">
 
   <!-- ===== 홈 ===== -->
@@ -271,6 +274,7 @@ h1,h2,p{margin:0}
       <button class="btn" id="bDeck" type="button">デッキ編成</button>
       <button class="btn" id="bRank" type="button">🏆 ランキング</button>
       <button class="btn" id="bWatch" type="button" hidden>👀 観戦</button>
+      <button class="btn" id="bLang" type="button" hidden>🌐 한국어</button>
     </div>
     <p class="foot">キャラ32人・敵6種・タレット・トラップ・お城まで全部イェジュンの絵！バフアイテムだけまだ仮です。</p>
   </section>
@@ -2541,7 +2545,13 @@ function frame(t) {
   requestAnimationFrame(frame);
 }
 
+const BUILD_LANG = 'ja';
 function start(data) {
+  if (window.__LANG !== BUILD_LANG && window.__OTHER_SRC) { window.__startMain = () => { window.__LANG = BUILD_LANG; start(data); }; return; }   // 다른 언어판으로 바뀌는 중이면 が 판은 スタート 안 해요 (바꾸기에 실패하면 __startMain으로 が 판을 スタート)
+  if (window.__OTHER_SRC) {                                   // 두 언어가 같이 들어 있는 페이지에서만 언어 버튼이 보여요
+    const bl = $('#bLang'); bl.hidden = false;
+    bl.addEventListener('click', () => { try { localStorage.setItem('yj.lang', BUILD_LANG === 'ko' ? 'ja' : 'ko'); } catch (e) { /* 괜찮아요 */ } location.reload(); });
+  }
   rankInit(); liveInit();
   S.deck = validDeck(data && data.deck) || validDeck(store.get('yj2ja.deck', null)) || CHARS.slice(0, 8).map((c) => c.id);
   S.best = store.get('yj2ja.best', 0) || 0;
