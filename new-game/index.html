@@ -2952,7 +2952,11 @@ function rankInit() {
 /* ===== 🏅 레이팅 (2026-11-21 예준이 요청 · 재는 법은 Claude가 정함) =====
    레이팅 = 최근 10판(일반 모드) 도달 웨이브 평균 × 20 · 티어마다 비슷한 실력끼리 따로 랭킹 */
 const TIERS_R = [{ min: 1400, n: '마스터', e: '👑' }, { min: 1000, n: '다이아', e: '💎' }, { min: 700, n: '골드', e: '🥇' }, { min: 400, n: '실버', e: '🥈' }, { min: 0, n: '브론즈', e: '🥉' }];
-const myRating = () => { const r = META.recent || []; return r.length ? Math.round(20 * r.reduce((a, b) => a + b, 0) / r.length) : 0; };
+// 🚫 일부러 지는 고인물 막기 (2026-11-21 예준이 요청): 그동안 전적도 봐요
+//   레이팅은 '지금까지 제일 높았던 레이팅의 80%'와 '최고 웨이브 × 20의 60%' 아래로는 안 떨어져요
+const recentRating = () => { const r = META.recent || []; return r.length ? Math.round(20 * r.reduce((a, b) => a + b, 0) / r.length) : 0; };
+const ratingFloor = () => Math.round(Math.max(0.8 * (META.peakRating || 0), 0.6 * 20 * (META.bestWave || 0)));
+const myRating = () => (META.recent || []).length ? Math.max(recentRating(), ratingFloor()) : 0;
 const tierOf = (rt) => TIERS_R.find((t) => rt >= t.min);
 const tierTxt = (rt) => { const t = tierOf(rt); return t.e + ' ' + t.n; };
 let rankTab = 'all';
@@ -3016,7 +3020,7 @@ async function openRank() {
   const ov = $('#rankOv'), list = $('#rankList'), note = $('#rankNote');
   $('#nickIn').value = store.get('yj2.nick', '');
   const rt = myRating();
-  $('#myRating').innerHTML = (META.recent || []).length ? '내 레이팅 <b>' + rt + '</b> · ' + tierTxt(rt) + ' (최근 ' + META.recent.length + '판)' : '한 판 하면 내 레이팅이 생겨요';
+  $('#myRating').innerHTML = (META.recent || []).length ? '내 레이팅 <b>' + rt + '</b> · ' + tierTxt(rt) + ' (최근 ' + META.recent.length + '판' + (rt > recentRating() ? ' · 전적 반영' : '') + ')' : '한 판 하면 내 레이팅이 생겨요';
   $('#tabAll').classList.toggle('on', rankTab === 'all'); $('#tabTier').classList.toggle('on', rankTab === 'tier');
   $('#tabTier').hidden = RANK.mode === 'fb';
   $('#tabTier').textContent = '🏅 ' + tierTxt(rt).split(' ')[1] + ' 랭킹';
@@ -3060,8 +3064,9 @@ function gameOver() {
   const w = S.wave, nb = w > S.best;
   if (nb) { S.best = w; store.set('yj2.best', w); S.newRecord = true; }
   if (w > (META.bestWave || 0)) META.bestWave = w;
-  const rt0 = myRating(); if (!S.revived || !S.ratedOnce) { META.recent = (META.recent || []).concat([w]).slice(-10); } else META.recent[META.recent.length - 1] = w;
-  S.ratedOnce = true; const rt1 = myRating();
+  const rt0 = myRating(); if (rt0 > (META.peakRating || 0)) META.peakRating = rt0;
+  if (!S.revived || !S.ratedOnce) { META.recent = (META.recent || []).concat([w]).slice(-10); } else META.recent[META.recent.length - 1] = w;
+  S.ratedOnce = true; const rt1 = myRating(); if (rt1 > (META.peakRating || 0)) META.peakRating = rt1;
   $('#goRating').textContent = '🏅 레이팅 ' + rt0 + ' → ' + rt1 + ' · ' + tierTxt(rt1);
   $('.go-wave small').textContent = '도달한 웨이브'; $('.go-title').textContent = '성이 무너졌어요!'; $('#goReason').textContent = '적이 100마리 쌓였어요'; $('#bGoRank').hidden = false;
   const got = payRun(); checkAch(false);
