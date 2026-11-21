@@ -2973,6 +2973,25 @@ function seasonCheck() {
   metaSave();
   return !first;
 }
+// 🏅 シーズン 상위 ティア 보상 (2026-11-21 예준이 결정 · クリスタル 양은 Claude): 그 시즌에 처음 도달하면 바로 받아요 · 핀은 그 シーズン 한정
+const TIER_REWARD = { 'ゴールド': { crys: 3000 }, 'ダイヤ': { crys: 8000 }, 'マスター': { crys: 20000, skin: true } };
+const TIER_ORDER = ['ブロンズ', 'シルバー', 'ゴールド', 'ダイヤ', 'マスター'];
+function tierRewards() {                                       // いま 티어까지 아직 안 받은 보상을 다 줘요
+  if (!placed()) return [];
+  const n = curSeason(), got = (META.sReward = META.sReward || {})[n] = META.sReward[n] || [], now = TIER_ORDER.indexOf(tierOf(myRating()).n), out = [];
+  for (const t in TIER_REWARD) {
+    if (TIER_ORDER.indexOf(t) > now || got.includes(t)) continue;
+    const R = TIER_REWARD[t]; got.push(t);
+    META.crystal += R.crys;
+    (META.pins = META.pins || []).push({ s: n, t });
+    if (R.skin) (META.skinOwed = META.skinOwed || []).push({ s: n, t });   // 🎨 限定スキン: 스킨 그림이 생기면 그때 줘요
+    out.push(t);
+  }
+  if (out.length) metaSave();
+  return out;
+}
+const pinEmo = { 'ゴールド': '🥇', 'ダイヤ': '💎', 'マスター': '👑' };
+const bestPin = () => { const ps = META.pins || []; if (!ps.length) return ''; const b = ps.slice().sort((a, c) => TIER_ORDER.indexOf(c.t) - TIER_ORDER.indexOf(a.t) || c.s - a.s)[0]; return 'S' + b.s + pinEmo[b.t]; };
 const tierLabel = () => placed() ? tierTxt(myRating()) : '🎯 配置テスト ' + (META.recent || []).length + '/' + PLACE_N;
 const tierOf = (rt) => TIERS_R.find((t) => rt >= t.min);
 const tierTxt = (rt) => { const t = tierOf(rt); return t.e + ' ' + t.n; };
@@ -3004,7 +3023,7 @@ async function rankSubmit() {
     const ref = RANK.db.doc('rank/' + RANK.uid), old = await ref.get();
     const od = old.exists ? old.data() : {}, ow = od.wave || 0, rt = myRating();
     await ref.set({ nick, wave: Math.max(wave, ow), bestSeason: wave > ow ? curSeason() : (od.bestSeason || 1), t: Date.now(), plays: od.plays || 0,
-                    season: curSeason(), sWave: META.sBest || 0, rating: rt, tier: placed() ? tierOf(rt).n : '配置中', placed: placed() });
+                    season: curSeason(), sWave: META.sBest || 0, rating: rt, tier: placed() ? tierOf(rt).n : '配置中', placed: placed(), pin: bestPin() });
     return 'ok';
   }
   if (RANK.mode === 'fb') {
@@ -3044,6 +3063,7 @@ async function openRank() {
   $('#myRating').innerHTML = !(META.recent || []).length ? seasonName(curSeason()) + ' · 1回プレイするとレーティングがつきます'
     : placed() ? 'マイレーティング <b>' + rt + '</b> · ' + tierTxt(rt) + ' (最近 ' + META.recent.length + '回' + (rt > recentRating() ? ' · 戦績反映' : '') + ')'
     : '🎯 配置テスト <b>' + META.recent.length + '/' + PLACE_N + '</b> · ' + PLACE_N + '回プレイするとティアが決まります';
+  if ((META.pins || []).length) $('#myRating').innerHTML += '<br>マイピン： ' + META.pins.map((p) => 'S' + p.s + pinEmo[p.t]).join(' ');
   $('#tabAll').classList.toggle('on', rankTab === 'all'); $('#tabSeason').classList.toggle('on', rankTab === 'season'); $('#tabTier').classList.toggle('on', rankTab === 'tier');
   $('#tabTier').hidden = $('#tabSeason').hidden = RANK.mode === 'fb';
   $('#tabSeason').textContent = '🗓️ シーズン ' + curSeason();
@@ -3059,7 +3079,7 @@ async function openRank() {
     rows.forEach((r, i) => {
       const li = document.createElement('li'); if (r.me) li.className = 'me';
       const no = document.createElement('b'); no.textContent = (i + 1) + '';
-      const nm = document.createElement('span'); nm.className = 'n'; nm.textContent = r.nick || '???';
+      const nm = document.createElement('span'); nm.className = 'n'; nm.textContent = (r.nick || '???') + (typeof r.pin === 'string' && r.pin.length < 8 ? ' ' + r.pin : '');
       const wv = document.createElement('span'); wv.textContent = rankTab === 'tier' ? tierOf(r.rating).e + ' ' + r.rating : rankTab === 'season' ? 'WAVE ' + r.sWave : 'WAVE ' + r.wave + (r.bestSeason ? ' · S' + r.bestSeason : '');
       li.append(no, nm, wv); list.appendChild(li);
     });
@@ -3097,6 +3117,9 @@ function gameOver() {
   S.ratedOnce = true; const rt1 = myRating(); if (placed() && rt1 > (META.peakRating || 0)) META.peakRating = rt1;
   $('#goRating').textContent = !placed() ? '🎯 配置テスト ' + META.recent.length + '/' + PLACE_N
     : !wasPlaced ? '🎉 配置完了！ ' + tierTxt(rt1) + ' · レーティング ' + rt1 : '🏅 レーティング ' + rt0 + ' → ' + rt1 + ' · ' + tierTxt(rt1);
+  const tr = tierRewards();
+  if (tr.length) $('#goRating').innerHTML = $('#goRating').textContent.replace(/</g, '&lt;') + '<br><b>🎁 シーズン ' + curSeason() + ' ' + tr.map((t) => pinEmo[t] + ' ' + t).join(' · ') + ' 到達報酬！</b> 💎+' +
+    tr.reduce((a, t) => a + TIER_REWARD[t].crys, 0).toLocaleString() + ' · 限定ピン' + (tr.some((t) => TIER_REWARD[t].skin) ? ' · 限定スキン' : '');
   $('.go-wave small').textContent = '到達ウェーブ'; $('.go-title').textContent = 'お城がくずれた！'; $('#goReason').textContent = '敵が100匹たまりました'; $('#bGoRank').hidden = false;
   const got = payRun(); checkAch(false);
   $('#goEarn').innerHTML = '<span>' + coinIco + '+' + got.coin + '</span>' + (got.crys ? '<span>' + crysIco + '+' + got.crys + '</span>' : '');
