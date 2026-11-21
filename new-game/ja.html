@@ -274,7 +274,7 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
     <!-- 🏰 로비: 城の前の広場 (2026-11-21 예준이가 C안 고름) — 위에 버튼 · 가운데 마당에 덱 캐릭터들이 돌아다녀요 · 아래 큰 전투 버튼 -->
     <div class="wallet"><span><img src="art/coin.png" alt="コイン"><b id="wCoin">0</b></span><span><img src="art/crystal.png" alt="クリスタル"><b id="wCrystal">0</b></span></div>
     <div class="lobby-top">
-      <button class="btn btn-sm" id="bUpg" type="button">⭐ 強化</button>
+      <button class="btn btn-sm" id="bUpg" type="button" hidden>⭐ 強化</button>
       <button class="btn btn-sm" id="bDeck" type="button">🃏 デッキ編成</button>
       <button class="btn btn-sm" id="bRank" type="button">🏆 ランキング</button>
       <button class="btn btn-sm" id="bWatch" type="button" hidden>👀 観戦</button>
@@ -2189,10 +2189,10 @@ function setPaused(p) {
    버는 양 · 가격은 Claude가 정함 — README 'コイン · クリスタル' 표를 보고 예준이가 바꿔요 */
 const EARN = { coinPerWave: 10, crystalPer10Waves: 1, crystalBoss: 2, crystalRecord: 3, welcomeCrystal: 5 };
 const PRICE = { revive: 5, reroll: 1 };
-const META_UP = { per: 0.05, max: 10, cost: (lv) => 100 * (lv + 1) };
+const META_UP = { on: false, per: 0.05, max: 10, cost: (lv) => 100 * (lv + 1) };   // ⭐ 영구 강화는 보류 (2026-11-21 예준이 결정) — on: true면 다시 켜져요
 const META = (() => { const m = store.get('yj.meta', null); return m && typeof m === 'object' ? m : { coin: 0, crystal: EARN.welcomeCrystal, up: {} }; })();
 META.up = META.up || {};
-const metaLv = (id) => Math.min(META_UP.max, META.up[id] || 0);
+const metaLv = (id) => META_UP.on ? Math.min(META_UP.max, META.up[id] || 0) : 0;
 const metaSave = () => { store.set('yj.meta', META); showWallet(); };
 const coinIco = '<img class="ic" src="art/coin.png" alt="">', crysIco = '<img class="ic" src="art/crystal.png" alt="">';
 function showWallet() {
