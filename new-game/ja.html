@@ -3182,7 +3182,7 @@ $('#rwCards').addEventListener('click', (e) => { const b = e.target.closest('.rc
 $('#bPause').addEventListener('click', () => setPaused(true));
 $('#bResume').addEventListener('click', () => setPaused(false));
 $('#bGiveUp').addEventListener('click', () => { S.paused = false; $('#pauseOv').hidden = true; gameOver(); });
-$('#bSpeed').addEventListener('click', () => { S.speed = S.speed === 1 ? 2 : 1; $('#bSpeed').textContent = '×' + S.speed; });
+$('#bSpeed').addEventListener('click', () => { S.speed = S.speed >= 3 ? 1 : S.speed + 1; $('#bSpeed').textContent = '×' + S.speed; });   // ×1 → ×2 → ×3 (3倍速 2026-11-21 예준이 요청)
 $('#bCoachGo').addEventListener('click', () => { store.set('yj2ja.coach', true); $('#coach').hidden = true; S.paused = false; });
 const toField = (e) => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
 let press = null;                                            // 누르기 → 떼기 = 탭, 누른 채로 움직이기 = 끌기
