@@ -263,6 +263,7 @@ h1,h2,p{margin:0}
     </div>
     <div class="best">최고 기록 <b id="homeBest">-</b></div>
     <div class="plays" id="homePlays" hidden></div>
+    <div class="plays" id="homeOnline" hidden></div>
     <div class="home-actions">
       <button class="btn btn-blue big" id="bLoad" type="button" hidden>▶ 이어하기</button>
       <button class="btn btn-blue big" id="bPlay" type="button">전투 시작</button>
@@ -2162,7 +2163,7 @@ function liveInit() {
     if (!C || typeof C.use !== 'function') return null;
     try { LIVE.room = await C.use('room'); } catch (e) { LIVE.room = null; }
     $('#bWatch').hidden = !LIVE.room;                         // 관전이 되는 곳에서만 버튼이 보여요
-    if (LIVE.room) LIVE.room.onPeers((ch) => { LIVE.peers = ch.peers; if (!$('#watchOv').hidden) renderWatchList(); if (S.watching) watchPeers(); }, () => { LIVE.room = null; });
+    if (LIVE.room) LIVE.room.onPeers((ch) => { LIVE.peers = ch.peers; showOnline(); if (!$('#watchOv').hidden) renderWatchList(); if (S.watching) watchPeers(); }, () => { LIVE.room = null; $('#homeOnline').hidden = true; });
     return LIVE.room;
   })();
   return LIVE.ready;
@@ -2194,6 +2195,13 @@ function liveTick(t) {
     LIVE.sent = t; LIVE.on = S.over ? 'over' : true;
     R.presence({ live: liveSnap() }).catch(() => {});
   } else if (!playing && LIVE.on) { LIVE.on = false; R.presence({ live: null }).catch(() => {}); }
+}
+function showOnline() {                                     // 🟢 지금 이 게임을 열어 둔 사람 수 (나 포함) · 그중 게임 중인 사람
+  const el = $('#homeOnline'), all = LIVE.peers.filter((p) => p.kind === 'viewer'), n = all.length;
+  if (!n) { el.hidden = true; return; }
+  const playing = all.filter((p) => p.presence && p.presence.live && !p.presence.live.o).length;
+  el.innerHTML = '🟢 지금 <b>' + n + '명</b> 접속 중' + (playing ? ' · <b>' + playing + '명</b> 게임 중' : '');
+  el.hidden = false;
 }
 const livePeers = () => LIVE.peers.filter((p) => !p.sameTab && p.presence && p.presence.live && typeof p.presence.live === 'object');
 async function openWatch() {
