@@ -103,6 +103,8 @@ h1,h2,p{margin:0}
   border:2.5px solid var(--ink);border-radius:14px;box-shadow:0 4px 0 var(--ink);padding:12px 10px 10px;min-width:0}
 .cc:active{transform:translateY(2px);box-shadow:0 2px 0 var(--ink)}
 .cc[aria-pressed="true"]{background:var(--yellow)}
+.cc.locked{filter:grayscale(.85);opacity:.6}
+.cc-lock{position:absolute;top:10px;right:10px;font-family:var(--f-display);font-size:13px;color:var(--ink);background:var(--paper);border:2px solid var(--ink);border-radius:8px;padding:1px 6px}
 .cc .stk{width:40px;height:40px;font-size:20px;margin:2px 0 2px 2px}
 .cc-name{font-size:17px;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
 .cc-name em{font-style:normal;font-size:11px;padding:1px 6px;border-radius:6px;background:var(--ink);color:var(--paper)}
@@ -307,7 +309,7 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
       <button class="btn btn-blue big" id="bLoad" type="button" hidden>▶ つづきから</button>
       <button class="btn btn-blue big" id="bPlay" type="button">バトル開始</button>
     </div>
-    <p class="foot">キャラ32人・敵8種・タレット・トラップ・お城まで全部イェジュンの絵！バフアイテムだけまだ仮です。</p>
+    <p class="foot">キャラ31人・敵8種・タレット・トラップ・お城まで全部イェジュンの絵！バフアイテムだけまだ仮です。</p>
     </div>
   </section>
 
@@ -692,9 +694,7 @@ const CHARS = [
     dmg: 1400, rate: 1 / 2.5, range: 240, proj: 'punch',
     doctor: { hits: 30, waves: 6, dmg: 1000, every: 1, chain: 4, range: 280, at: { x: 0.80, y: 0.24 } },   // ドクター大頭 숫자는 Claude가 정함
     desc: 'ふだんはロボットのコントゥギがたたきます。コントゥギが30回たたくとドクター大頭が出てきて、6ウェーブの間強い電気の連鎖攻撃をいっしょにします！' },
-  { id: 'chef',     name: 'ロイヤルシェフ',    img: 'art/chef.png',     grade: '伝説', color: '#F7EBD5', role: '料理',   pref: 'back',
-    dmg: 0,    rate: 1,        range: 0,   support: true, cook: 30,
-    desc: '戦いません。30秒ごとにランダム料理！パンケーキ（攻撃力+30%）・カップケーキ（攻撃速度+30%）・スープ（お金200）・うどん（敵がおそくなる）・あめ（敵が気絶）。' },
+  // 👨‍🍳 로얄 셰프는 퇴출 (2026-11-21 예준이 결정)
   { id: 'dragon',   name: 'レッドドラゴン',   img: 'art/dragon.png',   grade: '伝説', color: '#F08A7E', role: '範囲',   pref: 'back',
     dmg: 1300, rate: 1 / 1.7,  range: 480, proj: 'breath', splash: 70, desc: '戦場のはしまでとどく炎のブレスで広く焼きます。' },
   { id: 'dosa',     name: '道士',         img: 'art/dosa.png',     grade: '伝説', color: '#A9D8F0', role: '遠距離', pref: 'back',
@@ -747,7 +747,10 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 保存 못 해도 게임은 돼요 */ } },
 };
-const validDeck = (d) => Array.isArray(d) && d.length === 8 && new Set(d).size === 8 && d.every((id) => BY[id]) && d.includes('sword') ? d.slice() : null;
+// 🔓 처음부터 쓸 수 있는 캐릭터 (2026-11-21 예준이 결정): ノーマル 전부 · レア 전부(ノエシ 빼고) · 영웅은 デスシュタイン 하나 · 전설은 レッドドラゴン
+const START_UNLOCK = ['sword', 'archer', 'farmer', 'jura', 'taein', 'tank', 'tenjo', 'stein', 'dragon'];
+const unlocked = (id) => START_UNLOCK.includes(id) || !!(META.unlock && META.unlock[id]);
+const validDeck = (d) => Array.isArray(d) && d.length === 8 && new Set(d).size === 8 && d.every((id) => BY[id] && unlocked(id)) && d.includes('sword') ? d.slice() : null;
 
 /* ===== 상태 ===== */
 const S = { screen: 'home', deck: null, best: 0, speed: 1 };
@@ -2224,14 +2227,14 @@ function openDeck() { draft = S.deck.slice(); renderDeck(); show('deck'); }
 function renderDeck() {
   const g = $('#charGrid');
   g.innerHTML = CHARS.map((d) => {
-    const on = draft.includes(d.id);
+    const on = draft.includes(d.id), lock = !unlocked(d.id);
     const range = d.range >= 999 ? '全体' : d.range;
-    return '<button class="cc" type="button" data-id="' + d.id + '" aria-pressed="' + on + '">' +
+    return '<button class="cc' + (lock ? ' locked' : '') + '" type="button" data-id="' + d.id + '" aria-pressed="' + on + '">' +
       stickerHTML(d, 40) +
       '<span class="cc-name">' + d.name + ' <em>' + d.role + '</em><em class="grade" style="background:' + GRADE_C[d.grade] + '">' + d.grade + '</em></span>' +
       '<span class="cc-desc">' + d.desc + '</span>' +
       '<span class="cc-stat">' + (d.support ? '攻撃しない・サポート' : 'ダメージ ' + d.dmg + ' · ' + every(d) + ' · 射程 ' + range) + '</span>' +
-      '<span class="cc-check">' + (d.id === 'sword' ? 'スタート' : '出撃') + '</span></button>';
+      '<span class="cc-check">' + (d.id === 'sword' ? 'スタート' : '出撃') + '</span>' + (lock ? '<span class="cc-lock">🔒 ロック中</span>' : '') + '</button>';
   }).join('');
   $('#deckCount').textContent = draft.length + '/8';
   $('#bDeckDone').disabled = draft.length !== 8;
@@ -2241,6 +2244,7 @@ $('#charGrid').addEventListener('click', (e) => {
   const b = e.target.closest('.cc'); if (!b) return;
   const id = b.dataset.id, i = draft.indexOf(id);
   if (id === 'sword') { toast('戦士はいつもいっしょにスタートします'); return; }
+  if (!unlocked(id)) { toast('🔒 まだロックされています'); return; }
   if (i >= 0) draft.splice(i, 1);
   else if (draft.length < 8) draft.push(id);
   else { toast('8体までしか連れて行けません。先にひとり外してね'); }
@@ -2752,7 +2756,7 @@ function resumeBattle() {
     const D = d.S;
     Object.assign(S, D, { projs: [], fx: [], drag: null, banner: null, sel: -1, paused: false, over: false, equipping: null });
     S.enemies = (D.enemies || []).map((e) => Object.assign(e, { foe: (e.foe && e.foe.b >= 0 ? BOSSES[e.foe.b] : FOES[e.foe && e.foe.f]) || FOES[0] }));
-    S.units = (D.units || []).map((u) => u || null);
+    S.units = (D.units || []).map((u) => (u && BY[u.type] ? u : null));
     S.items = (D.items || []).map((it) => Object.assign(it, { unit: typeof it.unit === 'number' ? S.units[it.unit] || null : null }));
   } catch (e) { clearSave(); startBattle(); return; }
   for (const k in ui) delete ui[k];
@@ -2991,7 +2995,7 @@ function start(data) {
     bl.addEventListener('click', () => { try { localStorage.setItem('yj.lang', BUILD_LANG === 'ko' ? 'ja' : 'ko'); } catch (e) { /* 괜찮아요 */ } location.reload(); });
   }
   rankInit(); liveInit();
-  S.deck = validDeck(data && data.deck) || validDeck(store.get('yj2ja.deck', null)) || CHARS.slice(0, 8).map((c) => c.id);
+  S.deck = validDeck(data && data.deck) || validDeck(store.get('yj2ja.deck', null)) || CHARS.filter((c) => unlocked(c.id)).slice(0, 8).map((c) => c.id);
   S.best = store.get('yj2ja.best', 0) || 0;
   show('home');
   if (document.fonts && document.fonts.load) { document.fonts.load('12px "M PLUS Rounded 1c"').then(() => { if (S.screen === 'battle') layout(); }).catch(() => {}); }
