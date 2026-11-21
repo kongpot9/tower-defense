@@ -632,7 +632,7 @@ const FOES = [
   { id: 'pink',  name: '핑크슬라임', img: 'art/enemy-pinkslime.png', fixedHp: 1, speed: 8, r: 9.5, w: 1, from: 11, hitP: 0.4 },  // 체력 1 · 공격이 맞을 확률 40% (1% → 40%, 예준이 조정)
 ];
 const BOSSES = [
-  { id: 'skullgen', name: '해골장수', img: 'art/boss-skullgen.png', skillImg: 'art/boss-skullgen-gumgi.png', hp: 450, speed: 10, r: 28, skill: 'gumgi' },   // 체력: 잡몹 평균의 450배 (4배 → 30배 → 450배, 예준이 결정) · 보스는 1.5배 크게
+  { id: 'skullgen', name: '해골장수', img: 'art/boss-skullgen.png', skillImg: 'art/boss-skullgen-gumgi.png', hp: 450, dpsMul: 310, speed: 10, r: 28, skill: 'gumgi' },   // 체력: 플레이어 평균 딜량(1초 데미지)의 310배 (4배 → 30배 → 450배 → 딜량 310배, 예준이 결정) · hp는 딜량을 아직 모를 때만 · 보스는 1.5배 크게
   // ↑ 검기: 아군 공격력 10초간 ½ · 검기를 쓸 때만 보라색 검기가 있는 그림으로 바뀌어요
 ];
 const FOE_IMG = {};
@@ -780,6 +780,10 @@ function startWave() {
     S.gold += b;
     fx({ k: 'text', x: W / 2, y: WALL_Y - 40, s: '웨이브 보상 +' + b, c: YEL, life: 1.4, size: 15 });
   }
+  if (S.wave > 0) {                                        // 📊 지난 웨이브 딜량 기록 (최근 3웨이브 평균으로 보스 체력을 정해요)
+    S.dpsHist = (S.dpsHist || []).concat([[Math.round(S.dmgW || 0), Math.round((S.fightT || 0) * 10) / 10]]).slice(-3);
+  }
+  S.dmgW = 0; S.fightT = 0;
   S.wave++; S.waveT = 0;
   waveHooks();
   const boss = S.wave % BAL.bossEvery === 0;
@@ -792,6 +796,11 @@ function startWave() {
   saveGame();
   if (boss) fx({ k: 'text', x: W / 2, y: 160, s: '👹 ' + BOSSES[0].name + ' 등장!', c: RED, life: 2, size: 18 });
 }
+function avgDps() {                                        // 적이 있을 때 1초에 넣은 데미지의 평균
+  let d = 0, t = 0;
+  for (const h of S.dpsHist || []) { d += h[0]; t += h[1]; }
+  return t >= 3 ? d / t : 0;
+}
 function makeEnemy(boss) {
   const w = S.wave;
   let f;
@@ -800,7 +809,8 @@ function makeEnemy(boss) {
     const pool = FOES.filter((o) => !o.from || w >= o.from);
     let r = Math.random() * pool.reduce((a, o) => a + o.w, 0); f = pool.find((o) => (r -= o.w) < 0) || pool[0];
   }
-  const hp = f.fixedHp || BAL.hp0 * Math.pow(BAL.hpGrow, w - 1) * f.hp;
+  let hp = f.fixedHp || BAL.hp0 * Math.pow(BAL.hpGrow, w - 1) * f.hp;
+  if (boss && f.dpsMul) { const dps = avgDps(); if (dps > 0) hp = dps * f.dpsMul; }   // 👹 보스 체력 = 평균 딜량 × 310
   const r = f.r + (boss ? 0 : Math.random());
   return {
     x: r + Math.random() * (W - 2 * r), y: -r - Math.random() * 8, r, hp, maxHp: hp, foe: f,
@@ -825,6 +835,7 @@ function hurt(e, a, src) {
       return;
     }
   }
+  if (a > 0 && !e.boss) S.dmgW = (S.dmgW || 0) + a;        // 📊 딜량 (보스한테 넣은 건 빼고)
   e.hp -= a;
   if (a > 0.6) e.flash = 0.07;
   if (e.hp <= 0) {
@@ -1005,6 +1016,7 @@ function separate() {
 
 function update(dt) {
   S.time += dt; S.waveT += dt;
+  if (S.enemies.some((e) => !e.dead && e.y > 0)) S.fightT = (S.fightT || 0) + dt;   // 📊 싸우는 시간
   if (S.weakT > 0) S.weakT -= dt;
   if (S.tDmgT > 0) S.tDmgT -= dt;
   if (S.tSpdT > 0) S.tSpdT -= dt;
