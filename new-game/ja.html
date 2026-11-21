@@ -301,7 +301,7 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
     <div class="yard" id="yard"><canvas id="yardCv" aria-label="わたしの村"></canvas><div class="village" id="village"></div></div>
     <div class="wallet"><span><img src="art/coin.png" alt="コイン"><b id="wCoin">0</b></span><span><img src="art/crystal.png" alt="クリスタル"><b id="wCrystal">0</b></span></div>
     <div class="lobby-top">
-      <button class="btn btn-sm" id="bUpg" type="button" hidden>⭐ 強化</button>
+      <button class="btn btn-sm" id="bUpg" type="button">⭐ 強化</button>
       <button class="btn btn-sm" id="bDeck" type="button">🃏 デッキ編成</button>
       <button class="btn btn-sm" id="bBox" type="button">🎁 ボックス</button>
       <button class="btn btn-sm" id="bRank" type="button">🏆 ランキング</button>
@@ -457,8 +457,8 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
   <div class="ov ov-fixed" id="upOv" hidden>
     <div class="ov-card rank-card">
       <h2>⭐ キャラ強化</h2>
-      <p class="sub">コインで強化すると <b>次のゲームでもずっと</b> 強いまま・1回で攻撃力+5%</p>
-      <div class="wallet wallet-sm"><span><img src="art/coin.png" alt="コイン"><b id="upCoin">0</b></span></div>
+      <p class="sub">クリスタルで強化すると <b>次のゲームでもずっと</b> 強いまま・1回で攻撃力+5%・最大⭐10</p>
+      <div class="wallet wallet-sm"><span><img src="art/crystal.png" alt="クリスタル"><b id="upCrys">0</b></span></div>
       <ol class="rank-list up-list" id="upList"></ol>
       <div class="ov-btns"><button class="btn" id="bUpClose" type="button">とじる</button></div>
     </div>
@@ -2394,7 +2394,8 @@ function setPaused(p) {
 // 한 回 보상은 건물 가격에 맞춰 크게 (2026-11-21 예준이 결정, 숫자는 Claude가 정함)
 const EARN = { coinPerWave: 100, crystalPerWave: 3, crystalBoss: 50, crystalRecord: 100, welcomeCrystal: 50 };
 const PRICE = { revive: 50 };   // 💎 プレゼントカード 다시 뽑기는 삭제 (2026-11-21 예준이 결정)
-const META_UP = { on: true, per: 0.05, max: 10, cost: (lv) => 100 * (lv + 1) };   // ⭐ 영구 レベル: コイン 강화는 보류 · こびと横丁 토큰으로만 올려요 (2026-11-21 예준이 결정)
+const META_UP = { on: true, per: 0.05, max: 10, base: { 'ノーマル': 100, 'レア': 200, 'ヒーロー': 400, '神話': 800, '伝説': 1500 },
+  cost: (lv, grade) => META_UP.base[grade] * (lv + 1) };   // ⭐ 만렙 10 (예준이 결정) · 💎 가격은 Claude가 정함: 등급 기본값 × 다음 レベル   // ⭐ 영구 レベル: 크리스탈로 強化 + こびと横丁 토큰으로도 +1 (2026-11-21 예준이 결정)
 const META = (() => { const m = store.get('yj.meta', null); return m && typeof m === 'object' ? m : { coin: 0, crystal: EARN.welcomeCrystal, up: {} }; })();
 META.up = META.up || {};
 const metaLv = (id) => META_UP.on ? Math.min(META_UP.max, META.up[id] || 0) : 0;
@@ -2402,7 +2403,7 @@ const metaSave = () => { store.set('yj.meta', META); showWallet(); };
 const coinIco = '<img class="ic" src="art/coin.png" alt="">', crysIco = '<img class="ic" src="art/crystal.png" alt="">';
 function showWallet() {
   const set = (sel, v) => { const el = $(sel); if (el) el.textContent = Math.floor(v).toLocaleString(); };
-  set('#wCoin', META.coin); set('#wCrystal', META.crystal); set('#upCoin', META.coin);
+  set('#wCoin', META.coin); set('#wCrystal', META.crystal); set('#upCrys', META.crystal);
 }
 function payRun() {                                           // 게임이 끝날 때 이번 回 보상 (부활하면 이어서 더 받아요)
   const w = S.wave, from = S.paidWave || 0;
@@ -2416,17 +2417,18 @@ function payRun() {                                           // 게임이 끝�
 function openUpg() {
   const list = $('#upList'); list.innerHTML = '';
   for (const d of CHARS) {
+    if (!unlocked(d.id)) continue;                            // 🔒 잠긴 캐릭터는 強化 못 해요
     const lv = metaLv(d.id), li = document.createElement('li');
     const ic = document.createElement('span'); ic.innerHTML = stickerHTML(d, 36);
     const nm = document.createElement('span'); nm.className = 'n'; nm.textContent = d.name + ' ⭐' + lv;
-    const sm = document.createElement('small'); sm.textContent = lv ? '攻撃力 +' + Math.round(lv * META_UP.per * 100) + '%' : d.grade; nm.appendChild(sm);
+    const sm = document.createElement('small'); sm.textContent = d.grade + (lv ? ' · 攻撃力 +' + Math.round(lv * META_UP.per * 100) + '%' : ''); nm.appendChild(sm);
     const bt = document.createElement('button'); bt.type = 'button'; bt.className = 'btn btn-sm';
     if (lv >= META_UP.max) { bt.textContent = 'MAX'; bt.disabled = true; }
-    else { bt.innerHTML = '<img src="art/coin.png" alt="">' + META_UP.cost(lv); bt.disabled = META.coin < META_UP.cost(lv); }
+    else { const c = META_UP.cost(lv, d.grade); bt.innerHTML = '<img src="art/crystal.png" alt="">' + c.toLocaleString(); bt.disabled = META.crystal < c; }
     bt.addEventListener('click', () => {
-      const c = META_UP.cost(metaLv(d.id));
-      if (META.coin < c || metaLv(d.id) >= META_UP.max) return;
-      META.coin -= c; META.up[d.id] = metaLv(d.id) + 1; metaSave(); openUpg();
+      const c = META_UP.cost(metaLv(d.id), d.grade);
+      if (META.crystal < c || metaLv(d.id) >= META_UP.max) return;
+      META.crystal -= c; META.up[d.id] = metaLv(d.id) + 1; metaSave(); openUpg();
     });
     li.append(ic, nm, bt); list.appendChild(li);
   }
