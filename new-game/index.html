@@ -202,6 +202,8 @@ h1,h2,p{margin:0}
 #battle.watching .row-main{display:none}
 .watch-list li{cursor:pointer;grid-template-columns:28px 1fr auto}
 .watch-list li:active{transform:translateY(2px)}
+.plays{text-align:center;font-size:14px;color:var(--muted);margin-top:-6px}
+.plays b{color:var(--ink)}
 .rank-card{max-height:calc(100% - 20px);overflow-y:auto}
 .rank-list{list-style:none;margin:0;padding:0;display:grid;gap:4px;text-align:left;max-height:46vh;overflow-y:auto}
 .rank-list li{display:grid;grid-template-columns:34px 1fr auto;gap:8px;align-items:center;padding:6px 10px;border-radius:10px;background:var(--paper-2);font-size:15px;font-variant-numeric:tabular-nums}
@@ -259,6 +261,7 @@ h1,h2,p{margin:0}
       <b>100</b><span>적이 100마리 쌓이면 패배!</span>
     </div>
     <div class="best">최고 기록 <b id="homeBest">-</b></div>
+    <div class="plays" id="homePlays" hidden></div>
     <div class="home-actions">
       <button class="btn btn-blue big" id="bLoad" type="button" hidden>▶ 이어하기</button>
       <button class="btn btn-blue big" id="bPlay" type="button">전투 시작</button>
@@ -2007,6 +2010,7 @@ function renderHome() {
   $('#homeDeck').innerHTML = S.deck.map((id) => '<figure>' + stickerHTML(BY[id], 44) + '<figcaption>' + BY[id].name + '</figcaption></figure>').join('');
   $('#homeDeckCount').textContent = S.deck.length + '/8';
   $('#homeBest').textContent = S.best ? 'WAVE ' + S.best : '아직 없음';
+  playWrite.then(showPlays);
   const sv = loadSave(), bl = $('#bLoad');
   bl.hidden = !sv; if (sv) bl.textContent = '▶ 이어하기 · WAVE ' + sv.S.wave;
   $('#bPlay').textContent = sv ? '새로 시작' : '전투 시작';
@@ -2323,6 +2327,7 @@ function resumeBattle() {
 }
 function startBattle() {
   clearSave();
+  countPlay();
   newBattle();
   for (const k in ui) delete ui[k];
   buildDeckBar();
@@ -2356,7 +2361,7 @@ async function rankFetch() {
   await rankInit();
   if (RANK.mode === 'db') {
     const snap = await RANK.db.collection('rank').orderBy('wave', 'desc').limit(50).get();
-    return snap.docs.map((d) => Object.assign({ me: d.id === RANK.uid }, d.data()));
+    return snap.docs.map((d) => Object.assign({ me: d.id === RANK.uid }, d.data())).filter((r) => r.nick && r.wave > 0);   // 닉네임 없이 판 수만 센 사람은 빼요
   }
   if (RANK.mode === 'fb') {
     const r = await fetch(RANK.fb + '.json'); if (!r.ok) throw new Error('http ' + r.status);
@@ -2373,7 +2378,7 @@ async function rankSubmit() {
     if (!RANK.uid) return 'readonly';
     const ref = RANK.db.doc('rank/' + RANK.uid), old = await ref.get();
     const ow = old.exists ? (old.data().wave || 0) : 0, on = old.exists ? old.data().nick : '';
-    if (wave > ow || nick !== on) await ref.set({ nick, wave: Math.max(wave, ow), t: Date.now() });
+    if (wave > ow || nick !== on) await ref.set({ nick, wave: Math.max(wave, ow), t: Date.now(), plays: old.exists ? (old.data().plays || 0) : 0 });
     return 'ok';
   }
   if (RANK.mode === 'fb') {
@@ -2381,6 +2386,29 @@ async function rankSubmit() {
     return r.ok ? 'ok' : 'denied';
   }
   return 'off';
+}
+/* ===== 🎮 플레이한 사람 수 (2026-11-21 예준이 요청) — 랭킹 저장소의 내 칸에 판 수를 같이 적어요 ===== */
+let playWrite = Promise.resolve();
+function countPlay() {
+  playWrite = playWrite.then(async () => {                    // 한 번에 하나씩만 써요
+    await rankInit();
+    if (RANK.mode !== 'db' || !RANK.uid) return;
+    const ref = RANK.db.doc('rank/' + RANK.uid), old = await ref.get(), d = old.exists ? old.data() : {};
+    await ref.set({ nick: d.nick || '', wave: d.wave || 0, t: d.t || Date.now(), plays: (d.plays || 0) + 1 });
+  }).catch(() => {});
+}
+async function showPlays() {
+  const el = $('#homePlays');
+  try {
+    await rankInit();
+    if (RANK.mode !== 'db') return;
+    const snap = await RANK.db.collection('rank').limit(1000).get();
+    let people = 0, games = 0;
+    for (const d of snap.docs) { const x = d.data(); const n = x.plays || (x.wave > 0 ? 1 : 0); if (n > 0) { people++; games += n; } }
+    if (!people) return;
+    el.innerHTML = '🎮 지금까지 <b>' + people.toLocaleString() + '명</b>이 <b>' + games.toLocaleString() + '판</b> 했어요';
+    el.hidden = false;
+  } catch (e) { /* 못 세도 괜찮아요 */ }
 }
 async function openRank() {
   const ov = $('#rankOv'), list = $('#rankList'), note = $('#rankNote');
