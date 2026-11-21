@@ -262,7 +262,7 @@ img.ic{width:22px;height:22px;object-fit:contain;vertical-align:-5px;margin:0 2p
 .bld-note{font-size:13px;color:var(--muted);line-height:1.45;margin:0}
 .rank-card{max-height:calc(100% - 20px);overflow-y:auto}
 .rank-list{list-style:none;margin:0;padding:0;display:grid;gap:4px;text-align:left;max-height:46vh;overflow-y:auto}
-.rank-tabs{display:flex;justify-content:center;gap:8px}
+.rank-tabs{display:flex;justify-content:center;gap:6px;flex-wrap:wrap}
 .rank-tabs .btn{box-shadow:none;opacity:.6}
 .rank-tabs .btn.on{opacity:1;background:var(--yellow)}
 .my-rating{margin:0;font-size:14px;text-align:center}
@@ -499,7 +499,7 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
   <div class="ov ov-fixed" id="rankOv" hidden>
     <div class="ov-card rank-card">
       <h2>🏆 ランキング</h2>
-      <div class="rank-tabs"><button class="btn btn-sm on" id="tabAll" type="button">🌍 全体</button><button class="btn btn-sm" id="tabTier" type="button">🏅 マイティア</button></div>
+      <div class="rank-tabs"><button class="btn btn-sm on" id="tabAll" type="button">🌍 全体</button><button class="btn btn-sm" id="tabSeason" type="button">🗓️ シーズン</button><button class="btn btn-sm" id="tabTier" type="button">🏅 マイティア</button></div>
       <p class="my-rating" id="myRating"></p>
       <p class="sub" id="rankSub">最高ウェーブ順</p>
       <ol class="rank-list" id="rankList"></ol>
@@ -2958,6 +2958,22 @@ const TIERS_R = [{ min: 1400, n: 'マスター', e: '👑' }, { min: 1000, n: '�
 const recentRating = () => { const r = META.recent || []; return r.length ? Math.round(20 * r.reduce((a, b) => a + b, 0) / r.length) : 0; };
 const ratingFloor = () => Math.round(Math.max(0.8 * (META.peakRating || 0), 0.6 * 20 * (META.bestWave || 0)));
 const myRating = () => (META.recent || []).length ? Math.max(recentRating(), ratingFloor()) : 0;
+// 🎯 配置テスト: 시즌마다 처음 5판은 티어를 안 보여 줘요 (2026-11-21 예준이 결정)
+const PLACE_N = 5;
+const placed = () => (META.recent || []).length >= PLACE_N;
+// 🗓️ シーズン: 한 달에 한 シーズン (2026年 11月 = シーズン 1) · 새 시즌엔 シーズン ランキング · レーティング · 배치고사가 最初から · 全体(역대) 랭킹은 그대로
+const curSeason = () => { const d = new Date(); return (d.getFullYear() - 2026) * 12 + d.getMonth() - 10 + 1; };
+const seasonName = (n) => { const m = 10 + n - 1, y = 2026 + Math.floor(m / 12); return 'シーズン ' + n + ' (' + y + '年 ' + (m % 12 + 1) + '月)'; };
+function seasonCheck() {
+  const n = curSeason();
+  if (META.season === n) return false;
+  const first = !META.season;
+  META.season = n; META.sBest = 0;
+  if (!first) { META.recent = []; META.peakRating = Math.round((META.peakRating || 0) * 0.7); }   // 새 シーズン: 배치고사부터 · 최고 レーティング 바닥은 70%만 남겨요
+  metaSave();
+  return !first;
+}
+const tierLabel = () => placed() ? tierTxt(myRating()) : '🎯 配置テスト ' + (META.recent || []).length + '/' + PLACE_N;
 const tierOf = (rt) => TIERS_R.find((t) => rt >= t.min);
 const tierTxt = (rt) => { const t = tierOf(rt); return t.e + ' ' + t.n; };
 let rankTab = 'all';
@@ -2967,7 +2983,9 @@ async function rankFetch() {
     const snap = await RANK.db.collection('rank').orderBy('wave', 'desc').limit(300).get();
     let rows = snap.docs.map((d) => Object.assign({ me: d.id === RANK.uid }, d.data())).filter((r) => r.nick && r.wave > 0);   // 닉네임 없이 回 수만 센 사람은 빼요
     rows.forEach((r) => { if (!(r.rating > 0)) r.rating = r.wave * 20; });       // 레이팅이 없던 예전 기록은 최고 웨이브로 어림
-    if (rankTab === 'tier') { const mine = tierOf(myRating()).n; rows = rows.filter((r) => tierOf(r.rating).n === mine).sort((a, b) => b.rating - a.rating); }
+    const cs = curSeason();
+    if (rankTab === 'season') rows = rows.filter((r) => r.season === cs && r.sWave > 0).sort((a, b) => b.sWave - a.sWave);
+    if (rankTab === 'tier') { const mine = tierOf(myRating()).n; rows = rows.filter((r) => r.season === cs && r.placed && tierOf(r.rating).n === mine).sort((a, b) => b.rating - a.rating); }
     return rows.slice(0, 50);
   }
   if (RANK.mode === 'fb') {
@@ -2984,8 +3002,9 @@ async function rankSubmit() {
   if (RANK.mode === 'db') {
     if (!RANK.uid) return 'readonly';
     const ref = RANK.db.doc('rank/' + RANK.uid), old = await ref.get();
-    const ow = old.exists ? (old.data().wave || 0) : 0, rt = myRating();
-    await ref.set({ nick, wave: Math.max(wave, ow), t: Date.now(), plays: old.exists ? (old.data().plays || 0) : 0, rating: rt, tier: tierOf(rt).n });
+    const od = old.exists ? old.data() : {}, ow = od.wave || 0, rt = myRating();
+    await ref.set({ nick, wave: Math.max(wave, ow), bestSeason: wave > ow ? curSeason() : (od.bestSeason || 1), t: Date.now(), plays: od.plays || 0,
+                    season: curSeason(), sWave: META.sBest || 0, rating: rt, tier: placed() ? tierOf(rt).n : '配置中', placed: placed() });
     return 'ok';
   }
   if (RANK.mode === 'fb') {
@@ -3021,14 +3040,19 @@ async function openRank() {
   const ov = $('#rankOv'), list = $('#rankList'), note = $('#rankNote');
   $('#nickIn').value = store.get('yj2ja.nick', '');
   const rt = myRating();
-  $('#myRating').innerHTML = (META.recent || []).length ? 'マイレーティング <b>' + rt + '</b> · ' + tierTxt(rt) + ' (最近 ' + META.recent.length + '回' + (rt > recentRating() ? ' · 戦績反映' : '') + ')' : '1回プレイするとレーティングがつきます';
-  $('#tabAll').classList.toggle('on', rankTab === 'all'); $('#tabTier').classList.toggle('on', rankTab === 'tier');
-  $('#tabTier').hidden = RANK.mode === 'fb';
-  $('#tabTier').textContent = '🏅 ' + tierTxt(rt).split(' ')[1] + ' ランキング';
-  $('#rankSub').textContent = rankTab === 'tier' ? '同じくらいの実力どうし・レーティング順' : 'みんな・最高ウェーブ順';
+  seasonCheck();
+  $('#myRating').innerHTML = !(META.recent || []).length ? seasonName(curSeason()) + ' · 1回プレイするとレーティングがつきます'
+    : placed() ? 'マイレーティング <b>' + rt + '</b> · ' + tierTxt(rt) + ' (最近 ' + META.recent.length + '回' + (rt > recentRating() ? ' · 戦績反映' : '') + ')'
+    : '🎯 配置テスト <b>' + META.recent.length + '/' + PLACE_N + '</b> · ' + PLACE_N + '回プレイするとティアが決まります';
+  $('#tabAll').classList.toggle('on', rankTab === 'all'); $('#tabSeason').classList.toggle('on', rankTab === 'season'); $('#tabTier').classList.toggle('on', rankTab === 'tier');
+  $('#tabTier').hidden = $('#tabSeason').hidden = RANK.mode === 'fb';
+  $('#tabSeason').textContent = '🗓️ シーズン ' + curSeason();
+  $('#tabTier').textContent = placed() ? '🏅 ' + tierTxt(rt).split(' ')[1] + ' ランキング' : '🏅 ティア';
+  $('#rankSub').textContent = rankTab === 'tier' ? '同じくらいの実力どうし・レーティング順' : rankTab === 'season' ? seasonName(curSeason()) + ' · 今シーズンの最高ウェーブ' : 'みんな・歴代最高ウェーブ（記録はシーズンが変わってものこります）';
   list.innerHTML = '<li class="empty">読みこみ中…</li>'; note.textContent = '';
   ov.hidden = false;
   const timer = setTimeout(() => { if (list.textContent === '読みこみ中…') list.innerHTML = '<li class="empty">ランキングサーバーがまだ返事をしません</li>'; }, 10000);
+  if (rankTab === 'tier' && !placed()) { clearTimeout(timer); list.innerHTML = '<li class="empty">🎯 配置テスト ' + PLACE_N + '回終えるとティアランキングに入ります</li>'; return; }
   try {
     const rows = await rankFetch(); clearTimeout(timer);
     list.innerHTML = rows.length ? '' : '<li class="empty">まだだれもいません。1位をとろう！</li>';
@@ -3036,7 +3060,7 @@ async function openRank() {
       const li = document.createElement('li'); if (r.me) li.className = 'me';
       const no = document.createElement('b'); no.textContent = (i + 1) + '';
       const nm = document.createElement('span'); nm.className = 'n'; nm.textContent = r.nick || '???';
-      const wv = document.createElement('span'); wv.textContent = rankTab === 'tier' ? tierOf(r.rating).e + ' ' + r.rating : 'WAVE ' + r.wave;
+      const wv = document.createElement('span'); wv.textContent = rankTab === 'tier' ? tierOf(r.rating).e + ' ' + r.rating : rankTab === 'season' ? 'WAVE ' + r.sWave : 'WAVE ' + r.wave + (r.bestSeason ? ' · S' + r.bestSeason : '');
       li.append(no, nm, wv); list.appendChild(li);
     });
     if (RANK.mode === 'db' && !RANK.uid) note.textContent = 'この画面ではランキングを見るだけです';
@@ -3050,6 +3074,7 @@ $('#bGoRank').addEventListener('click', openRank);
 $('#bRankClose').addEventListener('click', () => { $('#rankOv').hidden = true; });
 $('#tabAll').addEventListener('click', () => { rankTab = 'all'; openRank(); });
 $('#tabTier').addEventListener('click', () => { rankTab = 'tier'; openRank(); });
+$('#tabSeason').addEventListener('click', () => { rankTab = 'season'; openRank(); });
 $('#bNick').addEventListener('click', async () => {
   const v = $('#nickIn').value.trim(), note = $('#rankNote');
   if (!NICK_OK.test(v)) { note.textContent = 'ニックネームは日本語・英字・数字で12文字までです'; return; }
@@ -3065,10 +3090,13 @@ function gameOver() {
   const w = S.wave, nb = w > S.best;
   if (nb) { S.best = w; store.set('yj2ja.best', w); S.newRecord = true; }
   if (w > (META.bestWave || 0)) META.bestWave = w;
-  const rt0 = myRating(); if (rt0 > (META.peakRating || 0)) META.peakRating = rt0;
+  seasonCheck();
+  if (w > (META.sBest || 0)) META.sBest = w;
+  const wasPlaced = placed(), rt0 = myRating(); if (wasPlaced && rt0 > (META.peakRating || 0)) META.peakRating = rt0;
   if (!S.revived || !S.ratedOnce) { META.recent = (META.recent || []).concat([w]).slice(-10); } else META.recent[META.recent.length - 1] = w;
-  S.ratedOnce = true; const rt1 = myRating(); if (rt1 > (META.peakRating || 0)) META.peakRating = rt1;
-  $('#goRating').textContent = '🏅 レーティング ' + rt0 + ' → ' + rt1 + ' · ' + tierTxt(rt1);
+  S.ratedOnce = true; const rt1 = myRating(); if (placed() && rt1 > (META.peakRating || 0)) META.peakRating = rt1;
+  $('#goRating').textContent = !placed() ? '🎯 配置テスト ' + META.recent.length + '/' + PLACE_N
+    : !wasPlaced ? '🎉 配置完了！ ' + tierTxt(rt1) + ' · レーティング ' + rt1 : '🏅 レーティング ' + rt0 + ' → ' + rt1 + ' · ' + tierTxt(rt1);
   $('.go-wave small').textContent = '到達ウェーブ'; $('.go-title').textContent = 'お城がくずれた！'; $('#goReason').textContent = '敵が100匹たまりました'; $('#bGoRank').hidden = false;
   const got = payRun(); checkAch(false);
   $('#goEarn').innerHTML = '<span>' + coinIco + '+' + got.coin + '</span>' + (got.crys ? '<span>' + crysIco + '+' + got.crys + '</span>' : '');
@@ -3169,6 +3197,7 @@ function start(data) {
   S.deck = validDeck(data && data.deck) || validDeck(store.get('yj2ja.deck', null)) || CHARS.filter((c) => unlocked(c.id)).slice(0, 8).map((c) => c.id);
   S.best = store.get('yj2ja.best', 0) || 0;
   if (S.best > (META.bestWave || 0)) { META.bestWave = S.best; metaSave(); }   // 예전 최고 기록도 업적에 쳐요
+  if (seasonCheck()) setTimeout(() => toast('🗓️ 新シーズン！ ' + seasonName(curSeason()) + ' · 配置テストからやり直し'), 900);
   setTimeout(() => checkAch(false), 600);
   show('home');
   if (document.fonts && document.fonts.load) { document.fonts.load('12px "M PLUS Rounded 1c"').then(() => { if (S.screen === 'battle') layout(); }).catch(() => {}); }
