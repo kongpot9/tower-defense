@@ -255,6 +255,7 @@ h1,h2,p{margin:0}
     </div>
     <div class="best">최고 기록 <b id="homeBest">-</b></div>
     <div class="home-actions">
+      <button class="btn btn-blue big" id="bLoad" type="button" hidden>▶ 이어하기</button>
       <button class="btn btn-blue big" id="bPlay" type="button">전투 시작</button>
       <button class="btn" id="bDeck" type="button">덱 편성</button>
       <button class="btn" id="bRank" type="button">🏆 랭킹</button>
@@ -769,6 +770,7 @@ function startWave() {
   for (let i = 0; i < n; i++) q.push(false);
   S.queue = q; S.spawnGap = BAL.spawnWindow / q.length; S.spawnT = 0;
   S.banner = { s: boss ? '보스 웨이브!' : 'WAVE ' + S.wave, t: 0, c: boss ? RED : INK };
+  saveGame();
   if (boss) fx({ k: 'text', x: W / 2, y: 160, s: '👹 ' + BOSSES[0].name + ' 등장!', c: RED, life: 2, size: 18 });
 }
 function makeEnemy(boss) {
@@ -1945,6 +1947,10 @@ function renderHome() {
   $('#homeDeck').innerHTML = S.deck.map((id) => '<figure>' + stickerHTML(BY[id], 44) + '<figcaption>' + BY[id].name + '</figcaption></figure>').join('');
   $('#homeDeckCount').textContent = S.deck.length + '/8';
   $('#homeBest').textContent = S.best ? 'WAVE ' + S.best : '아직 없음';
+  const sv = loadSave(), bl = $('#bLoad');
+  bl.hidden = !sv; if (sv) bl.textContent = '▶ 이어하기 · WAVE ' + sv.S.wave;
+  $('#bPlay').textContent = sv ? '새로 시작' : '전투 시작';
+  $('#bPlay').classList.toggle('btn-blue', !sv);
 }
 
 let draft = [];
@@ -2076,8 +2082,54 @@ function shake(el) { el.classList.remove('shake'); void el.offsetWidth; el.class
 function setPaused(p) {
   if (S.over) return;
   S.paused = p; $('#pauseOv').hidden = !p;
+  if (p) saveGame();
+}
+/* ===== 💾 세이브 (2026-11-21 예준이 요청) — 웨이브가 시작될 때 · 멈출 때 · 앱을 나갈 때 자동 저장 ===== */
+const SAVE_KEY = 'yj2.save', SAVE_V = 1;
+const SKIP = new Set(['screen', 'best', 'speed', 'projs', 'fx', 'drag', 'banner', 'sel', 'paused', 'equipping', 'over']);
+function saveGame() {
+  if (S.screen !== 'battle' || S.over || !S.units) return;
+  const units = new Set(S.units.filter(Boolean)), foes = new Set(S.enemies);
+  const data = {};
+  for (const k in S) if (!SKIP.has(k) && typeof S[k] !== 'function') data[k] = S[k];
+  try {
+    const json = JSON.stringify({ v: SAVE_V, at: Date.now(), S: data }, function (k, v) {
+      if (k === 'foe' && v && typeof v === 'object') return { f: FOES.indexOf(v), b: BOSSES.indexOf(v) };
+      if (k === 'unit' && v && typeof v === 'object') return v.slot;            // 장비 → 끼운 칸 번호
+      if (v && typeof v === 'object' && !Array.isArray(this)) { if (foes.has(v) || (units.has(v) && k !== String(v.slot))) return undefined; }
+      if (v && typeof v === 'object' && Array.isArray(this) && this !== S.enemies && foes.has(v)) return undefined;
+      return v;
+    });
+    localStorage.setItem(SAVE_KEY, json);
+  } catch (e) { /* 저장 못 해도 게임은 돼요 */ }
+}
+const loadSave = () => { const d = store.get(SAVE_KEY, null); return d && d.v === SAVE_V && d.S && validDeck(d.S.deck) ? d : null; };
+const clearSave = () => { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* 괜찮아요 */ } };
+function resumeBattle() {
+  const d = loadSave();
+  if (!d) { startBattle(); return; }
+  try {
+    const D = d.S;
+    Object.assign(S, D, { projs: [], fx: [], drag: null, banner: null, sel: -1, paused: false, over: false, equipping: null });
+    S.enemies = (D.enemies || []).map((e) => Object.assign(e, { foe: (e.foe && e.foe.b >= 0 ? BOSSES[e.foe.b] : FOES[e.foe && e.foe.f]) || FOES[0] }));
+    S.units = (D.units || []).map((u) => u || null);
+    S.items = (D.items || []).map((it) => Object.assign(it, { unit: typeof it.unit === 'number' ? S.units[it.unit] || null : null }));
+  } catch (e) { clearSave(); startBattle(); return; }
+  for (const k in ui) delete ui[k];
+  buildDeckBar();
+  $('#overOv').hidden = true; $('#pauseOv').hidden = true; $('#rewardOv').hidden = true; pop.hidden = true; $('#equipBar').hidden = true;
+  $('#bSpeed').textContent = '×' + S.speed;
+  show('battle');
+  if (S.choosing && S.offer) {                                // 선물을 고르던 중이었으면 그 카드 그대로
+    $('#rwTitle').textContent = S.chooseMode === 'lv' ? '레벨 업!' : S.bonusPick ? '👽 보라 에일리언 보너스!' : '웨이브 ' + S.wave + ' 끝!';
+    $('#rwSub').textContent = S.chooseMode === 'lv' ? '특수 선물을 하나 골라요' : '선물을 하나 골라요';
+    $('#rwCards').innerHTML = S.offer.map(offerHTML).join('');
+    $('#rewardOv').hidden = false;
+  } else { S.choosing = false; S.offer = null; }
+  S.banner = { s: '이어하기! WAVE ' + S.wave, t: 0, c: BLUE };
 }
 function startBattle() {
+  clearSave();
   newBattle();
   for (const k in ui) delete ui[k];
   buildDeckBar();
@@ -2172,7 +2224,7 @@ $('#bNick').addEventListener('click', async () => {
 async function openRankListOnly() { const n = $('#rankNote').textContent; await openRank(); $('#rankNote').textContent = n; }
 function gameOver() {
   if (S.over) return;
-  S.over = true; select(-1);
+  S.over = true; select(-1); clearSave();
   const w = S.wave, nb = w > S.best;
   if (nb) { S.best = w; store.set('yj2.best', w); }
   $('#goWave').textContent = w;
@@ -2187,7 +2239,13 @@ function gameOver() {
       .catch(() => { gr.textContent = '🏆 랭킹에 올리지 못했어요'; });
   }
 }
-$('#bPlay').addEventListener('click', startBattle);
+let newArm = 0;                                              // 저장이 있으면 '새로 시작'은 두 번 눌러야 해요 (실수로 지우지 않게)
+$('#bPlay').addEventListener('click', () => {
+  if (loadSave() && Date.now() - newArm > 3000) { newArm = Date.now(); $('#bPlay').textContent = '한 번 더 누르면 저장이 지워져요'; return; }
+  newArm = 0; startBattle();
+});
+$('#bLoad').addEventListener('click', resumeBattle);
+window.addEventListener('pagehide', saveGame);
 $('#bRetry').addEventListener('click', startBattle);
 $('#bHome').addEventListener('click', () => show('home'));
 $('#popSell').addEventListener('click', sell);
@@ -2235,6 +2293,7 @@ cv.addEventListener('pointerup', (e) => {
 cv.addEventListener('pointercancel', () => { press = null; S.drag = null; });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && S.screen === 'battle' && !S.over && $('#coach').hidden) setPaused(true);
+  if (document.hidden) saveGame();
 });
 window.addEventListener('resize', layout);
 if (window.ResizeObserver) new ResizeObserver(() => layout()).observe(field);
