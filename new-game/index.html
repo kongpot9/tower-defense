@@ -424,10 +424,10 @@ const CANNON_LV = [null,
 const CANNON_IMG = new Image(); CANNON_IMG.src = CANNON.img;
 const POISON = { time: 6, tick: 0.5, step: 0.03 };
 // 🎁 장비 (그림·설정: 구예준, 2026-11-21) — 레벨 업 특수 선물 · 캐릭터 하나에 하나씩 끼워요 · Lv.1~5 다음에 각성
-const ARROW_GOLD = { base: 2000, awake: 5000 };   // 🏹 황금스탯 돈 (예준이 숫자)
+const ARROW_GOLD = { base: 1570, awake: 3100, every: 30 };   // 🏹 황금스탯: 30마리마다 돈 (예준이 숫자, 2026-11-21 조정)
 const ITEMS = [
   { id: 'arrow',  name: '황금화살',        aname: '각성 황금화살',        img: 'art/item-arrow.png',  aimg: 'art/item-arrow-awake.png',
-    d: (a) => '장착 캐릭터가 10마리 잡을 때마다 황금스탯: 돈 +' + (a ? ARROW_GOLD.awake : ARROW_GOLD.base) },
+    d: (a) => '장착 캐릭터가 ' + ARROW_GOLD.every + '마리 잡을 때마다 황금스탯: 돈 +' + (a ? ARROW_GOLD.awake : ARROW_GOLD.base) },
   { id: 'guitar', name: '성탄절 어쿠스틱',  aname: '각성 성탄절 일렉기타',  img: 'art/item-guitar.png', aimg: 'art/item-guitar-awake.png',
     d: (a) => a ? '공격 속도 +50% · 공격력 +30%' : '공격 속도 +20%' },
   { id: 'orb',    name: '진리의 구슬',      aname: '각성 진리의 구슬',      img: 'art/item-orb.png',    aimg: 'art/item-orb-awake.png',
@@ -716,7 +716,7 @@ function hurt(e, a, src) {
     e.dead = true; S.kills++;
     if (src) for (const it of S.items) if (it.id === 'arrow' && it.unit && it.unit.type === src) {
       it.kills = (it.kills || 0) + 1;
-      if (it.kills % 10 === 0) {
+      if (it.kills % ARROW_GOLD.every === 0) {
         const g = it.awake ? ARROW_GOLD.awake : ARROW_GOLD.base; S.gold += g;
         const q = slotXY(it.unit.slot); fx({ k: 'text', x: q.x, y: q.y - 54, s: '✨ 황금스탯! +' + g, c: YEL, life: 1.4, size: 15 });
       }
