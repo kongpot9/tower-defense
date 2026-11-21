@@ -87,7 +87,8 @@ h1,h2,p{margin:0}
 .yard{position:fixed;inset:0;z-index:0;background:#d9dcd6}
 .yard canvas{display:block;width:100%;height:100%}
 .home>*:not(.yard){position:relative;z-index:1}
-.lobby-space{flex:1;min-height:40px}
+.lobby-space{flex:1;min-height:40px;pointer-events:none}
+.lobby-top{pointer-events:none}.lobby-top>*{pointer-events:auto}
 .lobby-bottom{display:grid;gap:10px;background:color-mix(in srgb,var(--desk) 88%,transparent);border:2.5px solid var(--ink);border-radius:20px;padding:12px 12px 8px;margin-bottom:max(4px,env(safe-area-inset-bottom,0px))}
 .big{font-size:24px;padding:16px;font-family:var(--f-display);font-weight:400;letter-spacing:.02em}
 .foot{font-size:12px;text-align:center;color:color-mix(in srgb,var(--paper) 60%,var(--desk));line-height:1.5}
@@ -230,6 +231,21 @@ h1,h2,p{margin:0}
 .up-list small{display:block;font-size:11px;color:var(--muted)}
 .up-list button{font-size:13px;padding:6px 9px;display:flex;align-items:center;gap:3px;white-space:nowrap}
 .up-list button img{width:16px;height:16px}
+.yard .village{position:absolute;inset:0}
+.plot{position:absolute;transform:translate(-50%,-100%);background:none;border:0;padding:0;cursor:pointer;display:flex;flex-direction:column;align-items:center}
+.plot img{display:block;width:100%;height:auto;filter:drop-shadow(0 3px 0 rgba(27,34,50,.25))}
+.plot.empty img{opacity:.28;filter:grayscale(1)}
+.plot.empty::after{content:"+";position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:28px;height:28px;border-radius:50%;background:var(--paper);color:var(--ink);border:2px solid var(--ink);font:20px/24px var(--f-display);text-align:center}
+.plot.locked::after{content:"🔒";background:none;border:0;font-size:20px}
+.plot .ready{position:absolute;top:-6px;right:-6px;background:#F2C440;color:var(--ink);border:2px solid var(--ink);border-radius:999px;font:13px/1 var(--f-display);padding:4px 7px;animation:bob 1s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-4px)}}
+.bld-card{max-height:calc(100% - 20px);overflow-y:auto}
+.bld-img{display:block;margin:0 auto;max-width:150px;max-height:120px}
+.bld-cost{display:flex;justify-content:center;gap:12px;font-family:var(--f-display);font-size:18px}
+.bld-cost span{display:flex;align-items:center;gap:4px}
+.bld-cost span.no{color:#C9403A}
+.bld-cost img{width:22px;height:22px;object-fit:contain}
+.bld-note{font-size:13px;color:var(--muted);line-height:1.45;margin:0}
 .rank-card{max-height:calc(100% - 20px);overflow-y:auto}
 .rank-list{list-style:none;margin:0;padding:0;display:grid;gap:4px;text-align:left;max-height:46vh;overflow-y:auto}
 .rank-list li{display:grid;grid-template-columns:34px 1fr auto;gap:8px;align-items:center;padding:6px 10px;border-radius:10px;background:var(--paper-2);font-size:15px;font-variant-numeric:tabular-nums}
@@ -274,7 +290,7 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
   <!-- ===== 홈 ===== -->
   <section id="home" class="screen home">
     <!-- 🏰 로비 = わたしの村: 마을 성 그림이 화면을 꽉 채우고, 위에 コイン · 버튼, 아래에 전투 버튼 (2026-11-21 예준이 결정: 제목 글자 빼기) -->
-    <div class="yard" id="yard"><canvas id="yardCv" aria-label="わたしの村"></canvas></div>
+    <div class="yard" id="yard"><canvas id="yardCv" aria-label="わたしの村"></canvas><div class="village" id="village"></div></div>
     <div class="wallet"><span><img src="art/coin.png" alt="コイン"><b id="wCoin">0</b></span><span><img src="art/crystal.png" alt="クリスタル"><b id="wCrystal">0</b></span></div>
     <div class="lobby-top">
       <button class="btn btn-sm" id="bUpg" type="button" hidden>⭐ 強化</button>
@@ -402,6 +418,25 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
   </section>
 
   <!-- ===== 🏆 ランキング ===== -->
+  <div class="ov ov-fixed" id="bldOv" hidden>
+    <div class="ov-card bld-card">
+      <img class="bld-img" id="bldImg" alt="">
+      <h2 id="bldName"></h2>
+      <p class="sub" id="bldDesc"></p>
+      <div class="bld-cost" id="bldCost"></div>
+      <p class="bld-note" id="bldNote"></p>
+      <div class="ov-btns" id="bldBtns"></div>
+      <div class="ov-btns"><button class="btn" id="bBldClose" type="button">とじる</button></div>
+    </div>
+  </div>
+  <div class="ov ov-fixed" id="dwarfOv" hidden>
+    <div class="ov-card rank-card">
+      <h2>⭐ こびとトークンを使う</h2>
+      <p class="sub" id="dwarfSub"></p>
+      <ol class="rank-list up-list" id="dwarfList"></ol>
+      <div class="ov-btns"><button class="btn" id="bDwarfClose" type="button">とじる</button></div>
+    </div>
+  </div>
   <div class="ov ov-fixed" id="upOv" hidden>
     <div class="ov-card rank-card">
       <h2>⭐ キャラ強化</h2>
@@ -502,9 +537,9 @@ const TRAP = { name: 'トラップ', img: 'art/trap.png', maxLv: 5, every: 1, w:
 const TRAP_LV = [null, 100, 400, 700, 1200, 1900];
 // 覚醒: Lv.5 세 개가 모이면 셋을 가져가고 覚醒 하나가 나와요
 const AWAKE = {
-  turret: { name: '覚醒タレット', img: 'art/turret-awake.png', dmg: 4000, every: 0.15, quarterP: 0.02,   // 2%: 보스 빼고 체력을 4분의 1만 남김
+  turret: { name: '覚醒タレット', img: 'art/turret-awake.png', dmg: 4000, every: 0.15, quarterP: 0.02,   // 2%: ボス 빼고 체력을 4분의 1만 남김
             h: 46, tip: { x: 119 / 121, y: 132 / 200 }, ratio: 121 / 200 },
-  trap:   { name: '覚醒トラップ', img: 'art/trap-awake.png', dmg: 5000, every: 1, halfP: 0.03,          // 3%: 보스 빼고 체력 절반 + 맹독
+  trap:   { name: '覚醒トラップ', img: 'art/trap-awake.png', dmg: 5000, every: 1, halfP: 0.03,          // 3%: ボス 빼고 체력 절반 + 맹독
             h: 40, ratio: 167 / 160 },
   cannon: { name: '覚醒キャノン', img: 'art/cannon-awake.png', dmg: 7000, every: 1,                         // 메테오는 예준이가 삭제 (2026-11-20)
             h: 34, ratio: 183 / 120, tip: { x: 181 / 183, y: 59 / 120 } },
@@ -706,6 +741,7 @@ const validDeck = (d) => Array.isArray(d) && d.length === 8 && new Set(d).size =
 const S = { screen: 'home', deck: null, best: 0, speed: 1 };
 function newBattle() {
   Object.assign(S, {
+    mode: 'normal', dgLeft: 0, dgKills: 0,
     wave: 0, waveT: BAL.waveLen - 3, queue: [], spawnT: 0, spawnGap: 1,
     gold: BAL.startGold, picks: 0, upN: 0, kills: 0, time: 0,
     units: new Array(SLOTS).fill(null), enemies: [], projs: [], fx: [], pools: [],
@@ -716,9 +752,9 @@ function newBattle() {
   placeUnit('sword', 2);
   // トラップ · 캐논은 さいしょは 없고, プレゼントカード '設置'를 고르면 생겨요 (2026-11-21 예준이 결정)
 }
-const xpNeed = () => 10 + 5 * (S.lv - 1);   // 敵 1匹 = 経験値 1, 보스 = 10
+const xpNeed = () => 10 + 5 * (S.lv - 1);   // 敵 1匹 = 経験値 1, ボス = 10
 const upCost = (id) => BAL.upBase * S.levels[id];
-const lvMult = (id) => Math.pow(BAL.upMult, S.levels[id] - 1) * (1 + META_UP.per * metaLv(id));   // ⭐ コイン 강화는 판이 끝나도 남아요
+const lvMult = (id) => Math.pow(BAL.upMult, S.levels[id] - 1) * (1 + META_UP.per * metaLv(id));   // ⭐ コイン 강화는 ゲームが終わってものこります
 const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
 function segDist2(px, py, x1, y1, x2, y2) {
   const dx = x2 - x1, dy = y2 - y1, l2 = dx * dx + dy * dy;
@@ -820,16 +856,16 @@ function startWave() {
     S.gold += b;
     fx({ k: 'text', x: W / 2, y: WALL_Y - 40, s: 'ウェーブ報酬 +' + b, c: YEL, life: 1.4, size: 15 });
   }
-  if (S.wave > 0) {                                        // 📊 지난 ウェーブ 딜량 기록 (최근 3ウェーブ 평균으로 보스 체력을 정해요)
+  if (S.wave > 0) {                                        // 📊 지난 ウェーブ 딜량 기록 (최근 3ウェーブ 평균으로 ボス 체력을 정해요)
     S.dpsHist = (S.dpsHist || []).concat([[Math.round(S.dmgW || 0), Math.round((S.fightT || 0) * 10) / 10]]).slice(-3);
   }
   S.dmgW = 0; S.fightT = 0;
   S.wave++; S.waveT = 0;
   waveHooks();
-  const boss = S.wave % BAL.bossEvery === 0;
+  const boss = S.mode === 'dungeon' || S.wave % BAL.bossEvery === 0;   // 🕳️ 던전은 매 ウェーブ ボス
   let n = BAL.count(S.wave);
   const q = [];
-  if (boss) { q.push(true); n = 0; }                     // 👹 보스 ウェーブ: 10웨이브마다 보스 혼자 (예준이 결정)
+  if (boss) { q.push(true); n = 0; }                     // 👹 ボス ウェーブ: 10웨이브마다 ボス 혼자 (예준이 결정)
   for (let i = 0; i < n; i++) q.push(false);
   S.queue = q; S.spawnGap = BAL.spawnWindow / q.length; S.spawnT = 0;
   S.banner = { s: boss ? 'ボスウェーブ！' : 'WAVE ' + S.wave, t: 0, c: boss ? RED : INK };
@@ -849,12 +885,13 @@ function makeEnemy(boss) {
   const w = S.wave;
   let f;
   if (boss) f = BOSSES[Math.floor(Math.random() * BOSSES.length)];
-  else {                                                   // ワカメイカ · 핑크슬라임은 첫 보스 다음(11ウェーブ)부터 나와요
+  else {                                                   // ワカメイカ · 핑크슬라임은 첫 ボス 다음(11ウェーブ)부터 나와요
     const pool = FOES.filter((o) => !o.from || w >= o.from);
     let r = Math.random() * pool.reduce((a, o) => a + o.w, 0); f = pool.find((o) => (r -= o.w) < 0) || pool[0];
   }
   let hp = f.fixedHp || BAL.hp0 * Math.pow(BAL.hpGrow, w - 1) * f.hp;
-  if (boss && f.dpsMul) { const dps = avgDps(); if (dps > 0) hp = dps * f.dpsMul; }   // 👹 보스 체력 = 평균 딜량 × 310
+  if (boss && S.mode === 'dungeon') hp = BAL.hp0 * Math.pow(BAL.hpGrow, w - 1) * DUNGEON.bossHp;   // 🕳️ ダンジョン ボス
+  else if (boss && f.dpsMul) { const dps = avgDps(); if (dps > 0) hp = dps * f.dpsMul; }   // 👹 ボス 체력 = 평균 딜량 × 310
   else if (!f.fixedHp && w >= BAL.lateFrom) {              // 💪 50웨이브부터: 돈이 많아 너무 세지면 적도 같이 세져요 (입구컷 방지)
     const hit = avgHit(), n = BAL.lateHits + (w - BAL.lateFrom) * BAL.lateStep;
     if (hit > 0) hp = Math.max(hp, hit * n * f.hp);
@@ -905,7 +942,7 @@ function hurt(e, a, src) {
     S.xp += e.boss ? 10 : 1;
     while (S.xp >= xpNeed()) { S.xp -= xpNeed(); S.lv++; S.pendingLv++; fx({ k: 'text', x: W / 2, y: 140, s: 'レベルアップ！Lv.' + S.lv, c: BLUE, life: 1.3, size: 20 }); }
     S.gold += (e.boss ? BAL.bossGold : BAL.killGold) + S.buff.gold;
-    if (e.boss) S.runCrystal = (S.runCrystal || 0) + EARN.crystalBoss;   // 💎 보스 たおした数
+    if (e.boss) { if (S.mode === 'dungeon') S.dgKills = (S.dgKills || 0) + 1; else S.runCrystal = (S.runCrystal || 0) + EARN.crystalBoss; }   // 💎 ボス たおした数
     const n = e.boss ? 18 : 5;
     if (S.fx.length < 500) {
       for (let i = 0; i < n; i++) {
@@ -1069,7 +1106,8 @@ function separate() {
 
 function update(dt) {
   S.time += dt; S.waveT += dt;
-  if (S.enemies.some((e) => !e.dead && e.y > 0)) S.fightT = (S.fightT || 0) + dt;   // 📊 싸우는 시간
+  if (S.mode === 'dungeon') { S.dgLeft -= dt; if (S.dgLeft <= 0) { dungeonEnd(); return; } }
+  if (S.enemies.some((e) => !e.dead && e.y > 0)) S.fightT = (S.fightT || 0) + dt;   // 📊 싸우는 時間
   if (S.weakT > 0) S.weakT -= dt;
   if (S.tDmgT > 0) S.tDmgT -= dt;
   if (S.tSpdT > 0) S.tSpdT -= dt;
@@ -1443,7 +1481,7 @@ function openLvGift() {
   const opts = [];
   for (const d of ITEMS) {
     const it = S.items.find((x) => x.id === d.id);
-    opts.push({ k: 'itemNew', id: d.id });                     // 같은 장비도 もうひとつ 받을 수 있어요 (예준이 결정)
+    opts.push({ k: 'itemNew', id: d.id });                     // 같은 장비도 もうひとつ もらえます (예준이 결정)
     if (it && !it.awake) opts.push({ k: it.lv < 5 ? 'itemUp' : 'itemAwake', id: d.id });
   }
   opts.sort(() => Math.random() - 0.5);
@@ -2044,7 +2082,7 @@ function stickerHTML(def, size) {
   return '<span class="stk" style="--c:' + def.color + ';width:' + size + 'px;height:' + size + 'px;font-size:' + Math.round(size * 0.5) + 'px">' + faceHTML(def, Math.round(size * 0.86)) + '</span>';
 }
 function renderHome() {
-  yardInit(); showWallet();
+  yardInit(); showWallet(); renderVillage();
   $('#homeBest').textContent = S.best ? 'WAVE ' + S.best : 'まだなし';
   playWrite.then(showPlays);
   const sv = loadSave(), bl = $('#bLoad');
@@ -2117,7 +2155,8 @@ function syncHUD() {
   const g = Math.floor(S.gold);
   setT(hGold, 'g', String(g));
   const left = Math.max(0, Math.ceil(BAL.waveLen - S.waveT));
-  setT(nextLbl, 'nl', S.wave === 0 ? 'まもなくウェーブ開始 · ' + left + '秒' : '🎁 プレゼントまで ' + left + '秒');
+  if (S.mode === 'dungeon') { const t = Math.max(0, Math.ceil(S.dgLeft)); setT(nextLbl, 'nl', '🕳️ ダンジョン ' + Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0') + ' · ボス ' + (S.dgKills || 0) + '匹'); }
+  else setT(nextLbl, 'nl', S.wave === 0 ? 'まもなくウェーブ開始 · ' + left + '秒' : '🎁 プレゼントまで ' + left + '秒');
   const np = Math.round(Math.min(1, S.waveT / BAL.waveLen) * 100);
   if (ui.np !== np) { ui.np = np; nextBar.style.width = np + '%'; }
   const counts = {};
@@ -2187,9 +2226,10 @@ function setPaused(p) {
 /* ===== 🪙 コイン · 💎 クリスタル (그림 · 쓰는 곳: グ・イェジュン, 2026-11-21) =====
    🪙 コイン: 캐릭터 영구 強化 (나중에 마을 건축 재료도) · 💎 クリスタル: 復活(1回のゲームで1回) · プレゼントカード 引き直し (나중에 스킨도)
    버는 양 · 가격은 Claude가 정함 — README 'コイン · クリスタル' 표를 보고 예준이가 바꿔요 */
-const EARN = { coinPerWave: 10, crystalPer10Waves: 1, crystalBoss: 2, crystalRecord: 3, welcomeCrystal: 5 };
-const PRICE = { revive: 5, reroll: 1 };
-const META_UP = { on: false, per: 0.05, max: 10, cost: (lv) => 100 * (lv + 1) };   // ⭐ 영구 강화는 보류 (2026-11-21 예준이 결정) — on: true면 다시 켜져요
+// 한 回 보상은 건물 가격에 맞춰 크게 (2026-11-21 예준이 결정, 숫자는 Claude가 정함)
+const EARN = { coinPerWave: 100, crystalPerWave: 3, crystalBoss: 50, crystalRecord: 100, welcomeCrystal: 50 };
+const PRICE = { revive: 50, reroll: 10 };
+const META_UP = { on: true, per: 0.05, max: 10, cost: (lv) => 100 * (lv + 1) };   // ⭐ 영구 レベル: コイン 강화는 보류 · こびと横丁 토큰으로만 올려요 (2026-11-21 예준이 결정)
 const META = (() => { const m = store.get('yj.meta', null); return m && typeof m === 'object' ? m : { coin: 0, crystal: EARN.welcomeCrystal, up: {} }; })();
 META.up = META.up || {};
 const metaLv = (id) => META_UP.on ? Math.min(META_UP.max, META.up[id] || 0) : 0;
@@ -2202,7 +2242,7 @@ function showWallet() {
 function payRun() {                                           // 게임이 끝날 때 이번 回 보상 (부활하면 이어서 더 받아요)
   const w = S.wave, from = S.paidWave || 0;
   const coin = Math.max(0, w - from) * EARN.coinPerWave;
-  let crys = (Math.floor(w / 10) - Math.floor(from / 10)) * EARN.crystalPer10Waves + (S.runCrystal || 0);
+  let crys = Math.max(0, w - from) * EARN.crystalPerWave + (S.runCrystal || 0);
   if (S.newRecord && !S.paidRecord) { crys += EARN.crystalRecord; S.paidRecord = true; }
   S.paidWave = w; S.runCrystal = 0;
   META.coin += coin; META.crystal += crys; metaSave();
@@ -2250,6 +2290,151 @@ $('#bUpClose').addEventListener('click', () => { $('#upOv').hidden = true; });
 $('#bReroll').addEventListener('click', rerollOffer);
 $('#bRevive').addEventListener('click', revive);
 
+/* ===== 🏘️ 마을 건물 (그림 · 기능 · 가격: グ・イェジュン, 2026-11-21) =====
+   성벽 뒤에 건물을 지어요. 時間 · 출석으로 コイン · 크리스탈을 주거나, 던전에 들어가요.
+   '출석' = 그날 처음 들어왔을 때 (하루에 한 回) */
+const DUNGEON = { time: 600, bossHp: 30, reward: 1000 };          // 10分 · たおしたボス × 1000 クリスタル
+const BLD = {
+  mold:    { name: '鋳型工房',     img: 'art/bld-mold.png',    cost: [400, 100],        max: 2, needGames: 10,
+             d: '1日の最初のログイン時か5時間ごとにコイン10,000をくれます', every: 5 * 3600e3, give: { coin: 10000 } },
+  dungeon: { name: 'ダンジョン',       img: 'art/bld-dungeon.png', cost: [10000, 2500],
+             d: '入ると10分間ボスだけが出ます。たおしたボスの数 × クリスタル1,000！' },
+  shrine:  { name: '炎の祠',   img: 'art/bld-shrine.png',  cost: [100000, 23000], hold: true,
+             d: 'コイン10,000をささげると20%の確率で今日1日ショップの値段が半分！' },
+  giwa:    { name: '瓦屋根の家',     img: 'art/bld-giwa.png',    cost: [280000, 70000],
+             d: '2時間ごとにコイン100,000かクリスタル12,000のどちらかをえらんでもらえます', every: 2 * 3600e3 },
+  dwarf:   { name: 'こびと横丁', img: 'art/bld-dwarf.png',   cost: [40000, 10000],
+             d: '1日1回こびとトークンをくれます。トークンを集めるとキャラの⭐レベル+1（ゲームが終わってものこります）' },
+  mole:    { name: 'モグラの家',   img: 'art/bld-mole.png',    cost: [90000, 30000],
+             d: '毎日ログインするたびにクリスタル500をくれます', give: { crystal: 500 } },
+};
+// 자리: 마을 그림 안의 위치 (가로 0~1, 세로 0~1 = 건물 바닥) · 크기 = 그림 너비에 대한 비율
+const PLOTS = [
+  { b: 'dungeon', i: 0, x: 0.30, y: 0.445, w: 0.13 }, { b: 'shrine', i: 0, x: 0.50, y: 0.445, w: 0.07 }, { b: 'dwarf', i: 0, x: 0.70, y: 0.445, w: 0.15 },
+  { b: 'mold', i: 0, x: 0.255, y: 0.535, w: 0.12 }, { b: 'mold', i: 1, x: 0.415, y: 0.535, w: 0.12 },
+  { b: 'giwa', i: 0, x: 0.585, y: 0.535, w: 0.13 }, { b: 'mole', i: 0, x: 0.745, y: 0.535, w: 0.12 },
+];
+const dayKey = (t) => { const d = new Date(t); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
+const town = () => (META.town = META.town || {});
+const built = (b, i) => !!(town()[b + (i || 0)]);
+const st = (b, i) => town()[b + (i || 0)];
+function bldReady(b, i) {                                          // いま 받을 게 있나요?
+  const x = st(b, i); if (!x) return false;
+  const now = Date.now();
+  if (b === 'mold') return now - x.t >= BLD.mold.every || dayKey(x.t) !== dayKey(now);
+  if (b === 'giwa') return now - x.t >= BLD.giwa.every;
+  if (b === 'dwarf' || b === 'mole') return x.day !== dayKey(now);
+  return false;
+}
+const fmtNum = (n) => Math.round(n).toLocaleString();
+function costHTML(c, ok) {
+  return '<span class="' + (META.coin >= c[0] ? '' : 'no') + '"><img src="art/coin.png" alt="">' + fmtNum(c[0]) + '</span>' +
+         '<span class="' + (META.crystal >= c[1] ? '' : 'no') + '"><img src="art/crystal.png" alt="">' + fmtNum(c[1]) + '</span>';
+}
+function renderVillage() {
+  const box = $('#village'); if (!box || !YARD.geo) return;
+  const g = YARD.geo;
+  box.innerHTML = '';
+  for (const p of PLOTS) {
+    const B = BLD[p.b], on = built(p.b, p.i), el = document.createElement('button');
+    el.type = 'button';
+    const locked = !on && (B.hold || (p.b === 'mold' && (META.games || 0) < B.needGames));
+    el.className = 'plot' + (on ? '' : ' empty') + (locked ? ' locked' : '');
+    el.style.left = (g.dx + p.x * g.dw) + 'px'; el.style.top = (g.dy + p.y * g.dh) + 'px'; el.style.width = (p.w * g.dw) + 'px';
+    el.innerHTML = '<img src="' + B.img + '" alt="">' + (on && bldReady(p.b, p.i) ? '<span class="ready">!</span>' : '');
+    el.setAttribute('aria-label', B.name);
+    el.addEventListener('click', () => openBld(p.b, p.i));
+    box.appendChild(el);
+  }
+}
+function bldBtn(label, fn, disabled, cls) {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + (cls || 'btn-blue'); b.innerHTML = label; b.disabled = !!disabled;
+  b.addEventListener('click', fn); return b;
+}
+function openBld(b, i) {
+  const B = BLD[b], on = built(b, i), x = st(b, i), btns = $('#bldBtns');
+  $('#bldImg').src = B.img; $('#bldName').textContent = B.name + (b === 'mold' ? ' ' + (i + 1) : ''); $('#bldDesc').textContent = B.d;
+  $('#bldCost').innerHTML = ''; $('#bldNote').textContent = ''; btns.innerHTML = '';
+  const now = Date.now();
+  if (!on) {
+    $('#bldCost').innerHTML = costHTML(B.cost);
+    if (B.hold) { $('#bldNote').textContent = 'ショップができたら建てられます'; }
+    else if (b === 'mold' && (META.games || 0) < B.needGames) $('#bldNote').textContent = 'ゲームを ' + B.needGames + '回 プレイすると建てられます (いま ' + (META.games || 0) + '回)';
+    else {
+      const can = META.coin >= B.cost[0] && META.crystal >= B.cost[1];
+      if (!can) $('#bldNote').textContent = 'コインか クリスタルが足りません';
+      btns.appendChild(bldBtn('🔨 建てる', () => {
+        if (META.coin < B.cost[0] || META.crystal < B.cost[1]) return;
+        META.coin -= B.cost[0]; META.crystal -= B.cost[1];
+        town()[b + i] = { t: now, day: '' };                      // 처음 짓고 바로는 아직 안 줘요 (출석 · 시간이 지나면)
+        if (b === 'dwarf') Object.assign(town()[b + i], { tokens: 0, used: 0 });
+        metaSave(); renderVillage(); openBld(b, i);
+        toast('🔨 ' + B.name + ' 完成!');
+      }, !can));
+    }
+  } else if (b === 'mold' || b === 'giwa' || b === 'mole') {
+    const ready = bldReady(b, i);
+    if (b === 'mold') $('#bldNote').textContent = ready ? 'もらえます!' : '次のコインまで ' + leftTxt(B.every - (now - x.t)) + ' (明日の最初のログインならすぐ)';
+    if (b === 'giwa') $('#bldNote').textContent = ready ? 'ひとつえらんでもらえます!' : '次まで ' + leftTxt(B.every - (now - x.t));
+    if (b === 'mole') $('#bldNote').textContent = ready ? '今日のログイン プレゼント!' : '明日ログインするとまたもらえます';
+    const take = (coin, crys) => { META.coin += coin; META.crystal += crys; x.t = Date.now(); x.day = dayKey(x.t); metaSave(); renderVillage(); openBld(b, i);
+      toast((coin ? '🪙 +' + fmtNum(coin) + ' ' : '') + (crys ? '💎 +' + fmtNum(crys) : '')); };
+    if (b === 'giwa') {
+      btns.appendChild(bldBtn(coinIco + '100,000 もらう', () => take(100000, 0), !ready));
+      btns.appendChild(bldBtn(crysIco + '12,000 もらう', () => take(0, 12000), !ready));
+    } else btns.appendChild(bldBtn(b === 'mold' ? coinIco + '10,000 もらう' : crysIco + '500 もらう', () => b === 'mold' ? take(10000, 0) : take(0, 500), !ready));
+  } else if (b === 'dungeon') {
+    $('#bldNote').textContent = '10分間、毎ウェーブボスが出ます。負けたらそこで終わり・たおした分だけもらえます';
+    btns.appendChild(bldBtn('🕳️ ダンジョンに入る', () => { $('#bldOv').hidden = true; startBattle('dungeon'); }));
+  } else if (b === 'dwarf') {
+    const need = dwarfNeed(x);
+    $('#bldNote').textContent = 'トークン ' + x.tokens + ' / ' + need + (bldReady(b, i) ? ' · 今日のトークンをもらえます!' : ' · 明日またもらえます');
+    btns.appendChild(bldBtn('🪙 今日のトークンをもらう', () => { x.tokens++; x.day = dayKey(Date.now()); metaSave(); renderVillage(); openBld(b, i); toast('こびとトークン +1'); }, !bldReady(b, i)));
+    btns.appendChild(bldBtn('⭐ トークン ' + need + '個で レベル 上げる', () => openDwarf(), x.tokens < need, 'btn-gold'));
+  }
+  $('#bldOv').hidden = false;
+}
+const leftTxt = (ms) => { const m = Math.max(1, Math.ceil(ms / 60000)); return m >= 60 ? Math.floor(m / 60) + '時間 ' + (m % 60) + '分' : m + '分'; };
+const dwarfNeed = (x) => (x.used ? 30 : 10);                     // さいしょは 10個, 그다음부터 30個
+function openDwarf() {
+  const x = st('dwarf', 0), list = $('#dwarfList'); if (!x) return;
+  const need = dwarfNeed(x);
+  $('#dwarfSub').textContent = 'トークン ' + need + '個でキャラひとりを ⭐+1 (攻撃力 +' + Math.round(META_UP.per * 100) + '%, ゲームが終わってものこります) · いま トークン ' + x.tokens + '個';
+  list.innerHTML = '';
+  for (const d of CHARS) {
+    const lv = metaLv(d.id), li = document.createElement('li');
+    const ic = document.createElement('span'); ic.innerHTML = stickerHTML(d, 36);
+    const nm = document.createElement('span'); nm.className = 'n'; nm.textContent = d.name + ' ⭐' + lv;
+    const bt = document.createElement('button'); bt.type = 'button'; bt.className = 'btn btn-sm';
+    bt.textContent = lv >= META_UP.max ? 'MAX' : '⭐+1'; bt.disabled = lv >= META_UP.max || x.tokens < need;
+    bt.addEventListener('click', () => {
+      if (x.tokens < dwarfNeed(x) || metaLv(d.id) >= META_UP.max) return;
+      x.tokens -= dwarfNeed(x); x.used = (x.used || 0) + 1; META.up[d.id] = metaLv(d.id) + 1; metaSave();
+      $('#dwarfOv').hidden = true; openBld('dwarf', 0); toast('⭐ ' + d.name + ' ⭐' + metaLv(d.id) + '!');
+    });
+    li.append(ic, nm, bt); list.appendChild(li);
+  }
+  $('#dwarfOv').hidden = false;
+}
+function dungeonEnd() {                                             // 🕳️ ダンジョン 끝: たおしたボス × 1000 クリスタル
+  if (S.over) return;
+  S.over = true; select(-1);
+  const k = S.dgKills || 0, gain = k * DUNGEON.reward;
+  META.crystal += gain; metaSave();
+  $('#goWave').textContent = k;
+  $('.go-wave small').textContent = 'たおしたボス';
+  $('.go-title').textContent = S.dgLeft <= 0 ? 'ダンジョン おわり！' : 'ダンジョンで負けました!';
+  $('#goReason').textContent = S.dgLeft <= 0 ? '10分たちました' : '敵が100匹たまりました';
+  $('#goBest').innerHTML = ''; $('#goRank').innerHTML = '';
+  $('#goEarn').innerHTML = '<span>' + crysIco + '+' + fmtNum(gain) + '</span>';
+  $('#goSum').textContent = S.picks; $('#goKill').textContent = S.kills; $('#goUp').textContent = S.upN;
+  $('#bRevive').hidden = true; $('#bGoRank').hidden = true;
+  $('#overOv').hidden = false;
+}
+$('#bBldClose').addEventListener('click', () => { $('#bldOv').hidden = true; });
+$('#bDwarfClose').addEventListener('click', () => { $('#dwarfOv').hidden = true; });
+setInterval(() => { if (S.screen === 'home') renderVillage(); }, 30000);   // 시간이 지나 받을 게 생기면 ! 표시
+
 /* ===== 🏰 로비 = わたしの村 (그림: グ・イェジュン, 2026-11-21) — 마을 성 그림이 화면을 꽉 채워요 · 성벽 뒤(하늘 쪽)는 나중에 건물을 짓는 자리
    (代表キャラ 기능 · 제목 글자는 예준이 결정으로 뺌, 2026-11-21) */
 const VILLAGE = new Image(); VILLAGE.src = 'art/village.jpg';
@@ -2271,6 +2456,8 @@ function yardTick() {
   const dw = iw * sc, dh = ih * sc, dx = (pw - dw) / 2;
   const dy = Math.min(0, Math.max(ph - dh, ph * YARD.wallAt - YARD.wall * dh));                     // 성벽이 화면 위쪽 40%쯤에 오게
   c.drawImage(VILLAGE, dx, dy, dw, dh);
+  YARD.geo = { dx: dx / dpr, dy: dy / dpr, dw: dw / dpr, dh: dh / dpr };
+  renderVillage();
 }
 window.addEventListener('resize', () => { YARD.key = ''; });
 
@@ -2320,7 +2507,7 @@ function liveTick(t) {
     R.presence({ live: liveSnap() }).catch(() => {});
   } else if (!playing && LIVE.on) { LIVE.on = false; R.presence({ live: null }).catch(() => {}); }
 }
-function showOnline() {                                     // 🟢 いま が 게임을 열어 둔 사람 수 (나 포함) · 그중 게임 중인 사람
+function showOnline() {                                     // 🟢 いま が ゲームを 열어 둔 사람 수 (나 포함) · 그중 게임 중인 사람
   const el = $('#homeOnline'), all = LIVE.peers.filter((p) => p.kind === 'viewer'), n = all.length;
   if (!n) { el.hidden = true; return; }
   const playing = all.filter((p) => p.presence && p.presence.live && !p.presence.live.o).length;
@@ -2418,7 +2605,7 @@ $('#bWatchExit').addEventListener('click', exitWatch);
 const SAVE_KEY = 'yj2ja.save', SAVE_V = 1;
 const SKIP = new Set(['screen', 'best', 'speed', 'projs', 'fx', 'drag', 'banner', 'sel', 'paused', 'equipping', 'over']);
 function saveGame() {
-  if (S.screen !== 'battle' || S.over || S.watching || !S.units) return;
+  if (S.screen !== 'battle' || S.over || S.watching || !S.units || S.mode === 'dungeon') return;
   const units = new Set(S.units.filter(Boolean)), foes = new Set(S.enemies);
   const data = {};
   for (const k in S) if (!SKIP.has(k) && typeof S[k] !== 'function') data[k] = S[k];
@@ -2458,10 +2645,12 @@ function resumeBattle() {
   } else { S.choosing = false; S.offer = null; }
   S.banner = { s: 'つづきから！ WAVE ' + S.wave, t: 0, c: BLUE };
 }
-function startBattle() {
-  clearSave();
-  countPlay();
+function startBattle(mode) {
+  mode = mode === 'dungeon' ? 'dungeon' : 'normal';
+  if (mode === 'normal') { clearSave(); countPlay(); META.games = (META.games || 0) + 1; metaSave(); }
   newBattle();
+  S.mode = mode;
+  if (mode === 'dungeon') { S.dgLeft = DUNGEON.time; S.dgKills = 0; }
   for (const k in ui) delete ui[k];
   buildDeckBar();
   $('#overOv').hidden = true; $('#pauseOv').hidden = true; $('#rewardOv').hidden = true; pop.hidden = true; $('#equipBar').hidden = true;
@@ -2578,9 +2767,11 @@ $('#bNick').addEventListener('click', async () => {
 async function openRankListOnly() { const n = $('#rankNote').textContent; await openRank(); $('#rankNote').textContent = n; }
 function gameOver() {
   if (S.over) return;
+  if (S.mode === 'dungeon') { dungeonEnd(); return; }
   S.over = true; select(-1); clearSave();
   const w = S.wave, nb = w > S.best;
   if (nb) { S.best = w; store.set('yj2ja.best', w); S.newRecord = true; }
+  $('.go-wave small').textContent = '到達ウェーブ'; $('.go-title').textContent = 'お城がくずれた！'; $('#goReason').textContent = '敵が100匹たまりました'; $('#bGoRank').hidden = false;
   const got = payRun();
   $('#goEarn').innerHTML = '<span>' + coinIco + '+' + got.coin + '</span>' + (got.crys ? '<span>' + crysIco + '+' + got.crys + '</span>' : '');
   const rv = $('#bRevive'); rv.hidden = !!S.revived; rv.disabled = META.crystal < PRICE.revive;
@@ -2604,7 +2795,7 @@ $('#bPlay').addEventListener('click', () => {
 });
 $('#bLoad').addEventListener('click', resumeBattle);
 window.addEventListener('pagehide', saveGame);
-$('#bRetry').addEventListener('click', startBattle);
+$('#bRetry').addEventListener('click', () => startBattle(S.mode));
 $('#bHome').addEventListener('click', () => show('home'));
 $('#popSell').addEventListener('click', sell);
 $('#popEquip').addEventListener('click', () => {
@@ -2684,7 +2875,7 @@ function start(data) {
   requestAnimationFrame(frame);
 }
 window.claude?.hot?.snapshot?.(() => ({ deck: S.deck }));
-window.__td = { S, BAL, CHARS, FOES, avgDps, avgHit, mk: () => makeEnemy(false), makeEnemyOf: (f) => { const e = makeEnemy(false); const hp = f.fixedHp || BAL.hp0 * Math.pow(BAL.hpGrow, S.wave - 1) * f.hp; return Object.assign(e, { foe: f, hp, maxHp: hp, shieldCd: f.shield ? 1 : 0 }); }, pick, offerHTML, equip, upgrade: (id) => upgrade(id, deckbar.querySelector('[data-id="' + id + '"]')), startBattle };
+window.__td = { S, BAL, CHARS, FOES, avgDps, avgHit, hurt, mk: () => makeEnemy(false), makeEnemyOf: (f) => { const e = makeEnemy(false); const hp = f.fixedHp || BAL.hp0 * Math.pow(BAL.hpGrow, S.wave - 1) * f.hp; return Object.assign(e, { foe: f, hp, maxHp: hp, shieldCd: f.shield ? 1 : 0 }); }, pick, offerHTML, equip, upgrade: (id) => upgrade(id, deckbar.querySelector('[data-id="' + id + '"]')), startBattle };
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
 </script>
