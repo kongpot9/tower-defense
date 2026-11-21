@@ -554,7 +554,7 @@ const CANNON_LV = [null,
   { dmg: 1900, every: 1 },     // Lv.5
 ];
 const CANNON_IMG = new Image(); CANNON_IMG.src = CANNON.img;
-// 👽 エイリアン (그림·설정: グ・イェジュン, 2026-11-21) — 성벽 위에 떠 있는 방어 유닛 · 번개 공격
+// 👽 エイリアン (그림·설정: グ・イェジュン, 2026-11-21) — 城壁の上に 떠 있는 防衛ユニット · 번개 공격
 const ALIEN = {
   yellow: { name: 'イエロー・エイリアン', img: 'art/alien-yellow.png', x: 92,  c: '#F2C440', maxLv: 5 },
   purple: { name: 'パープル・エイリアン', img: 'art/alien-purple.png', x: 290, c: '#8A4FE0', bonusP: 0.2 },   // ウェーブ 선물을 20% 확률로 2回
@@ -569,6 +569,18 @@ const ALIEN_LV = [null,
 ];
 const ALIEN_IMG = { yellow: new Image(), purple: new Image() };
 ALIEN_IMG.yellow.src = ALIEN.yellow.img; ALIEN_IMG.purple.src = ALIEN.purple.img;
+// 🪖🔥🚀 새 성 防衛ユニット (그림·숫자: グ・イェジュン, 2026-11-21) — Lv.1~5 다음 카드에서 覚醒 · 자리는 성벽 위 (Claude가 정함)
+const XW = {
+  soldier: { name: '兵隊', img: 'art/xw-soldier.png', aimg: 'art/xw-soldier-awake.png', x: 22, h: 40, range: 330,
+             lv: [null, { dmg: 100, every: 2 }, { dmg: 300, every: 2 }, { dmg: 400, every: 2 }, { dmg: 500, every: 1 }, { dmg: 700, every: 1 }],
+             awake: { dmg: 1800, n: 2, every: 1, revP: 0.2, revN: 12 } },   // 覚醒: 쌍권총 1800×2 · 리볼버 패시브 20% → 1800×12
+  flame:   { name: '火炎放射器', img: 'art/xw-flame.png', aimg: 'art/xw-flame-awake.png', x: 338, h: 26, range: 160, tick: 0.25, burn: 2, spread: 50,
+             lv: [null, 20, 40, 70, 70, 100], awake: 1000 },               // 공속 없음 · 계속 불 · 불이 옆 적에게 옮아요 (전염)
+  tank:    { name: '砲弾タンク', img: 'art/xw-tank.png', aimg: 'art/xw-tank-awake.png', x: 158, h: 34, range: 330, splash: 30, asplash: 50,
+             lv: [null, { dmg: 200, every: 5 }, { dmg: 200, every: 3 }, { dmg: 200, every: 3 }, { dmg: 1000, every: 3 }, { dmg: 1200, every: 1 }],
+             awake: { dmg: 8000, every: 1.5 } },                           // 覚醒: 탱크보이처럼 다 같이 조져요
+};
+const XW_IMG = {}; for (const k in XW) { XW_IMG[k] = new Image(); XW_IMG[k].src = XW[k].img; XW_IMG[k + ':a'] = new Image(); XW_IMG[k + ':a'].src = XW[k].aimg; }
 const POISON = { time: 6, tick: 0.5, step: 0.03 };
 // 🎁 装備 (그림·설정: グ・イェジュン, 2026-11-21) — レベル 업 とくべつ プレゼント · 캐릭터 하나에 하나씩 끼워요 · Lv.1~5 다음에 覚醒
 const ARROW_GOLD = { base: 1570, awake: 3100, every: 30 };   // 🏹 황금스탯: 30마리마다 お金 (예준이 숫자, 2026-11-21 조정)
@@ -748,7 +760,7 @@ function newBattle() {
     gold: BAL.startGold, picks: 0, upN: 0, kills: 0, time: 0,
     units: new Array(SLOTS).fill(null), enemies: [], projs: [], fx: [], pools: [],
     levels: {}, count: 0, weakT: 0, shake: 0, items: [], pendingLv: 0, chooseMode: null, equipping: null, party: false, candy: false, poolT: 0, tDmgT: 0, tDmgV: 0, tSpdT: 0, tSpdV: 0, drag: null, merges: 0, paused: false, over: false, choosing: false, offer: null, sel: -1, banner: null,
-    buff: { dmg: 0, spd: 0, rng: 0, gold: 0, thorn: 0 }, stacks: {}, turrets: [], turretLv: 1, traps: [], trapLv: 1, aliens: [], bonusPick: false, lv: 1, xp: 0,
+    buff: { dmg: 0, spd: 0, rng: 0, gold: 0, thorn: 0 }, stacks: {}, turrets: [], turretLv: 1, traps: [], trapLv: 1, aliens: [], xw: {}, bonusPick: false, lv: 1, xp: 0,
   });
   S.deck.forEach((id) => { S.levels[id] = 1; });
   placeUnit('sword', 2);
@@ -873,6 +885,77 @@ function startWave() {
   S.banner = { s: boss ? 'ボスウェーブ！' : 'WAVE ' + S.wave, t: 0, c: boss ? RED : INK };
   saveGame();
   if (boss) fx({ k: 'text', x: W / 2, y: 160, s: '👹 ' + BOSSES[0].name + ' 登場！', c: RED, life: 2, size: 18 });
+}
+function setFire(e, d) {
+  if (e.dead || e.burrow) return;
+  if (!(e.fireT > 0)) { e.fireCd = 0; e.fireSp = 0.5; }
+  e.fireT = XW.flame.burn; e.fireD = Math.max(e.fireD && e.fireT > 0 ? e.fireD : 0, d);
+}
+function catchFire(src) {                                   // 🔥 전염: 제일 가까운 안 타는 敵 하나에게
+  let best = null, bd = XW.flame.spread ** 2;
+  for (const e of S.enemies) { if (e === src || e.dead || e.burrow || e.fireT > 0) continue; const d = dist2(e, src); if (d < bd) { bd = d; best = e; } }
+  if (best) { setFire(best, src.fireD); fx({ k: 'boom', x: best.x, y: best.y, r: 6, c: ORANGE, life: 0.2 }); }
+}
+const xwMul = () => (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1);
+const xwY = () => WALL_Y + 12;
+function xwTick(dt) {
+  for (const id in S.xw) {
+    const u = S.xw[id], X = XW[id], x = X.x, y = xwY() - X.h * 0.6;
+    u.born += dt; if (u.anim > 0) u.anim -= dt;
+    if (id === 'flame') {                                    // 🔥 공속 없음: 射程 안 적에게 계속 불
+      const tg = findTargetAt(x, y, X.range + S.buff.rng, false);
+      u.tgt = tg ? { x: tg.x, y: tg.y } : null;
+      if (!tg) continue;
+      u.face = tg.x < x ? -1 : 1;
+      u.cd -= dt; if (u.cd > 0) continue; u.cd = X.tick;
+      const d = (u.awake ? X.awake : X.lv[u.lv]) * xwMul();
+      setFire(tg, d); hurt(tg, d, 'flame');
+      for (const e of S.enemies) if (e !== tg && !e.dead && !e.burrow && dist2(e, tg) < 24 * 24) setFire(e, d);
+      continue;
+    }
+    u.cd -= dt; if (u.cd > 0) continue;
+    const tg = findTargetAt(x, y, X.range + S.buff.rng, false);
+    if (!tg) { u.cd = 0.1; continue; }
+    u.face = tg.x < x ? -1 : 1; u.anim = 0.15;
+    const mx = x + u.face * 10, my = y - 6;
+    if (id === 'soldier') {
+      const A = X.awake, L = u.awake ? A : X.lv[u.lv];
+      let n = u.awake ? A.n : 1;
+      if (u.awake && Math.random() < A.revP) { n = A.revN; fx({ k: 'text', x, y: y - 36, s: 'リボルバー！', c: '#C9403A', life: 0.9, size: 14 }); }
+      for (let i = 0; i < n; i++) S.projs.push({ k: 'shell', x: mx + (i % 2 ? -4 : 4), y: my - i * 2, t: tg, lx: tg.x, ly: tg.y, sp: 620 + i * 25, d0: 1, prog: 0, def: { id: 'turret' }, dmg: L.dmg * xwMul() });
+      u.cd = L.every / (1 + S.buff.spd);
+    } else {                                                 // 🚀 砲弾タンク: 펑! 주변까지
+      const L = u.awake ? X.awake : X.lv[u.lv];
+      S.projs.push({ k: 'cannonball', x: mx, y: my, t: tg, lx: tg.x, ly: tg.y, sp: 420, d0: Math.max(1, Math.hypot(tg.x - mx, tg.y - my)), prog: 0,
+                     def: { id: 'tank', arc: true, splash: u.awake ? X.asplash : X.splash }, dmg: L.dmg * xwMul() });
+      fx({ k: 'boom', x: mx, y: my, r: 7, c: ORANGE, life: 0.15 });
+      u.cd = L.every / (1 + S.buff.spd);
+    }
+  }
+}
+function drawXW() {
+  const c = ctx;
+  for (const id in S.xw) {
+    const u = S.xw[id], X = XW[id], im = XW_IMG[id + (u.awake ? ':a' : '')];
+    if (!im.complete || !im.naturalWidth) continue;
+    const s = u.born < 0.3 ? Math.max(0.01, easeBack(u.born / 0.3)) : 1, kick = u.anim > 0 ? 1.06 : 1;
+    let h = X.h * (u.awake ? 1.15 : 1), w = h * im.naturalWidth / im.naturalHeight;
+    if (w > 64) { w = 64; h = w * im.naturalHeight / im.naturalWidth; }
+    const y = xwY();
+    if (id === 'flame' && u.tgt) {                           // 🔥 불길
+      const ox = X.x + u.face * w * 0.45, oy = y - h * 0.55, tx = u.tgt.x, ty = u.tgt.y, fl = 0.75 + Math.random() * 0.25;
+      c.save(); c.globalAlpha = 0.8;
+      const g = c.createLinearGradient(ox, oy, tx, ty); g.addColorStop(0, '#FFE27A'); g.addColorStop(0.5, u.awake ? '#FF5A1F' : '#FF8A2B'); g.addColorStop(1, 'rgba(226,70,58,0)');
+      c.fillStyle = g; const a = Math.atan2(ty - oy, tx - ox), L = Math.hypot(tx - ox, ty - oy) * fl;
+      c.translate(ox, oy); c.rotate(a); c.beginPath(); c.moveTo(0, -3); c.lineTo(L, -14); c.lineTo(L, 14); c.lineTo(0, 3); c.closePath(); c.fill(); c.restore();
+    }
+    c.save(); c.translate(X.x, y); c.scale(s * kick * u.face, s * kick);
+    c.fillStyle = 'rgba(27,34,50,.2)'; c.beginPath(); c.ellipse(0, 0, w * 0.4, 3.5, 0, 0, Math.PI * 2); c.fill();
+    c.drawImage(im, -w / 2, -h, w, h); c.restore();
+    const lx = X.x + (X.x < W / 2 ? w / 2 + 2 : -w / 2 - 2), label = u.awake ? '覚醒' : String(u.lv);
+    c.fillStyle = u.awake ? '#C9403A' : INK; circle(c, lx, y - 6, u.awake ? 10 : 8); c.fill();
+    c.fillStyle = PAPER; c.font = (u.awake ? 8 : 10) + 'px ' + UIF; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(label, lx, y - 5.5);
+  }
 }
 function avgHit() {                                        // 우리 공격 '보통' 한 방 (가운데 값 — 아주 센 한 방에 안 휘둘려요)
   const a = (S.hitHist || []).slice().sort((x, y) => x - y);
@@ -1150,6 +1233,11 @@ function update(dt) {
       }
     }
     if (e.burnT > 0) { e.burnT -= dt; hurt(e, e.burnDps * dt, null); if (e.dead) continue; }
+    if (e.fireT > 0) {                                     // 🔥 火炎放射器 불: 0.25秒ごと ダメージ · 0.5秒ごと 옆 적에게 옮아요
+      e.fireT -= dt; e.fireCd -= dt; e.fireSp -= dt;
+      if (e.fireCd <= 0) { e.fireCd = XW.flame.tick; hurt(e, e.fireD, 'flame'); if (e.dead) continue; }
+      if (e.fireSp <= 0) { e.fireSp = 0.5; catchFire(e); }
+    }
     if (e.slowT > 0) e.slowT -= dt;
     if (e.stunT > 0) { e.stunT -= dt; continue; }
     if (e.burrow) {                                        // 🦫 땅속으로 쭉 → 성 앞에서 튀어나와 아군 攻撃力 ½
@@ -1263,6 +1351,7 @@ function update(dt) {
       } else cn.cd = 0.1;
     }
   }
+  xwTick(dt);
   for (const al of S.aliens) {                             // 👽 エイリアン: 번개 공격 (한 번에 여러 발)
     al.born += dt; al.bob += dt; if (al.anim > 0) al.anim -= dt;
     const L = ALIEN_LV[al.kind === 'yellow' ? al.lv : 1], y = alienY(al);
@@ -1345,6 +1434,7 @@ function rollOffer() {
   if (!ay) pool.push({ k: 'alienNew', id: 'yellow', w: 3 });
   else if (ay.lv < ALIEN.yellow.maxLv) pool.push({ k: 'alienUp', w: 3 });
   if (!S.aliens.some((a) => a.kind === 'purple')) pool.push({ k: 'alienNew', id: 'purple', w: 3 });
+  for (const id in XW) { const u = S.xw[id]; if (!u) pool.push({ k: 'xwNew', id, w: 3 }); else if (!u.awake) pool.push({ k: 'xwUp', id, w: 3 }); }
   if (!S.cannon) pool.push({ k: 'cannonNew', w: 3 });
   else if (!S.cannon.awake) pool.push({ k: 'cannonUp', w: 3 });
   const out = [];
@@ -1393,6 +1483,15 @@ function offerHTML(o, i) {
     name = b.name; tag = '<span class="rc-tag buff">バフ</span>';
     desc = b.d(buffVal(b));
     note = buffNote(b);
+  } else if (o.k === 'xwNew' || o.k === 'xwUp') {
+    const X = XW[o.id], u = S.xw[o.id], toAwake = u && u.lv >= 5;
+    ico = '<span class="rc-ico" style="--c:#E7DCCF"><img src="' + (toAwake ? X.aimg : X.img) + '" alt="" style="max-width:48px;max-height:42px"></span>';
+    tag = '<span class="rc-tag turret">防衛ユニット</span>';
+    const sh = (lv) => { const L = X.lv[lv]; return o.id === 'flame' ? 'ダメージ ' + L + ' · ずっと火＋伝染' : 'ダメージ ' + L.dmg + ' · ' + L.every + '秒ごと'; };
+    const ash = o.id === 'soldier' ? '二丁拳銃1800×2・1秒ごと・リボルバー20%：1800×12！' : o.id === 'flame' ? 'ダメージ1000・火がとなりの敵にうつります' : 'ダメージ8000・1.5秒ごと・まとめてやっつけます';
+    if (!u) { name = X.name + ' 配置'; desc = '城壁の上に ' + eul(X.name) + ' 立てます。Lv.1： ' + sh(1); note = 'Lv.5 の次は覚醒 ' + X.name + '!'; }
+    else if (toAwake) { name = X.name + ' 覚醒！'; desc = ash; note = '覚醒 ' + X.name + 'に変わります'; }
+    else { name = X.name + ' レベルアップ'; desc = 'Lv.' + u.lv + ' → Lv.' + (u.lv + 1) + ': ' + sh(u.lv + 1); note = 'Lv.5 の次は覚醒！'; }
   } else if (o.k === 'alienNew' || o.k === 'alienUp') {
     const A = ALIEN[o.k === 'alienUp' ? 'yellow' : o.id], al = S.aliens.find((a) => a.kind === 'yellow');
     ico = '<span class="rc-ico" style="--c:#E4E0F5"><img src="' + A.img + '" alt="" style="max-width:48px;max-height:40px"></span>';
@@ -1545,6 +1644,14 @@ function pick(i) {
     if (o.id === 'chest') S.gold += v; else S.buff[o.id] += v;
     S.stacks[o.id] = (S.stacks[o.id] || 0) + 1;
     fx({ k: 'text', x: W / 2, y: WALL_Y - 60, s: BUFF_BY[o.id].name + '!', c: YEL, life: 1.4, size: 16 });
+  } else if (o.k === 'xwNew') {
+    const X = XW[o.id];
+    S.xw[o.id] = { lv: 1, awake: false, cd: 1, anim: 0, born: 0, face: 1, flameT: 0, tgt: null };
+    fx({ k: 'pop', x: X.x, y: WALL_Y - 10, life: 0.45 }); say('🛡️ ' + X.name + ' 配置！');
+  } else if (o.k === 'xwUp') {
+    const X = XW[o.id], u = S.xw[o.id];
+    if (u.lv >= 5) { u.awake = true; u.born = 0; S.banner = { s: '覚醒 ' + X.name + '!', t: 0, c: '#C9403A' }; }
+    else { u.lv++; fx({ k: 'text', x: X.x, y: WALL_Y - 46, s: X.name + ' Lv.' + u.lv, c: BLUE, life: 1.1, size: 14 }); }
   } else if (o.k === 'alienNew') {
     S.aliens.push({ kind: o.id, x: ALIEN[o.id].x, lv: 1, cd: 1, burst: 0, bt: 0, anim: 0, born: 0, bob: Math.random() * 6 });
     fx({ k: 'pop', x: ALIEN[o.id].x, y: WALL_Y - 30, life: 0.45 }); say('👽 ' + ALIEN[o.id].name + ' 登場！');
@@ -1719,7 +1826,7 @@ function drawFoeSprite(e, im) {
   }
   c.restore();
   if (e.poisonT > 0) { c.fillStyle = '#7FBF4D'; circle(c, e.x - dw * 0.3, e.y - dh * 0.4, 3 + Math.sin(S.time * 14)); c.fill(); }
-  if (e.burnT > 0) { c.fillStyle = ORANGE; circle(c, e.x + dw * 0.3, e.y - dh * 0.5, 2.6 + Math.sin(S.time * 20) * 0.8); c.fill(); }
+  if (e.burnT > 0 || e.fireT > 0) { c.fillStyle = e.fireT > 0 ? '#FF5A1F' : ORANGE; circle(c, e.x + dw * 0.3, e.y - dh * 0.5, (e.fireT > 0 ? 3.6 : 2.6) + Math.sin(S.time * 20) * 0.8); c.fill(); }
   if (e.stunT > 0) { c.fillStyle = YEL; c.font = '9px ' + UIF; c.textAlign = 'center'; c.fillText('★', e.x + Math.cos(S.time * 8) * 6, e.y - dh * 0.6); }
   if (e.boss || e.hp < e.maxHp) {
     const bw = e.boss ? 64 : 18, by = e.y + e.r * 0.9 - dh - jump - (e.boss ? 8 : 5);
@@ -2056,6 +2163,7 @@ function render() {
   for (const tu of S.turrets) drawTurret(tu);
   if (S.cannon) drawCannon(S.cannon);
   for (const al of S.aliens) drawAlien(al);
+  drawXW();
   const holding = S.drag ? S.units[S.drag.from] : S.sel >= 0 ? S.units[S.sel] : null;
   if (holding) {
     c.save(); c.strokeStyle = YEL; c.lineWidth = 3; c.setLineDash([5, 4]);
@@ -2518,6 +2626,7 @@ function liveSnap() {
     tr: S.traps.length ? (S.traps[0].awake ? 2 : 1) : 0, trl: S.trapLv,
     cn: S.cannon ? [S.cannon.lv, S.cannon.awake ? 1 : 0] : 0,
     al: S.aliens.map((a) => [a.kind === 'yellow' ? 0 : 1, a.lv]),
+    xw: Object.keys(S.xw).map((id) => [id, S.xw[id].lv, S.xw[id].awake ? 1 : 0]),
   };
 }
 function liveTick(t) {
@@ -2597,6 +2706,8 @@ function watchPeers() {                                     // 보는 사람이 
   S.cannon = Array.isArray(L.cn) ? Object.assign(S.cannon || { x: 222, y: WALL_Y + 16, cd: 0, face: 1, anim: 0, born: 0 }, { lv: +L.cn[0] || 1, awake: !!L.cn[1] }) : null;
   const oa = S.aliens; S.aliens = (Array.isArray(L.al) ? L.al : []).map((a) => { const kind = a[0] ? 'purple' : 'yellow', was = oa.find((x) => x.kind === kind);
     return Object.assign(was || { kind, x: ALIEN[kind].x, cd: 0, burst: 0, bt: 0, anim: 0, born: 0, bob: Math.random() * 6 }, { lv: +a[1] || 1 }); });
+  const nx = {}; if (Array.isArray(L.xw)) for (const a of L.xw) if (a && XW[a[0]]) nx[a[0]] = Object.assign(S.xw[a[0]] || { cd: 0, anim: 0, born: 0, face: 1, tgt: null }, { lv: +a[1] || 1, awake: !!a[2] });
+  S.xw = nx;
   const e = typeof L.e === 'string' ? L.e : '', seen = new Map(), tier = Math.floor((S.wave - 1) / 5) % TIERS.length;
   for (let i = 0; i + 10 <= e.length; i += 10) {
     const f = ALL_FOES[parseInt(e[i], 36)]; if (!f) continue;
@@ -2616,6 +2727,7 @@ function watchTick(dt) {
   for (const u of S.units) if (u) u.born += dt;
   for (const t of S.turrets) t.born += dt;
   for (const a of S.aliens) { a.born += dt; a.bob += dt; }
+  for (const id in S.xw) S.xw[id].born += dt;
   if (S.cannon) S.cannon.born += dt;
   for (const t of S.traps) t.born += dt;
 }
