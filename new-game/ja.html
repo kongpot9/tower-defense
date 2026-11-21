@@ -56,7 +56,7 @@ h1,h2,p{margin:0}
   box-shadow:0 0 0 3px var(--paper),0 0 0 5px var(--ink);font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;line-height:1}
 
 /* ---------- home ---------- */
-.home{overflow-y:auto;gap:16px;padding-block:6px 4px}
+.home{overflow-y:auto;gap:12px;padding-block:6px 4px}
 .studio{font-family:var(--f-display);letter-spacing:.18em;font-size:13px;color:color-mix(in srgb,var(--paper) 70%,var(--desk));text-align:center;padding-top:6px}
 .title-card{position:relative;background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:18px;
   padding:26px 18px 20px;transform:rotate(-1.6deg);box-shadow:0 7px 0 var(--ink);text-align:center;margin:8px 6px 0}
@@ -84,9 +84,11 @@ h1,h2,p{margin:0}
 .lobby-title{padding:16px 14px 12px;text-align:center}
 .lobby-title .studio{color:var(--muted,#5B6478);padding-top:0}
 .lobby-title .title{font-size:clamp(40px,12vw,54px)}
-.yard{position:relative;border:3px solid var(--ink);border-radius:18px;overflow:hidden;box-shadow:0 5px 0 var(--ink);background:#d9dcd6;aspect-ratio:1/1;flex-shrink:0}
-.yard canvas{display:block;width:100%;height:100%;touch-action:manipulation}
-.yard-tip{position:absolute;left:10px;top:8px;font-size:12px;color:var(--ink);background:rgba(244,246,241,.85);border:1.5px solid var(--ink);border-radius:8px;padding:2px 7px;pointer-events:none}
+.yard{position:fixed;inset:0;z-index:0;background:#d9dcd6}
+.yard canvas{display:block;width:100%;height:100%}
+.home>*:not(.yard){position:relative;z-index:1}
+.lobby-space{flex:1;min-height:40px}
+.lobby-bottom{display:grid;gap:10px;background:color-mix(in srgb,var(--desk) 88%,transparent);border:2.5px solid var(--ink);border-radius:20px;padding:12px 12px 8px;margin-bottom:max(4px,env(safe-area-inset-bottom,0px))}
 .big{font-size:24px;padding:16px;font-family:var(--f-display);font-weight:400;letter-spacing:.02em}
 .foot{font-size:12px;text-align:center;color:color-mix(in srgb,var(--paper) 60%,var(--desk));line-height:1.5}
 
@@ -271,7 +273,8 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
 
   <!-- ===== 홈 ===== -->
   <section id="home" class="screen home">
-    <!-- 🏰 로비: 城の前の広場 (2026-11-21 예준이가 C안 고름) — 위에 버튼 · 가운데 마당에 덱 캐릭터들이 돌아다녀요 · 아래 큰 전투 버튼 -->
+    <!-- 🏰 로비 = わたしの村: 마을 성 그림이 화면을 꽉 채우고, 위에 コイン · 버튼, 아래에 전투 버튼 (2026-11-21 예준이 결정: 제목 글자 빼기) -->
+    <div class="yard" id="yard"><canvas id="yardCv" aria-label="わたしの村"></canvas></div>
     <div class="wallet"><span><img src="art/coin.png" alt="コイン"><b id="wCoin">0</b></span><span><img src="art/crystal.png" alt="クリスタル"><b id="wCrystal">0</b></span></div>
     <div class="lobby-top">
       <button class="btn btn-sm" id="bUpg" type="button" hidden>⭐ 強化</button>
@@ -280,12 +283,8 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
       <button class="btn btn-sm" id="bWatch" type="button" hidden>👀 観戦</button>
       <button class="btn btn-sm" id="bLang" type="button" hidden>🌐 한국어</button>
     </div>
-    <div class="title-card lobby-title">
-      <div class="studio">グ・イェジュン STUDIO</div>
-      <h1 class="title">脳筋<br>ディフェンス</h1>
-      <p class="title-note">⬜ 四角頭のなかまたちが城を守る！</p>
-    </div>
-    <div class="yard" id="yard"><canvas id="yardCv" aria-label="わたしの村"></canvas></div>
+    <div class="lobby-space"></div>
+    <div class="lobby-bottom">
     <div class="best">最高記録 <b id="homeBest">-</b></div>
     <div class="plays" id="homePlays" hidden></div>
     <div class="plays" id="homeOnline" hidden></div>
@@ -294,6 +293,7 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
       <button class="btn btn-blue big" id="bPlay" type="button">バトル開始</button>
     </div>
     <p class="foot">キャラ32人・敵6種・タレット・トラップ・お城まで全部イェジュンの絵！バフアイテムだけまだ仮です。</p>
+    </div>
   </section>
 
   <!-- ===== デッキ編成 ===== -->
@@ -2250,26 +2250,29 @@ $('#bUpClose').addEventListener('click', () => { $('#upOv').hidden = true; });
 $('#bReroll').addEventListener('click', rerollOffer);
 $('#bRevive').addEventListener('click', revive);
 
-/* ===== 🏰 로비 = わたしの村 (그림: グ・イェジュン, 2026-11-21) — 성벽 뒤(하늘 쪽)는 나중에 건물을 짓는 자리
-   (代表キャラ 기능은 예준이 결정으로 뺌, 2026-11-21) */
+/* ===== 🏰 로비 = わたしの村 (그림: グ・イェジュン, 2026-11-21) — 마을 성 그림이 화면을 꽉 채워요 · 성벽 뒤(하늘 쪽)는 나중에 건물을 짓는 자리
+   (代表キャラ 기능 · 제목 글자는 예준이 결정으로 뺌, 2026-11-21) */
 const VILLAGE = new Image(); VILLAGE.src = 'art/village.jpg';
-const YARD = { W: 360, H: 360, crop: 0.30, cv: null, ctx: null, drawn: false };
-function yardInit() { YARD.drawn = false; }
+const YARD = { wall: 0.6, wallAt: 0.42, cv: null, ctx: null, key: '' };
+function yardInit() { YARD.key = ''; }
 function yardTick() {
   const cv = YARD.cv || (YARD.cv = $('#yardCv'));
   if (!cv || !cv.isConnected) return;
-  const r = cv.getBoundingClientRect(); if (!r.width) return;
+  const r = cv.getBoundingClientRect(); if (!r.width || !r.height) return;
   const dpr = Math.min(2, window.devicePixelRatio || 1), pw = Math.round(r.width * dpr), ph = Math.round(r.height * dpr);
-  const ready = VILLAGE.complete && VILLAGE.naturalWidth;
-  if (cv.width === pw && cv.height === ph && YARD.drawn === !!ready) return;   // 움직이는 게 없어서 한 번만 그려요
-  cv.width = pw; cv.height = ph; YARD.drawn = !!ready;
-  const c = YARD.ctx || (YARD.ctx = cv.getContext('2d')), k = pw / YARD.W;
-  c.setTransform(k, 0, 0, k, 0, 0);
-  if (ready) {
-    const sy = VILLAGE.naturalHeight * YARD.crop, sh = VILLAGE.naturalHeight - sy;
-    c.drawImage(VILLAGE, 0, sy, VILLAGE.naturalWidth, sh, 0, 0, YARD.W, YARD.W * sh / VILLAGE.naturalWidth);
-  } else { c.fillStyle = '#d9dcd6'; c.fillRect(0, 0, YARD.W, YARD.H); }
+  const ready = !!(VILLAGE.complete && VILLAGE.naturalWidth), key = pw + 'x' + ph + ':' + ready;
+  if (key === YARD.key) return;                              // 움직이는 게 없어서 크기가 바뀔 때만 다시 그려요
+  YARD.key = key; cv.width = pw; cv.height = ph;
+  const c = YARD.ctx || (YARD.ctx = cv.getContext('2d'));
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.fillStyle = '#d9dcd6'; c.fillRect(0, 0, pw, ph);
+  if (!ready) return;
+  const iw = VILLAGE.naturalWidth, ih = VILLAGE.naturalHeight, sc = Math.max(pw / iw, ph / ih);   // 꽉 채우기 (넘치는 곳은 잘라요)
+  const dw = iw * sc, dh = ih * sc, dx = (pw - dw) / 2;
+  const dy = Math.min(0, Math.max(ph - dh, ph * YARD.wallAt - YARD.wall * dh));                     // 성벽이 화면 위쪽 40%쯤에 오게
+  c.drawImage(VILLAGE, dx, dy, dw, dh);
 }
+window.addEventListener('resize', () => { YARD.key = ''; });
 
 /* ===== 👀 観戦 (2026-11-21 예준이 요청) =====
    게임하는 사람은 0.25秒ごと いま 화면(캐릭터 · 敵 · 무기)을 작게 줄여서 room presence로 보내고,
