@@ -177,15 +177,20 @@ h1,h2,p{margin:0}
 .shake{animation:shake .3s}
 @keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
 
-.pop{position:absolute;z-index:10;width:224px;background:var(--paper);color:var(--ink);border:2.5px solid var(--ink);border-radius:14px;
-  box-shadow:0 4px 0 var(--ink);padding:10px 12px 12px;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;pointer-events:none;left:50%;top:10px}
+.pop{position:absolute;z-index:10;width:min(340px,calc(100% - 12px));background:var(--paper);color:var(--ink);border:2.5px solid var(--ink);border-radius:14px;
+  box-shadow:0 4px 0 var(--ink);padding:10px 12px 12px;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;left:50%;top:auto;bottom:0;overflow-y:auto}
 .pop-head{display:flex;align-items:center;gap:6px;font-size:17px}
 .pop-head .e{font-size:20px;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
 .pop-head .e img{max-height:30px;max-width:40px;display:block;margin:-4px 0}
 .pop-head .chip{margin-left:auto}
-.pop p{font-size:13px;line-height:1.4}
+.pop p{font-size:12.5px;line-height:1.35}
+.pop .pop-stat{font-size:14px;font-variant-numeric:tabular-nums}
+.plus{display:inline-block;margin-left:4px;padding:0 6px;border-radius:7px;background:var(--ink);color:#9BEA5C;font-weight:700;font-variant-numeric:tabular-nums}
+.pop-btns{display:flex;flex-wrap:wrap;gap:6px}
+.pop .pop-btns .btn{padding:6px 10px;font-size:13.5px}
+#popSell.arm{background:var(--red);color:var(--paper)}
 .pop .pop-hint{font-size:11.5px;color:var(--muted)}
-.pop .btn{align-self:flex-start;display:flex;align-items:center;gap:5px;pointer-events:auto}
+.pop .btn{display:flex;align-items:center;gap:5px}
 
 .equipbar{position:absolute;left:50%;top:12px;transform:translateX(-50%);z-index:11;background:#B8860B;color:var(--paper);border:2.5px solid var(--ink);border-radius:12px;padding:8px 14px;font-size:15px;pointer-events:none;white-space:nowrap;box-shadow:0 3px 0 var(--ink)}
 .toast{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);z-index:12;background:var(--ink);color:var(--paper);
@@ -271,11 +276,14 @@ h1,h2,p{margin:0}
       <canvas id="cv" aria-label="전장"></canvas>
       <div class="pop" id="pop" hidden>
         <div class="pop-head"><span class="e" id="popEmo"></span><span id="popName"></span><span class="chip" id="popLv"></span></div>
-        <p id="popDesc"></p>
-        <p class="pop-hint">빈 칸 → 이동 · 다른 캐릭터 → 자리 바꾸기 · <b>같은 캐릭터 → 합성!</b><br>꾹 눌러서 끌어 옮겨도 돼요</p>
+        <div class="pop-btns">
         <button class="btn btn-sm" id="popSkill" type="button" hidden></button>
         <button class="btn btn-sm" id="popEquip" type="button" hidden></button>
         <button class="btn btn-sm" id="popSell" type="button">팔기 <i class="coin"></i>+<span id="popRefund">0</span></button>
+        </div>
+        <p class="pop-stat" id="popStat"></p>
+        <p id="popDesc"></p>
+        <p class="pop-hint">빈 칸 → 이동 · 다른 캐릭터 → 자리 바꾸기 · <b>같은 캐릭터 → 합성!</b> · 꾹 눌러 끌기</p>
       </div>
       <div class="toast" id="toast" hidden></div>
       <div class="equipbar" id="equipBar" hidden></div>
@@ -1339,9 +1347,17 @@ function pickSlot(x, y, skip) {
 }
 const GRADES = ['일반', '희귀', '영웅', '신화', '전설'];
 const SELL = { '일반': 20, '희귀': 40, '영웅': 80, '신화': 150, '전설': 300 };   // 캐릭터 파는 값 (등급별)
+let sellArm = null, sellTimer = 0;
 function sell() {
   const u = S.units[S.sel];
   if (!u || S.over) return;
+  const sb = $('#popSell');
+  if (sellArm !== u) {                                      // 실수로 팔리지 않게: 한 번 더 눌러야 팔려요
+    sellArm = u; sb.classList.add('arm'); sb.textContent = '정말 팔까요? 한 번 더!';
+    clearTimeout(sellTimer); sellTimer = setTimeout(() => { if (sellArm === u) showPop(); }, 2500);
+    return;
+  }
+  sellArm = null;
   const g = SELL[BY[u.type].grade] || 20, p = slotXY(u.slot);
   const it0 = itemOf(u); if (it0) it0.unit = null;          // 장비는 가방으로
   S.gold += g; S.units[S.sel] = null;
@@ -1874,6 +1890,7 @@ function syncHUD() {
 }
 
 const pop = $('#pop');
+screens.battle.appendChild(pop);                             // 창은 전장 밖(아래 카드 자리)에
 function select(i) { S.sel = i; if (i >= 0) showPop(); else pop.hidden = true; }
 function showPop() {
   const u = S.units[S.sel];
@@ -1881,23 +1898,32 @@ function showPop() {
   const d = BY[u.type], p = slotXY(u.slot);
   $('#popEmo').innerHTML = faceHTML(d); $('#popName').textContent = d.name;
   $('#popLv').textContent = 'Lv.' + S.levels[u.type];
-  $('#popRefund').textContent = SELL[d.grade] || 20;
   const bag = S.items.filter((it) => !it.unit), pe = $('#popEquip');
   if (bag.length) { pe.hidden = false; pe.textContent = '🎒 가방: ' + itemName(bag[0]) + ' 끼우기'; } else pe.hidden = true;
   const sk = $('#popSkill');
   if (d.drill && !(u.drillT > 0)) { sk.hidden = false; sk.textContent = '🔩 드릴러 변신 ' + d.drill.cost + 'G'; }
   else if (d.senior && !u.young) { sk.hidden = false; sk.textContent = '🌱 과성장 도전 ' + d.senior.cost + 'G (40%)'; }
   else sk.hidden = true;
-  $('#popDesc').textContent = d.desc + (d.support ? '' : ' (데미지 ' + Math.round(d.dmg * lvMult(d.id) * (1 + (u.bonus || 0))) + ' · ' + every(d) + ')') +
-    (d.sunin ? (sunMode() ? ' · 지금 🧙선인 모드' : ' · 지금 🐀봉산 모드') : '') +
-    (d.stack ? ' · 지금 +' + Math.round((u.stack || 0) * 100) + '%' : '') +
-    (d.skill ? ' · ⚔️ 스킬까지 ' + Math.max(0, Math.ceil(d.skill.every * (1 - cdCut(u)) - (u.skillT || 0))) + '초' : '') +
-    (itemOf(u) ? ' · 🎁 ' + itemName(itemOf(u)) + ': ' + ITEM_BY[itemOf(u).id].d(itemOf(u).awake) : '') +
-    (u.drillT > 0 ? ' · 🔩 드릴차 ' + Math.ceil(u.drillT) + '초 남음' : '') + (u.young ? ' · 🌱 27살!' : '') +
-    (d.doctor ? (doctorOn(u) ? ' · ⚡ 닥터 대두 출동 중! ' + (u.drUntil - S.wave) + '웨이브 남음' : ' · 닥터 대두까지 ' + (u.dHits || 0) + '/' + d.doctor.hits + '번') : '') +
-    (d.bitePassive ? ' · 물기 ' + ((u.hits || 0) % d.bitePassive.every) + '/' + d.bitePassive.every + '번, 지금까지 +' + Math.round((u.bonus || 0) * 100) + '%' : '');
+  // 💪 데미지: 원래 숫자 + 버프로 늘어난 만큼을 연두색으로 (예준이 요청)
+  if (d.support) $('#popStat').textContent = '지원 캐릭터 · 공격 안 함';
+  else {
+    const now = d.dmg * lvMult(d.id) * (1 + S.buff.dmg) * teamMul() * itemDmgMul(u, d) * (1 + (u.bonus || 0)) * (d.party && S.party ? d.party.self : 1);
+    const plus = Math.round(now - d.dmg);
+    $('#popStat').innerHTML = '데미지 <b>' + d.dmg + '</b>' + (plus > 0 ? '<span class="plus">+' + plus.toLocaleString() + '</span>' : '') + ' · ' + every(d);
+  }
+  const extra = [
+    d.sunin ? (sunMode() ? '지금 🧙선인 모드' : '지금 🐀봉산 모드') : '',
+    d.stack ? '단검 <span class="plus">+' + Math.round((u.stack || 0) * 100) + '%</span>' : '',
+    d.skill ? '⚔️ 스킬까지 ' + Math.max(0, Math.ceil(d.skill.every * (1 - cdCut(u)) - (u.skillT || 0))) + '초' : '',
+    itemOf(u) ? '🎁 ' + itemName(itemOf(u)) + ': ' + ITEM_BY[itemOf(u).id].d(itemOf(u).awake) : '',
+    u.drillT > 0 ? '🔩 드릴차 ' + Math.ceil(u.drillT) + '초 남음' : '', u.young ? '🌱 27살!' : '',
+    d.doctor ? (doctorOn(u) ? '⚡ 닥터 대두 출동 중! ' + (u.drUntil - S.wave) + '웨이브 남음' : '닥터 대두까지 ' + (u.dHits || 0) + '/' + d.doctor.hits + '번') : '',
+    d.bitePassive ? '물기 ' + ((u.hits || 0) % d.bitePassive.every) + '/' + d.bitePassive.every + '번 <span class="plus">+' + Math.round((u.bonus || 0) * 100) + '%</span>' : '',
+  ].filter(Boolean);
+  $('#popDesc').innerHTML = d.desc + (extra.length ? '<br>' + extra.join(' · ') : '');
+  const sb = $('#popSell'); sb.classList.remove('arm'); sb.innerHTML = '팔기 <i class="coin"></i>+' + (SELL[d.grade] || 20); sellArm = null;
   pop.hidden = false;
-  pop.style.top = (cv.offsetTop + 8) + 'px';            // 성 밖(전장 맨 위)에 띄워서 아군을 안 가려요
+  pop.style.maxHeight = ($('.tray').offsetHeight + 6) + 'px';   // 아래 강화 카드 자리에 띄워서 전장을 안 가려요
 }
 
 const toastEl = $('#toast'); let toastTimer = 0;
