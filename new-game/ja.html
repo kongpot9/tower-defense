@@ -447,6 +447,8 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
       <h2>⚙️ 設定</h2>
       <p class="sub">アカウントをリセットすると、この端末の <b>コイン・クリスタル・解放したキャラ・⭐レベル・村・レーティング・デッキ・つづき</b>が全部最初にもどります</p>
       <p class="bld-note">ランキングサーバーの記録はそのままのこります（歴代記録は消えません）</p>
+      <div class="nick-row"><label for="couponIn">🎟️ クーポン</label><input id="couponIn" maxlength="24" placeholder="クーポンコード" autocomplete="off"><button class="btn btn-sm btn-blue" id="bCoupon" type="button">もらう</button></div>
+      <p class="rank-note" id="couponNote"></p>
       <div class="ov-btns"><button class="btn btn-red big" id="bReset" type="button">🗑️ アカウントリセット</button><button class="btn" id="bSetClose" type="button">とじる</button></div>
     </div>
   </div>
@@ -2620,6 +2622,27 @@ function resetChar(id) {                                      // 🔄 リセッ�
   META.resetTix--; META.up[id] = 0; if (META.paid) META.paid[id] = 0; META.crystal += back; metaSave();
   toast('🔄 ' + BY[id].name + ' ⭐0 · 💎+' + back.toLocaleString() + ' 返してもらいました'); openUpg();
 }
+/* 🎟️ クーポン (2026-11-22): 배상 · 선물용 · 기기마다 한 번씩 · 코드는 글자 그대로 안 넣고 해시만 넣어요 */
+const hashCode = (t) => { let h = 5381; for (const ch of t.trim().toUpperCase()) h = ((h << 5) + h + ch.codePointAt(0)) >>> 0; return h.toString(36); };
+const COUPONS = {
+  // Dさんへのおわび (claude.ai 버전에서 세운 121ウェーブ 기록이 안 남아서, 2026-11-22 예준이 결정)
+  '74okd2': { id: 'd121', coin: 12100, crystal: 1063, wave: 121, msg: 'Dさんへのおわび' },
+};
+$('#bCoupon').addEventListener('click', async () => {
+  const note = $('#couponNote'), c = COUPONS[hashCode($('#couponIn').value || '')];
+  if (!c) { note.textContent = 'ないクーポンです'; return; }
+  META.coupons = META.coupons || {};
+  if (META.coupons[c.id]) { note.textContent = 'もう受け取ったクーポンです'; return; }
+  META.coupons[c.id] = Date.now();
+  META.coin += c.coin || 0; META.crystal += c.crystal || 0;
+  if (c.wave && c.wave > (S.best || 0)) { S.best = c.wave; store.set('yj2ja.best', c.wave); }
+  if (c.wave && c.wave > (META.bestWave || 0)) META.bestWave = c.wave;
+  metaSave(); checkAch(false); renderHome();
+  note.textContent = '🎁 ' + (c.msg || 'クーポン') + ': 🪙+' + (c.coin || 0).toLocaleString() + ' 💎+' + (c.crystal || 0).toLocaleString() + (c.wave ? ' · 最高記録 WAVE ' + c.wave : '');
+  if (c.wave && store.get('yj2ja.nick', '')) { try { const r = await rankSubmit(); if (r === 'ok') note.textContent += ' · ランキング登録！'; } catch (e) { /* 괜찮아요 */ } }
+  else if (c.wave) note.textContent += ' · ニックネームを決めるとランキングにのります';
+});
+
 /* ⚙️ アカウントリセット (2026-11-22 예준이 요청): 두 回 눌러야 해요 · が 기기 저장만 지워요 (언어 설정은 남겨요) */
 let resetArm = 0;
 $('#bSettings').addEventListener('click', () => { resetArm = 0; $('#bReset').textContent = '🗑️ アカウントリセット'; $('#setOv').hidden = false; });
