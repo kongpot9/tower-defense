@@ -831,7 +831,7 @@ const ACH = {
   kongttuk: { d: '웨이브 60 가기',           n: () => META.bestWave || 0, goal: 60 },
 };
 const CRYS_PRICE = { '영웅': 500, '신화': 3000, '전설': 10000 };
-const BOX = { price: 300, odds: { '영웅': 70, '신화': 27, '전설': 3 } };   // 🎁 아직 없는 크리스탈 캐릭터만 나와요 (중복 없음)
+const BOX = { price: 50, odds: { '영웅': 70, '신화': 27, '전설': 3 } };   // 🎁 아직 없는 크리스탈 캐릭터만 나와요 (중복 없음) · 값 💎300 → 💎50 (2026-11-22 예준이 결정)
 const isCrysChar = (id) => BY[id] && !START_UNLOCK.includes(id) && !ACH[id];
 const validDeck = (d) => Array.isArray(d) && d.length === 8 && new Set(d).size === 8 && d.every((id) => BY[id] && unlocked(id)) && d.includes('sword') ? d.slice() : null;
 
