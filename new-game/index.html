@@ -2693,7 +2693,7 @@ $('#bBoxClose').addEventListener('click', () => { $('#boxOv').hidden = true; });
 /* ===== 🏘️ 마을 건물 (그림 · 기능 · 가격: 구예준, 2026-11-21) =====
    성벽 뒤에 건물을 지어요. 시간 · 출석으로 코인 · 크리스탈을 주거나, 던전에 들어가요.
    '출석' = 그날 처음 들어왔을 때 (하루에 한 번) */
-const DUNGEON = { time: 600, bossHp: 450, reward: 1000, coin: 20000, gap: [3, 0.8], cap: 150 };   // 10분 · 잡은 보스 하나마다 💎1000 + 🪙20000 (5마리면 🪙10만, 2026-11-21 예준이 결정)
+const DUNGEON = { time: 600, bossHp: 450, reward: 1000, coin: 20000, gap: [3, 0.8], cap: 150, gift: 4 };   // 10분 · 잡은 보스 하나마다 💎1000 + 🪙20000 (5마리면 🪙10만, 2026-11-21 예준이 결정)
 // 2026-11-22 예준이 결정: 보스 체력 25배 (18 → 450) · 보스가 끝없이 몰려와요 (3초마다 → 10분 끝엔 0.8초마다) · 던전은 지는 게 없어요 (100마리 패배 없음)
 // cap = 화면에 보스가 너무 많으면 (150마리) 잠깐 안 나와요 (폰이 버벅이지 않게)
 const BLD = {
@@ -3104,10 +3104,11 @@ function startBattle(mode) {
   S.mode = mode;
   if (mode === 'dungeon') {
     S.dgLeft = DUNGEON.time; S.dgKills = 0; S.dgSpawn = 0;
-    for (const c of CHARS) if (c.grade === '전설' && !c.pot) {      // 🎁 던전 시작 선물: 전설 4마리 (2026-11-22 예준이 결정) · 텐한은 텐조가 없으면 잠만 자서 빼요
-      if (S.levels[c.id] == null) S.levels[c.id] = 1;               // 덱에 없는 전설도 Lv.1로 싸워요 (덱에 없으면 강화는 못 해요)
-      placeUnit(c.id);
-    }
+    // 🎁 던전 시작 선물 4마리 (2026-11-22 예준이 결정): 내 덱에서 제일 높은 등급 캐릭터로 · 전설이 없으면 신화, 신화도 없으면 영웅…
+    //    그 등급이 1명뿐이면 같은 캐릭터 4마리 (중복 OK), 여러 명이면 돌아가면서 · 텐조(공격 안 함) · 텐한(텐조 없으면 잠만 잠)은 빼요
+    const GR = ['전설', '신화', '영웅', '희귀', '일반'], ok = S.deck.map((id) => BY[id]).filter((c) => c && !c.support && !c.pot);
+    const g = GR.find((x) => ok.some((c) => c.grade === x)), top = ok.filter((c) => c.grade === g);
+    for (let i = 0; i < DUNGEON.gift && top.length; i++) placeUnit(top[i % top.length].id);
   }
   for (const k in ui) delete ui[k];
   buildDeckBar();
