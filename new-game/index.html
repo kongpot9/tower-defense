@@ -3280,7 +3280,7 @@ function start(data) {
     bl.addEventListener('click', () => { try { localStorage.setItem('yj.lang', BUILD_LANG === 'ko' ? 'ja' : 'ko'); } catch (e) { /* 괜찮아요 */ } location.reload(); });
   }
   rankInit(); liveInit();
-  S.deck = validDeck(data && data.deck) || validDeck(store.get('yj2.deck', null)) || CHARS.filter((c) => unlocked(c.id) && !c.support).slice(0, 8).map((c) => c.id);   // 처음 덱엔 싸우는 캐릭터만 (텐조는 리워크로 공격 안 함)
+  S.deck = validDeck(data && data.deck) || validDeck(store.get('yj2.deck', null)) || CHARS.filter((c) => unlocked(c.id)).slice(0, 8).map((c) => c.id);   // 처음 덱: 전사 · 궁수 · 농부 · 쥬라 · 원까태인 · 탱크보이 · 텐조 · 데스슈타인 (텐조 넣기, 2026-11-22 예준이 요청)
   S.best = store.get('yj2.best', 0) || 0;
   if (S.best > (META.bestWave || 0)) { META.bestWave = S.best; metaSave(); }   // 예전 최고 기록도 업적에 쳐요
   if (seasonCheck()) setTimeout(() => toast('🗓️ 새 시즌! ' + seasonName(curSeason()) + ' · 배치고사부터 다시'), 900);
