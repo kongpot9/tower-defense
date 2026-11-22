@@ -796,7 +796,7 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 저장 못 해도 게임은 돼요 */ } },
 };
 // 🔓 처음부터 쓸 수 있는 캐릭터 (2026-11-21 예준이 결정): 일반 전부 · 희귀 전부(노에시 빼고) · 영웅은 데스슈타인 하나 · 전설은 레드드래곤
-const START_UNLOCK = ['sword', 'archer', 'farmer', 'jura', 'taein', 'tank', 'tenjo', 'stein', 'dragon'];
+const START_UNLOCK = ['sword', 'archer', 'farmer', 'jura', 'taein', 'tank', 'tenjo', 'stein', 'dragon', 'tenhan'];   // 🪴 텐한도 처음부터 (2026-11-22 예준이 요청)
 const unlocked = (id) => START_UNLOCK.includes(id) || !!(META.unlock && META.unlock[id]);
 // 🏆 업적 캐릭터 · 💎 크리스탈 캐릭터 (나누기 · 조건 · 가격은 Claude 초안, 2026-11-21 예준이 "이대로 하자")
 const ACH = {
