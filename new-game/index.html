@@ -812,7 +812,7 @@ const validDeck = (d) => Array.isArray(d) && d.length === 8 && new Set(d).size =
 const S = { screen: 'home', deck: null, best: 0, speed: 1 };
 function newBattle() {
   Object.assign(S, {
-    mode: 'normal', dgLeft: 0, dgKills: 0,
+    mode: 'normal', dgLeft: 0, dgKills: 0, freeUp: 0,
     wave: 0, waveT: BAL.waveLen - 3, queue: [], spawnT: 0, spawnGap: 1,
     gold: BAL.startGold, picks: 0, upN: 0, kills: 0, time: 0,
     units: new Array(SLOTS).fill(null), enemies: [], projs: [], fx: [], pools: [],
@@ -1532,7 +1532,10 @@ function buffNote(b) {
 }
 function offerHTML(o, i) {
   let ico, name, tag, desc, note = '';
-  if (o.k === 'lvGold') {
+  if (o.k === 'freeUp') {
+    ico = '<span class="rc-ico" style="--c:#CFE3F7">🎟️</span>'; name = '무료 강화권'; tag = '<span class="rc-tag" style="background:#2F6BD8">강화</span>';
+    desc = '장비 대신 받아요. 아래 캐릭터 카드 하나를 돈 없이 1번 강화!'; note = '받으면 강화할 캐릭터 카드를 눌러요' + (S.freeUp ? ' · 지금 ' + S.freeUp + '장' : '');
+  } else if (o.k === 'lvGold') {
     ico = '<span class="rc-ico" style="--c:#EDD38A">💰</span>'; name = '돈'; tag = '<span class="rc-tag" style="background:#B8860B">특수</span>';
     desc = '돈 ' + (100 + 10 * S.wave) + '을 바로 받아요'; note = '장비를 다 각성시켜서 나온 선물';
   } else if (o.k === 'itemNew' || o.k === 'itemUp' || o.k === 'itemAwake') {
@@ -1675,6 +1678,7 @@ function openLvGift() {
   opts.sort(() => Math.random() - 0.5);
   const out = opts.slice(0, 3);
   if (out.length < 3) out.push({ k: 'lvGold' });
+  if (S.wave >= 30) out.push({ k: 'freeUp' });                  // 🎟️ 30웨이브부터: 장비 대신 캐릭터 무료 강화권 (2026-11-21 예준이 결정)
   S.choosing = true; S.chooseMode = 'lv'; S.offer = out; select(-1);
   $('#rwTitle').textContent = '레벨 업! Lv.' + (S.lv - S.pendingLv + 1);
   $('#rwSub').textContent = '특수 선물을 하나 골라요';
@@ -1694,6 +1698,7 @@ function pickLv(o) {
   const d = o.id && ITEM_BY[o.id], it = o.id && S.items.find((x) => x.id === o.id);
   S.pendingLv--; S.offer = null; S.chooseMode = null; S.choosing = false; $('#rewardOv').hidden = true;
   if (o.k === 'lvGold') { const g = 100 + 10 * S.wave; S.gold += g; say('💰 돈 +' + g); return; }
+  if (o.k === 'freeUp') { S.freeUp = (S.freeUp || 0) + 1; say('🎟️ 무료 강화권! 강화할 캐릭터 카드를 눌러요', BLUE); return; }
   const same = S.items.filter((x) => x.id === o.id);          // 같은 장비는 레벨 · 각성을 같이 써요
   if (o.k === 'itemUp') { same.forEach((x) => x.lv++); say('🎁 ' + d.name + ' Lv.' + it.lv + '!' + (same.length > 1 ? ' (' + same.length + '개 같이)' : ''), '#B8860B'); return; }
   if (o.k === 'itemAwake') { same.forEach((x) => { x.awake = true; }); S.banner = { s: d.aname + '!', t: 0, c: '#B8860B' }; return; }
@@ -1762,9 +1767,10 @@ function pick(i) {
 }
 function upgrade(id, el) {
   if (S.over || S.watching) return;
-  const cost = upCost(id);
-  if (S.gold < cost) { toast('강화할 돈이 부족해요'); shake(el); return; }
-  S.gold -= cost; S.levels[id]++; S.upN++;
+  const cost = upCost(id), free = S.freeUp > 0;
+  if (!free && S.gold < cost) { toast('강화할 돈이 부족해요'); shake(el); return; }
+  if (free) { S.freeUp--; toast('🎟️ 무료 강화!' + (S.freeUp ? ' (남은 ' + S.freeUp + '장)' : '')); } else S.gold -= cost;
+  S.levels[id]++; S.upN++;
   el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
   for (const u of S.units) {
     if (u && u.type === id) {
@@ -2368,12 +2374,12 @@ function syncHUD() {
   const counts = {};
   for (const u of S.units) if (u) counts[u.type] = (counts[u.type] || 0) + 1;
   for (const d of deckEls) {
-    const lv = S.levels[d.id], c = upCost(d.id), n = counts[d.id] || 0, k = lv + ':' + n + ':' + (g >= c);
+    const fr = S.freeUp > 0, lv = S.levels[d.id], c = upCost(d.id), n = counts[d.id] || 0, k = lv + ':' + n + ':' + (g >= c) + ':' + fr;
     if (d.k === k) continue;
     d.k = k;
-    d.lv.textContent = 'Lv.' + lv; d.cost.textContent = c;
+    d.lv.textContent = 'Lv.' + lv; d.cost.textContent = fr ? '무료' : c;   // 🎟️ 무료 강화권이 있으면 '무료'
     d.cnt.textContent = n; d.cnt.dataset.zero = n ? '0' : '1';
-    d.el.classList.toggle('off', g < c);
+    d.el.classList.toggle('off', !fr && g < c);
   }
 }
 

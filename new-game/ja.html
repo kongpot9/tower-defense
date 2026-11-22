@@ -813,7 +813,7 @@ const validDeck = (d) => Array.isArray(d) && d.length === 8 && new Set(d).size =
 const S = { screen: 'home', deck: null, best: 0, speed: 1 };
 function newBattle() {
   Object.assign(S, {
-    mode: 'normal', dgLeft: 0, dgKills: 0,
+    mode: 'normal', dgLeft: 0, dgKills: 0, freeUp: 0,
     wave: 0, waveT: BAL.waveLen - 3, queue: [], spawnT: 0, spawnGap: 1,
     gold: BAL.startGold, picks: 0, upN: 0, kills: 0, time: 0,
     units: new Array(SLOTS).fill(null), enemies: [], projs: [], fx: [], pools: [],
@@ -1533,7 +1533,10 @@ function buffNote(b) {
 }
 function offerHTML(o, i) {
   let ico, name, tag, desc, note = '';
-  if (o.k === 'lvGold') {
+  if (o.k === 'freeUp') {
+    ico = '<span class="rc-ico" style="--c:#CFE3F7">🎟️</span>'; name = '無料強化券'; tag = '<span class="rc-tag" style="background:#2F6BD8">強化</span>';
+    desc = '装備のかわりにもらえます。下のキャラカードひとつをお金なしで1回強化！'; note = 'もらったら強化するキャラカードを押してね' + (S.freeUp ? ' · いま ' + S.freeUp + '枚' : '');
+  } else if (o.k === 'lvGold') {
     ico = '<span class="rc-ico" style="--c:#EDD38A">💰</span>'; name = 'お金'; tag = '<span class="rc-tag" style="background:#B8860B">とくべつ</span>';
     desc = 'お金 ' + (100 + 10 * S.wave) + 'をすぐもらえます'; note = '装備を全部覚醒させたのでもらえるプレゼント';
   } else if (o.k === 'itemNew' || o.k === 'itemUp' || o.k === 'itemAwake') {
@@ -1676,6 +1679,7 @@ function openLvGift() {
   opts.sort(() => Math.random() - 0.5);
   const out = opts.slice(0, 3);
   if (out.length < 3) out.push({ k: 'lvGold' });
+  if (S.wave >= 30) out.push({ k: 'freeUp' });                  // 🎟️ 30웨이브부터: 装備 대신 캐릭터 無料強化券 (2026-11-21 예준이 결정)
   S.choosing = true; S.chooseMode = 'lv'; S.offer = out; select(-1);
   $('#rwTitle').textContent = 'レベルアップ！Lv.' + (S.lv - S.pendingLv + 1);
   $('#rwSub').textContent = 'とくべつなプレゼントをひとつえらんでね';
@@ -1695,6 +1699,7 @@ function pickLv(o) {
   const d = o.id && ITEM_BY[o.id], it = o.id && S.items.find((x) => x.id === o.id);
   S.pendingLv--; S.offer = null; S.chooseMode = null; S.choosing = false; $('#rewardOv').hidden = true;
   if (o.k === 'lvGold') { const g = 100 + 10 * S.wave; S.gold += g; say('💰 お金 +' + g); return; }
+  if (o.k === 'freeUp') { S.freeUp = (S.freeUp || 0) + 1; say('🎟️ 無料強化券！強化するキャラカードを押してね', BLUE); return; }
   const same = S.items.filter((x) => x.id === o.id);          // 같은 장비는 レベル · 각성을 같이 써요
   if (o.k === 'itemUp') { same.forEach((x) => x.lv++); say('🎁 ' + d.name + ' Lv.' + it.lv + '!' + (same.length > 1 ? ' (' + same.length + '個いっしょに）' : ''), '#B8860B'); return; }
   if (o.k === 'itemAwake') { same.forEach((x) => { x.awake = true; }); S.banner = { s: d.aname + '!', t: 0, c: '#B8860B' }; return; }
@@ -1763,9 +1768,10 @@ function pick(i) {
 }
 function upgrade(id, el) {
   if (S.over || S.watching) return;
-  const cost = upCost(id);
-  if (S.gold < cost) { toast('強化するお金が足りません'); shake(el); return; }
-  S.gold -= cost; S.levels[id]++; S.upN++;
+  const cost = upCost(id), free = S.freeUp > 0;
+  if (!free && S.gold < cost) { toast('強化するお金が足りません'); shake(el); return; }
+  if (free) { S.freeUp--; toast('🎟️ 無料強化！' + (S.freeUp ? ' (のこり ' + S.freeUp + '枚)' : '')); } else S.gold -= cost;
+  S.levels[id]++; S.upN++;
   el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
   for (const u of S.units) {
     if (u && u.type === id) {
@@ -1831,7 +1837,7 @@ function tryMerge(from, to) {                                // 同じキャラ 
   S.units[from] = null;
   S.units[to] = { type: id, slot: to, cd: 0, born: 0, anim: 0, lunge: 0, lx: 0, ly: 0 };
   if (itTo) itTo.unit = S.units[to];                         // 장비는 합성된 캐릭터가 이어받고
-  if (itFrom) itFrom.unit = null;                            // 남은 장비는 가방으로
+  if (itFrom) itFrom.unit = null;                            // のこり 장비는 가방으로
   S.merges++;
   fx({ k: 'pop', x: p.x, y: p.y, life: 0.5 });
   fx({ k: 'text', x: p.x, y: p.y - 44, s: (up === 2 ? '大当たり！ ' : '合成！ ') + BY[id].name, c: up === 2 ? RED : BLUE, life: 1.3, size: up === 2 ? 17 : 14 });
@@ -2369,12 +2375,12 @@ function syncHUD() {
   const counts = {};
   for (const u of S.units) if (u) counts[u.type] = (counts[u.type] || 0) + 1;
   for (const d of deckEls) {
-    const lv = S.levels[d.id], c = upCost(d.id), n = counts[d.id] || 0, k = lv + ':' + n + ':' + (g >= c);
+    const fr = S.freeUp > 0, lv = S.levels[d.id], c = upCost(d.id), n = counts[d.id] || 0, k = lv + ':' + n + ':' + (g >= c) + ':' + fr;
     if (d.k === k) continue;
     d.k = k;
-    d.lv.textContent = 'Lv.' + lv; d.cost.textContent = c;
+    d.lv.textContent = 'Lv.' + lv; d.cost.textContent = fr ? '無料' : c;   // 🎟️ 無料 강화권이 있으면 '無料'
     d.cnt.textContent = n; d.cnt.dataset.zero = n ? '0' : '1';
-    d.el.classList.toggle('off', g < c);
+    d.el.classList.toggle('off', !fr && g < c);
   }
 }
 
