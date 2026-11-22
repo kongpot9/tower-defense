@@ -249,6 +249,8 @@ img.ic{width:22px;height:22px;object-fit:contain;vertical-align:-5px;margin:0 2p
 .up-list button{font-size:13px;padding:6px 9px;display:flex;align-items:center;gap:3px;white-space:nowrap}
 .up-list button img{width:16px;height:16px}
 .yard .village{position:absolute;inset:0}
+.yard .walk{position:absolute;inset:0;pointer-events:none}
+.walker{position:absolute;left:0;top:0;object-fit:contain;object-position:50% 100%;pointer-events:none;filter:drop-shadow(0 2px 0 rgba(27,34,50,.2))}
 .plot{position:absolute;transform:translate(-50%,-100%);background:none;border:0;padding:0;cursor:pointer;display:flex;flex-direction:column;align-items:center}
 .plot img{display:block;width:100%;height:auto;filter:drop-shadow(0 3px 0 rgba(27,34,50,.25))}
 .plot.empty img{opacity:.28;filter:grayscale(1)}
@@ -312,7 +314,7 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
   <!-- ===== 홈 ===== -->
   <section id="home" class="screen home">
     <!-- 🏰 로비 = 내 마을: 마을 성 그림이 화면을 꽉 채우고, 위에 코인 · 버튼, 아래에 전투 버튼 (2026-11-21 예준이 결정: 제목 글자 빼기) -->
-    <div class="yard" id="yard"><canvas id="yardCv" aria-label="내 마을"></canvas><div class="village" id="village"></div></div>
+    <div class="yard" id="yard"><canvas id="yardCv" aria-label="내 마을"></canvas><div class="walk" id="walk"></div><div class="village" id="village"></div></div>
     <div class="wallet"><span><img src="art/coin.png" alt="코인"><b id="wCoin">0</b></span><span><img src="art/crystal.png" alt="크리스탈"><b id="wCrystal">0</b></span></div>
     <div class="lobby-top">
       <button class="btn btn-sm btn-gold starter" id="bStarter" type="button" hidden>🎁 입문 상자 세트</button>
@@ -2732,6 +2734,7 @@ function renderVillage() {
     const locked = !on && (B.hold || (p.b === 'mold' && (META.games || 0) < B.needGames));
     el.className = 'plot' + (on ? '' : ' empty') + (locked ? ' locked' : '');
     el.style.left = (g.dx + p.x * g.dw) + 'px'; el.style.top = (g.dy + p.y * g.dh) + 'px'; el.style.width = (p.w * g.dw) + 'px';
+    el.style.zIndex = Math.round(g.dy + p.y * g.dh);              // 돌아다니는 캐릭터랑 앞뒤 순서 맞추기
     el.innerHTML = '<img src="' + B.img + '" alt="">' + (on && bldReady(p.b, p.i) ? '<span class="ready">!</span>' : '');
     el.setAttribute('aria-label', B.name);
     el.addEventListener('click', () => openBld(p.b, p.i));
@@ -2833,19 +2836,42 @@ setInterval(() => { if (S.screen === 'home') renderVillage(); }, 30000);   // �
 const VILLAGE = new Image(); VILLAGE.src = 'art/village.jpg';
 const YARD = { wall: 0.6, wallAt: 0.42, cv: null, ctx: null, key: '', bg: null, walkers: [], deckKey: '' };
 function yardInit() { YARD.key = ''; }
-/* 🚶 마을 산책 (2026-11-22 예준이 요청): 내 덱 캐릭터 8명이 성벽 안 마당을 돌아다녀요 */
-const WALK = { speed: 22, size: 46, rest: [1, 4] };
-function yardWalkers(top, bot, w) {
-  const ids = (S.deck || []).filter((id) => BY[id]), key = ids.join() + '|' + Math.round(top) + '|' + Math.round(bot) + '|' + Math.round(w);
-  if (key === YARD.deckKey) return;
+/* 🚶 마을 산책 (2026-11-22 예준이 요청): 내 덱 캐릭터 8명이 건물 주변을 돌아다녀요
+   자리 = 마을 그림 안의 비율 (건물 자리 PLOTS랑 같은 방식) · 건물보다 뒤에 있으면 건물에 가려져요 */
+const WALK = { x: [0.17, 0.83], y: [0.40, 0.515], size: 0.062, speed: 0.035, rest: [1, 4] };
+function yardWalkers() {
+  const box = $('#walk'); if (!box) return;
+  const ids = (S.deck || []).filter((id) => BY[id]), key = ids.join();
+  if (key === YARD.deckKey && box.childElementCount === YARD.walkers.length) return;
   const old = {}; for (const k of YARD.walkers) old[k.id] = k;
-  const rnd = (a, b) => a + Math.random() * (b - a), pad = WALK.size / 2;
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  box.innerHTML = '';
   YARD.walkers = ids.map((id) => {
-    const k = old[id] || { id, x: rnd(pad, w - pad), y: rnd(top, bot), tx: 0, ty: 0, wait: rnd(0, 2), face: Math.random() < 0.5 ? -1 : 1, ph: rnd(0, 6) };
-    k.x = Math.min(w - pad, Math.max(pad, k.x)); k.y = Math.min(bot, Math.max(top, k.y)); k.tx = k.x; k.ty = k.y;
-    return k;
+    const k = old[id] || { id, x: rnd(WALK.x[0], WALK.x[1]), y: rnd(WALK.y[0], WALK.y[1]), wait: rnd(0, 2), ph: rnd(0, 6) };
+    k.tx = k.x; k.ty = k.y;
+    k.el = document.createElement('img'); k.el.className = 'walker'; k.el.src = BY[id].img; k.el.alt = '';
+    box.appendChild(k.el); return k;
   });
-  YARD.area = { top, bot, w }; YARD.deckKey = key;
+  YARD.deckKey = key;
+}
+function yardWalk(dt) {
+  const g = YARD.geo; if (!g) return;
+  yardWalkers();
+  const now = performance.now() / 1000, sz = WALK.size * g.dw;
+  for (const k of YARD.walkers) {
+    if (k.wait > 0) {
+      k.wait -= dt;
+      if (k.wait <= 0) { k.tx = WALK.x[0] + Math.random() * (WALK.x[1] - WALK.x[0]); k.ty = WALK.y[0] + Math.random() * (WALK.y[1] - WALK.y[0]); }
+    } else {
+      const ddx = (k.tx - k.x) * g.dw, ddy = (k.ty - k.y) * g.dh, d = Math.hypot(ddx, ddy), st = WALK.speed * g.dw * dt;
+      if (d <= st) { k.x = k.tx; k.y = k.ty; k.wait = WALK.rest[0] + Math.random() * (WALK.rest[1] - WALK.rest[0]); }
+      else { k.x += ddx / d * st / g.dw; k.y += ddy / d * st / g.dh; }
+    }
+    const hop = k.wait <= 0 ? Math.abs(Math.sin(now * 9 + k.ph)) * sz * 0.07 : 0, px = g.dx + k.x * g.dw, py = g.dy + k.y * g.dh;
+    const st = k.el.style; st.width = sz + 'px'; st.height = sz + 'px';
+    st.transform = 'translate(' + (px - sz / 2).toFixed(1) + 'px,' + (py - sz - hop).toFixed(1) + 'px)';
+    st.zIndex = Math.round(py);                                  // 아래(앞)에 있을수록 위에 보여요 · 건물도 같은 규칙
+  }
 }
 function yardTick(dt) {
   const cv = YARD.cv || (YARD.cv = $('#yardCv'));
@@ -2870,30 +2896,7 @@ function yardTick(dt) {
   }
   c.setTransform(1, 0, 0, 1, 0, 0);
   c.drawImage(YARD.bg, 0, 0);
-  if (!YARD.geo) return;
-  const g = YARD.geo, lb = $('.lobby-bottom'), lbTop = lb && lb.offsetParent ? lb.getBoundingClientRect().top - r.top : r.height;
-  const top = g.dy + (YARD.wall + 0.06) * g.dh + WALK.size * 0.6, bot = Math.min(r.height, lbTop) - 6;   // 성벽 안 마당 (아래 패널 위까지)
-  if (bot - top < 20) return;
-  yardWalkers(top, bot, r.width);
-  const pad = WALK.size / 2, now = performance.now() / 1000;
-  for (const k of YARD.walkers) {
-    if (k.wait > 0) {
-      k.wait -= dt;
-      if (k.wait <= 0) { k.tx = pad + Math.random() * (r.width - 2 * pad); k.ty = top + Math.random() * (bot - top); }
-    } else {
-      const ddx = k.tx - k.x, ddy = k.ty - k.y, d = Math.hypot(ddx, ddy), st = WALK.speed * dt;
-      if (d <= st) { k.x = k.tx; k.y = k.ty; k.wait = WALK.rest[0] + Math.random() * (WALK.rest[1] - WALK.rest[0]); }
-      else { k.x += ddx / d * st; k.y += ddy / d * st; if (Math.abs(ddx) > 1) k.face = ddx < 0 ? -1 : 1; }
-    }
-  }
-  c.setTransform(dpr, 0, 0, dpr, 0, 0);
-  for (const k of YARD.walkers.slice().sort((a, b) => a.y - b.y)) {   // 아래(앞)에 있는 캐릭터가 위에 그려져요
-    const im = imgReady(k.id); if (!im) continue;
-    const moving = k.wait <= 0, hop = moving ? Math.abs(Math.sin(now * 9 + k.ph)) * 3 : 0;
-    const s = WALK.size / Math.max(im.naturalWidth, im.naturalHeight), w = im.naturalWidth * s, h = im.naturalHeight * s;
-    c.fillStyle = 'rgba(27,34,50,0.18)'; c.beginPath(); c.ellipse(k.x, k.y, w * 0.38, 4, 0, 0, Math.PI * 2); c.fill();
-    c.drawImage(im, k.x - w / 2, k.y - hop - h, w, h);            // 예준이 그림 그대로 (뒤집지 않아요)
-  }
+  yardWalk(dt);
 }
 window.addEventListener('resize', () => { YARD.key = ''; });
 
@@ -3405,7 +3408,7 @@ function start(data) {
   requestAnimationFrame(frame);
 }
 window.claude?.hot?.snapshot?.(() => ({ deck: S.deck }));
-window.__td = { S, BAL, CHARS, FOES, avgDps, avgHit, hurt, potAsleep, unitRate, mk: () => makeEnemy(false), makeEnemyOf: (f) => { const e = makeEnemy(false); const hp = f.fixedHp || BAL.hp0 * Math.pow(BAL.hpGrow, S.wave - 1) * f.hp; return Object.assign(e, { foe: f, hp, maxHp: hp, shieldCd: f.shield ? 1 : 0 }); }, pick, offerHTML, equip, upgrade: (id) => upgrade(id, deckbar.querySelector('[data-id="' + id + '"]')), startBattle };
+window.__td = { YARD, S, BAL, CHARS, FOES, avgDps, avgHit, hurt, potAsleep, unitRate, mk: () => makeEnemy(false), makeEnemyOf: (f) => { const e = makeEnemy(false); const hp = f.fixedHp || BAL.hp0 * Math.pow(BAL.hpGrow, S.wave - 1) * f.hp; return Object.assign(e, { foe: f, hp, maxHp: hp, shieldCd: f.shield ? 1 : 0 }); }, pick, offerHTML, equip, upgrade: (id) => upgrade(id, deckbar.querySelector('[data-id="' + id + '"]')), startBattle };
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
 </script>
