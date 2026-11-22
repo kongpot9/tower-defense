@@ -2693,7 +2693,7 @@ $('#bBoxClose').addEventListener('click', () => { $('#boxOv').hidden = true; });
 /* ===== 🏘️ 마을 건물 (그림 · 기능 · 가격: 구예준, 2026-11-21) =====
    성벽 뒤에 건물을 지어요. 시간 · 출석으로 코인 · 크리스탈을 주거나, 던전에 들어가요.
    '출석' = 그날 처음 들어왔을 때 (하루에 한 번) */
-const DUNGEON = { time: 600, bossHp: 450, reward: 1000, coin: 20000, gap: [3, 0.8], cap: 150, gift: 4 };   // 10분 · 잡은 보스 하나마다 💎1000 + 🪙20000 (5마리면 🪙10만, 2026-11-21 예준이 결정)
+const DUNGEON = { time: 600, bossHp: 450, reward: 1000, coin: 20000, gap: [3, 0.8], cap: 150, gift: 4, perDay: 5 };   // perDay: 하루에 5번만 들어갈 수 있어요 (2026-11-22 예준이 결정)   // 10분 · 잡은 보스 하나마다 💎1000 + 🪙20000 (5마리면 🪙10만, 2026-11-21 예준이 결정)
 // 2026-11-22 예준이 결정: 보스 체력 25배 (18 → 450) · 보스가 끝없이 몰려와요 (3초마다 → 10분 끝엔 0.8초마다) · 던전은 지는 게 없어요 (100마리 패배 없음)
 // cap = 화면에 보스가 너무 많으면 (150마리) 잠깐 안 나와요 (폰이 버벅이지 않게)
 const BLD = {
@@ -2788,7 +2788,13 @@ function openBld(b, i) {
     } else btns.appendChild(bldBtn(b === 'mold' ? coinIco + '10,000 받기' : crysIco + '500 받기', () => b === 'mold' ? take(10000, 0) : take(0, 500), !ready));
   } else if (b === 'dungeon') {
     $('#bldNote').textContent = '10분 동안 보스가 끝없이 몰려와요! 지는 건 없어요. 잡은 보스 하나마다 보상';
-    btns.appendChild(bldBtn('🕳️ 던전 들어가기', () => { $('#bldOv').hidden = true; startBattle('dungeon'); }));
+    const left = dgLeftToday();
+    $('#bldNote').textContent += ' · 오늘 남은 입장 ' + left + '/' + DUNGEON.perDay + (left ? '' : ' (내일 또 들어갈 수 있어요)');
+    btns.appendChild(bldBtn('🕳️ 던전 들어가기', () => {
+      if (dgLeftToday() <= 0) return;
+      META.dgDay = { day: dayKey(Date.now()), n: DUNGEON.perDay - dgLeftToday() + 1 }; metaSave();   // 🎟️ 들어갈 때 1번 써요 (중간에 나가도 1번)
+      $('#bldOv').hidden = true; startBattle('dungeon');
+    }, left <= 0));
   } else if (b === 'dwarf') {
     const need = dwarfNeed(x);
     $('#bldNote').textContent = '토큰 ' + x.tokens + ' / ' + need + (bldReady(b, i) ? ' · 오늘 토큰을 받을 수 있어요!' : ' · 내일 또 받아요');
@@ -2797,6 +2803,7 @@ function openBld(b, i) {
   }
   $('#bldOv').hidden = false;
 }
+const dgLeftToday = () => { const d = META.dgDay; return DUNGEON.perDay - (d && d.day === dayKey(Date.now()) ? d.n : 0); };   // 오늘 남은 던전 입장
 const leftTxt = (ms) => { const m = Math.max(1, Math.ceil(ms / 60000)); return m >= 60 ? Math.floor(m / 60) + '시간 ' + (m % 60) + '분' : m + '분'; };
 const dwarfNeed = (x) => (x.used ? 30 : 10);                     // 처음엔 10개, 그다음부터 30개
 function openDwarf() {
