@@ -240,6 +240,7 @@ h1,h2,p{margin:0}
 .go-earn img{width:22px;height:22px;object-fit:contain}
 .btn-gold{background:#F2C440;color:var(--ink)}
 .btn-red{background:#C9403A;color:var(--paper)}
+.nick-row .btn{white-space:nowrap;flex-shrink:0}
 img.ic{width:22px;height:22px;object-fit:contain;vertical-align:-5px;margin:0 2px}
 .up-list li{grid-template-columns:40px 1fr auto}
 .up-list .stk{width:36px;height:36px;font-size:18px}
@@ -320,6 +321,7 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
       <button class="btn btn-sm" id="bRank" type="button">🏆 랭킹</button>
       <button class="btn btn-sm" id="bWatch" type="button" hidden>👀 관전</button>
       <button class="btn btn-sm" id="bLang" type="button" hidden>🌐 日本語</button>
+      <button class="btn btn-sm" id="bCouponOpen" type="button">🎟️ 쿠폰</button>
       <button class="btn btn-sm" id="bSettings" type="button" aria-label="설정">⚙️</button>
     </div>
     <div class="lobby-space"></div>
@@ -441,13 +443,20 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
   </section>
 
   <!-- ===== 🏆 랭킹 ===== -->
+  <div class="ov ov-fixed" id="couponOv" hidden>
+    <div class="ov-card">
+      <h2>🎟️ 쿠폰</h2>
+      <p class="sub">받은 쿠폰 코드를 넣어요 · 쿠폰은 한 번씩만 받을 수 있어요</p>
+      <div class="nick-row"><input id="couponIn" maxlength="24" placeholder="쿠폰 코드" autocomplete="off"><button class="btn btn-sm btn-blue" id="bCoupon" type="button">받기</button></div>
+      <p class="rank-note" id="couponNote"></p>
+      <div class="ov-btns"><button class="btn" id="bCouponClose" type="button">닫기</button></div>
+    </div>
+  </div>
   <div class="ov ov-fixed" id="setOv" hidden>
     <div class="ov-card">
       <h2>⚙️ 설정</h2>
       <p class="sub">계정 초기화를 하면 이 기기의 <b>코인 · 크리스탈 · 해금한 캐릭터 · ⭐레벨 · 마을 · 레이팅 · 덱 · 이어하기</b>가 전부 처음으로 돌아가요</p>
       <p class="bld-note">랭킹 서버에 올라간 기록은 그대로 남아요 (역대 기록은 지워지지 않아요)</p>
-      <div class="nick-row"><label for="couponIn">🎟️ 쿠폰</label><input id="couponIn" maxlength="24" placeholder="쿠폰 코드" autocomplete="off"><button class="btn btn-sm btn-blue" id="bCoupon" type="button">받기</button></div>
-      <p class="rank-note" id="couponNote"></p>
       <div class="ov-btns"><button class="btn btn-red big" id="bReset" type="button">🗑️ 계정 초기화</button><button class="btn" id="bSetClose" type="button">닫기</button></div>
     </div>
   </div>
@@ -2627,6 +2636,8 @@ const COUPONS = {
   // D님 배상 (claude.ai 버전에서 세운 121웨이브 기록이 안 남아서, 2026-11-22 예준이 결정)
   '74okd2': { id: 'd121', coin: 12100, crystal: 1063, wave: 121, msg: 'D님 배상' },
 };
+$('#bCouponOpen').addEventListener('click', () => { $('#couponIn').value = ''; $('#couponNote').textContent = ''; $('#couponOv').hidden = false; });
+$('#bCouponClose').addEventListener('click', () => { $('#couponOv').hidden = true; });
 $('#bCoupon').addEventListener('click', async () => {
   const note = $('#couponNote'), c = COUPONS[hashCode($('#couponIn').value || '')];
   if (!c) { note.textContent = '없는 쿠폰이에요'; return; }
