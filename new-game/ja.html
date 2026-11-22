@@ -30,6 +30,7 @@
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
+*{touch-action:manipulation}   /* 🔍 광클해도 확대 안 되게 (2026-11-22 예준이 요청) — 스크롤되는 창 안쪽까지 전부 */
 html{height:100%;background:var(--desk);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{height:100%;margin:0;background:var(--desk);color:var(--paper);font-family:var(--f-ui);font-size:15px;overflow:hidden;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
@@ -3267,6 +3268,9 @@ $('#bPlay').addEventListener('click', () => {
 });
 $('#bLoad').addEventListener('click', resumeBattle);
 window.addEventListener('pagehide', saveGame);
+// 🔍 아이폰: 두 손가락 확대 · 두 回 탭 확대 막기 (광클 확대 방지)
+for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, (e) => e.preventDefault(), { passive: false });
+document.addEventListener('dblclick', (e) => e.preventDefault(), { passive: false });
 $('#bRetry').addEventListener('click', () => startBattle(S.mode));
 $('#bHome').addEventListener('click', () => show('home'));
 $('#popSell').addEventListener('click', sell);
