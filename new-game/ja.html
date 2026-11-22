@@ -330,7 +330,7 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
       <button class="btn btn-blue big" id="bLoad" type="button" hidden>▶ つづきから</button>
       <button class="btn btn-blue big" id="bPlay" type="button">バトル開始</button>
     </div>
-    <p class="foot">キャラ31人・敵8種・タレット・トラップ・お城まで全部イェジュンの絵！バフアイテムだけまだ仮です。</p>
+    <p class="foot">キャラ32人・敵8種・タレット・トラップ・お城まで全部イェジュンの絵！バフアイテムだけまだ仮です。</p>
     </div>
   </section>
 
@@ -671,7 +671,7 @@ const CHARS = [
     dmg: 60,   rate: 1 / 1,    range: 150, melee: 'slash', drill: { cost: 250, time: 20, dmg: 800, every: 0.4, splash: 40 },
     desc: '小さくて弱い子。お金250をはらうと20秒間ドリルカーに乗ってまわりをけずりまくります。' },
   { id: 'tenjo',    name: 'テンゾー',         img: 'art/tenjo.png',    grade: 'レア', color: '#F6AE6B', role: '忍者',   pref: 'back',
-    dmg: 70,   rate: 1 / 0.25, range: 260, proj: 'paper', desc: 'テスト用紙を手裏剣みたいに投げます。めちゃくちゃ速い。' },
+    dmg: 70,   rate: 1 / 0.25, range: 260, proj: 'paper', wake: true, desc: 'テスト用紙を手裏剣みたいに投げます。めちゃくちゃ速い。上下左右のとなりの🪴テンハンをいつも起こしておきます！' },
   { id: 'stein',    name: 'デスシュタイン',   img: 'art/stein.png',    grade: 'ヒーロー', color: '#C2E07A', role: '感電',   pref: 'back',
     dmg: 300,  rate: 1 / 0.8,  range: 250, proj: 'punch', chainP: 0.3, chainN: 3, desc: 'パンチを飛ばします。30%の確率で感電して、となりの敵3体にも同じダメージ！' },
   { id: 'lumber',   name: 'きこり',       img: 'art/lumber.png',   grade: 'ヒーロー', color: '#D9A880', role: '近距離', pref: 'front',
@@ -744,6 +744,10 @@ const CHARS = [
     dmg: 900,  rate: 1 / 0.8,  range: 300, proj: 'fan', desc: 'せんすを投げると敵をどこまでも追いかけて当てます。' },
   { id: 'catmachine', name: 'キャットマシン',     img: 'art/catmachine.png', grade: '伝説', color: '#F4C7A1', role: '範囲', pref: 'back',
     dmg: 600,  rate: 1 / 0.5,  range: 250, proj: 'missile', splash: 30, desc: 'ミサイルを速くうってまわりまでばくはつさせます。' },
+  // 🛬 재입국 (2026-11-22 예준이 결정): テンハン — 777 숫자(400 · 0.5秒 · 範囲 55)를 が 게임 크기로 ×4 (Claude)
+  { id: 'tenhan', name: 'テンハン', img: 'art/tenhan.png', grade: '伝説', color: '#CFE8A8', role: '植木鉢', pref: 'front',
+    dmg: 1600, rate: 1 / 0.5, range: 150, proj: 'orb', splash: 55, pot: 3,
+    desc: '植木鉢に住む妖怪。3ウェーブに1回だけ鉢から出てきて圧倒的に戦います。🔥テンゾーが上下左右のとなりにいるといつも起きています！' },
 ];
 const BY = {}; CHARS.forEach((c) => { BY[c.id] = c; });
 
@@ -1346,7 +1350,9 @@ function update(dt) {
     if (u.drillT > 0) u.drillT -= dt;
     unitTimers(u, BY[u.type], dt);
     if (u.cd <= 0 && u.born > 0.3 && !BY[u.type].support) {
-      const def = BY[u.type], t = findTarget(u, def);
+      const def = BY[u.type];
+      if (def.pot && potAsleep(u)) { u.cd = 0.2; continue; }          // 🪴 テンハン: 화분에서 쉬는 중
+      const t = findTarget(u, def);
       if (t) { attack(u, def, t); u.cd += 1 / (unitRate(u, def) * (1 + S.buff.spd) * spdMul()); if (u.cd < 0) u.cd = 0; } else u.cd = 0.1;
     }
     const dd = BY[u.type];
@@ -2039,7 +2045,21 @@ function drawItemBadge(u) {                                   // 🎁 끼운 장
   ctx.drawImage(im, p.x - 18 - im.naturalWidth * k / 2, p.y + 19 - im.naturalHeight * k / 2, im.naturalWidth * k, im.naturalHeight * k);
   ctx.restore();
 }
+// 🪴 텐한은 3웨이브에 1번만 나와요 · 🔥텐조가 상하좌우 바로 옆 칸에 있으면 항상 깨어 있어요 (777 그대로)
+function potAwoken(u) {
+  const r = Math.floor(u.slot / COLS), c = u.slot % COLS;
+  return [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]].some(([rr, cc]) => rr >= 0 && rr < ROWS && cc >= 0 && cc < COLS && S.units[rr * COLS + cc] && BY[S.units[rr * COLS + cc].type].wake);
+}
+const potAsleep = (u) => S.wave % BY[u.type].pot !== 0 && !potAwoken(u);
 function drawUnit(u, at) {
+  if (!at && BY[u.type].pot && potAsleep(u)) {             // 💤 화분에서 쉬는 중: 흐리게 + 💤
+    ctx.save(); ctx.globalAlpha = 0.45; drawUnit0(u, at); ctx.restore();
+    const p = slotXY(u.slot); ctx.font = '14px ' + UIF; ctx.textAlign = 'center'; ctx.fillText('💤', p.x + 16, p.y - 20 + Math.sin(S.time * 3) * 2);
+    return;
+  }
+  drawUnit0(u, at);
+}
+function drawUnit0(u, at) {
   const c = ctx, def = BY[u.type], p = at || slotXY(u.slot);
   let s = u.born < 0.3 ? Math.max(0.01, easeBack(u.born / 0.3)) : 1;
   if (u.anim > 0) s *= 1 + u.anim * 0.9;

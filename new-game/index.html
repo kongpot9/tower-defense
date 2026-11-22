@@ -329,7 +329,7 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
       <button class="btn btn-blue big" id="bLoad" type="button" hidden>▶ 이어하기</button>
       <button class="btn btn-blue big" id="bPlay" type="button">전투 시작</button>
     </div>
-    <p class="foot">캐릭터 31명 · 적 8종 · 터렛 · 트랩 · 성까지 전부 예준이 그림! 버프템만 아직 임시예요.</p>
+    <p class="foot">캐릭터 32명 · 적 8종 · 터렛 · 트랩 · 성까지 전부 예준이 그림! 버프템만 아직 임시예요.</p>
     </div>
   </section>
 
@@ -670,7 +670,7 @@ const CHARS = [
     dmg: 60,   rate: 1 / 1,    range: 150, melee: 'slash', drill: { cost: 250, time: 20, dmg: 800, every: 0.4, splash: 40 },
     desc: '작고 약한 아이. 돈 250을 내면 20초 동안 드릴차를 타고 주변을 갈아 버려요.' },
   { id: 'tenjo',    name: '텐조',         img: 'art/tenjo.png',    grade: '희귀', color: '#F6AE6B', role: '닌자',   pref: 'back',
-    dmg: 70,   rate: 1 / 0.25, range: 260, proj: 'paper', desc: '시험지를 수리검처럼 던져요. 엄청 빨라요.' },
+    dmg: 70,   rate: 1 / 0.25, range: 260, proj: 'paper', wake: true, desc: '시험지를 수리검처럼 던져요. 엄청 빨라요. 상하좌우 바로 옆의 🪴텐한을 항상 깨워 둬요!' },
   { id: 'stein',    name: '데스슈타인',   img: 'art/stein.png',    grade: '영웅', color: '#C2E07A', role: '감전',   pref: 'back',
     dmg: 300,  rate: 1 / 0.8,  range: 250, proj: 'punch', chainP: 0.3, chainN: 3, desc: '주먹을 날려요. 30% 확률로 감전돼서 옆에 있는 적 3명도 같은 피해!' },
   { id: 'lumber',   name: '나무꾼',       img: 'art/lumber.png',   grade: '영웅', color: '#D9A880', role: '근거리', pref: 'front',
@@ -743,6 +743,10 @@ const CHARS = [
     dmg: 900,  rate: 1 / 0.8,  range: 300, proj: 'fan', desc: '부채를 던지면 적을 끝까지 따라가 맞혀요.' },
   { id: 'catmachine', name: '캣머신',     img: 'art/catmachine.png', grade: '전설', color: '#F4C7A1', role: '광역', pref: 'back',
     dmg: 600,  rate: 1 / 0.5,  range: 250, proj: 'missile', splash: 30, desc: '미사일을 빠르게 쏴서 주변까지 터뜨려요.' },
+  // 🛬 재입국 (2026-11-22 예준이 결정): 텐한 — 777 숫자(400 · 0.5초 · 광역 55)를 이 게임 크기로 ×4 (Claude)
+  { id: 'tenhan', name: '텐한', img: 'art/tenhan.png', grade: '전설', color: '#CFE8A8', role: '화분', pref: 'front',
+    dmg: 1600, rate: 1 / 0.5, range: 150, proj: 'orb', splash: 55, pot: 3,
+    desc: '화분에 사는 요괴. 3웨이브에 1번만 화분에서 나와서 압도적으로 싸워요. 🔥텐조가 상하좌우 바로 옆에 있으면 항상 깨어 있어요!' },
 ];
 const BY = {}; CHARS.forEach((c) => { BY[c.id] = c; });
 
@@ -1345,7 +1349,9 @@ function update(dt) {
     if (u.drillT > 0) u.drillT -= dt;
     unitTimers(u, BY[u.type], dt);
     if (u.cd <= 0 && u.born > 0.3 && !BY[u.type].support) {
-      const def = BY[u.type], t = findTarget(u, def);
+      const def = BY[u.type];
+      if (def.pot && potAsleep(u)) { u.cd = 0.2; continue; }          // 🪴 텐한: 화분에서 쉬는 중
+      const t = findTarget(u, def);
       if (t) { attack(u, def, t); u.cd += 1 / (unitRate(u, def) * (1 + S.buff.spd) * spdMul()); if (u.cd < 0) u.cd = 0; } else u.cd = 0.1;
     }
     const dd = BY[u.type];
@@ -2038,7 +2044,21 @@ function drawItemBadge(u) {                                   // 🎁 끼운 장
   ctx.drawImage(im, p.x - 18 - im.naturalWidth * k / 2, p.y + 19 - im.naturalHeight * k / 2, im.naturalWidth * k, im.naturalHeight * k);
   ctx.restore();
 }
+// 🪴 텐한은 3웨이브에 1번만 나와요 · 🔥텐조가 상하좌우 바로 옆 칸에 있으면 항상 깨어 있어요 (777 그대로)
+function potAwoken(u) {
+  const r = Math.floor(u.slot / COLS), c = u.slot % COLS;
+  return [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]].some(([rr, cc]) => rr >= 0 && rr < ROWS && cc >= 0 && cc < COLS && S.units[rr * COLS + cc] && BY[S.units[rr * COLS + cc].type].wake);
+}
+const potAsleep = (u) => S.wave % BY[u.type].pot !== 0 && !potAwoken(u);
 function drawUnit(u, at) {
+  if (!at && BY[u.type].pot && potAsleep(u)) {             // 💤 화분에서 쉬는 중: 흐리게 + 💤
+    ctx.save(); ctx.globalAlpha = 0.45; drawUnit0(u, at); ctx.restore();
+    const p = slotXY(u.slot); ctx.font = '14px ' + UIF; ctx.textAlign = 'center'; ctx.fillText('💤', p.x + 16, p.y - 20 + Math.sin(S.time * 3) * 2);
+    return;
+  }
+  drawUnit0(u, at);
+}
+function drawUnit0(u, at) {
   const c = ctx, def = BY[u.type], p = at || slotXY(u.slot);
   let s = u.born < 0.3 ? Math.max(0.01, easeBack(u.born / 0.3)) : 1;
   if (u.anim > 0) s *= 1 + u.anim * 0.9;
