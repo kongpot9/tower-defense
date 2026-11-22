@@ -239,6 +239,7 @@ h1,h2,p{margin:0}
 .go-earn span{display:flex;align-items:center;gap:4px}
 .go-earn img{width:22px;height:22px;object-fit:contain}
 .btn-gold{background:#F2C440;color:var(--ink)}
+.btn-red{background:#C9403A;color:var(--paper)}
 img.ic{width:22px;height:22px;object-fit:contain;vertical-align:-5px;margin:0 2px}
 .up-list li{grid-template-columns:40px 1fr auto}
 .up-list .stk{width:36px;height:36px;font-size:18px}
@@ -320,6 +321,7 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
       <button class="btn btn-sm" id="bRank" type="button">🏆 ランキング</button>
       <button class="btn btn-sm" id="bWatch" type="button" hidden>👀 観戦</button>
       <button class="btn btn-sm" id="bLang" type="button" hidden>🌐 한국어</button>
+      <button class="btn btn-sm" id="bSettings" type="button" aria-label="設定">⚙️</button>
     </div>
     <div class="lobby-space"></div>
     <div class="lobby-bottom">
@@ -440,6 +442,14 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
   </section>
 
   <!-- ===== 🏆 ランキング ===== -->
+  <div class="ov ov-fixed" id="setOv" hidden>
+    <div class="ov-card">
+      <h2>⚙️ 設定</h2>
+      <p class="sub">アカウントをリセットすると、この端末の <b>コイン・クリスタル・解放したキャラ・⭐レベル・村・レーティング・デッキ・つづき</b>が全部最初にもどります</p>
+      <p class="bld-note">ランキングサーバーの記録はそのままのこります（歴代記録は消えません）</p>
+      <div class="ov-btns"><button class="btn btn-red big" id="bReset" type="button">🗑️ アカウントリセット</button><button class="btn" id="bSetClose" type="button">とじる</button></div>
+    </div>
+  </div>
   <div class="ov ov-fixed" id="starterOv" hidden>
     <div class="ov-card rank-card">
       <h2>🎁 スターターボックスセット</h2>
@@ -564,7 +574,7 @@ const BUFFS = [
 ];
 const buffVal = (b, n = S.stacks[b.id] || 0) => (b.id === 'chest' ? chestGold() : b.base) * (1 + n);
 const BUFF_BY = {}; BUFFS.forEach((b) => { BUFF_BY[b.id] = b; });
-// タレット (그림·설정: グ・イェジュン, 2026-11-20) — 레벨은 모든 터렛이 같이 올라요
+// タレット (그림·設定: グ・イェジュン, 2026-11-20) — 레벨은 모든 터렛이 같이 올라요
 const TURRET = { name: 'タレット', img: 'art/turret.png', range: 220, maxLv: 5, tip: { x: 148 / 150, y: 16 / 120 } };
 const TURRET_LV = [null,
   { dmg: 200,  every: 2 },     // Lv.1
@@ -574,7 +584,7 @@ const TURRET_LV = [null,
   { dmg: 1800, every: 0.5 },   // Lv.5
 ];
 const TURRET_IMG = new Image(); TURRET_IMG.src = TURRET.img;
-// トラップ (그림·설정: グ・イェジュン, 2026-11-20) — 거북선처럼 처음부터 성벽 앞에 한 줄로 쭉 깔려 있어요
+// トラップ (그림·設定: グ・イェジュン, 2026-11-20) — 거북선처럼 처음부터 성벽 앞에 한 줄로 쭉 깔려 있어요
 // 1秒ごと 위에 있는 적을 모두 찔러요 · Lv.5가 되면 바로 覚醒トラップ
 const TRAP = { name: 'トラップ', img: 'art/trap.png', maxLv: 5, every: 1, w: 360 };
 const TRAP_LV = [null, 100, 400, 700, 1200, 1900];
@@ -587,7 +597,7 @@ const AWAKE = {
   cannon: { name: '覚醒キャノン', img: 'art/cannon-awake.png', dmg: 7000, every: 1,                         // 메테오는 예준이가 삭제 (2026-11-20)
             h: 34, ratio: 183 / 120, tip: { x: 181 / 183, y: 59 / 120 } },
 };
-// キャノン (그림·설정: グ・イェジュン, 2026-11-20) — 거북선 대포처럼 처음부터 성벽에 1대 · Lv.5 다음에 覚醒
+// キャノン (그림·設定: グ・イェジュン, 2026-11-20) — 거북선 대포처럼 처음부터 성벽에 1대 · Lv.5 다음에 覚醒
 const CANNON = { name: 'キャノン', img: 'art/cannon.png', range: 320, maxLv: 5, h: 30, ratio: 135 / 120, tip: { x: 133 / 135, y: 38 / 120 } };
 const CANNON_LV = [null,
   { dmg: 200,  every: 2 },     // Lv.1
@@ -597,7 +607,7 @@ const CANNON_LV = [null,
   { dmg: 1900, every: 1 },     // Lv.5
 ];
 const CANNON_IMG = new Image(); CANNON_IMG.src = CANNON.img;
-// 👽 エイリアン (그림·설정: グ・イェジュン, 2026-11-21) — 城壁の上に 떠 있는 防衛ユニット · 번개 공격
+// 👽 エイリアン (그림·設定: グ・イェジュン, 2026-11-21) — 城壁の上に 떠 있는 防衛ユニット · 번개 공격
 const ALIEN = {
   yellow: { name: 'イエロー・エイリアン', img: 'art/alien-yellow.png', x: 92,  c: '#F2C440', maxLv: 5 },
   purple: { name: 'パープル・エイリアン', img: 'art/alien-purple.png', x: 290, c: '#8A4FE0', bonusP: 0.2 },   // ウェーブ 선물을 20% 확률로 2回
@@ -625,7 +635,7 @@ const XW = {
 };
 const XW_IMG = {}; for (const k in XW) { XW_IMG[k] = new Image(); XW_IMG[k].src = XW[k].img; XW_IMG[k + ':a'] = new Image(); XW_IMG[k + ':a'].src = XW[k].aimg; }
 const POISON = { time: 6, tick: 0.5, step: 0.03 };
-// 🎁 装備 (그림·설정: グ・イェジュン, 2026-11-21) — レベル 업 とくべつ プレゼント · 캐릭터 하나에 하나씩 끼워요 · Lv.1~5 다음에 覚醒
+// 🎁 装備 (그림·設定: グ・イェジュン, 2026-11-21) — レベル 업 とくべつ プレゼント · 캐릭터 하나에 하나씩 끼워요 · Lv.1~5 다음에 覚醒
 const ARROW_GOLD = { base: 1570, awake: 3100, every: 30 };   // 🏹 황금스탯: 30마리마다 お金 (예준이 숫자, 2026-11-21 조정)
 const ITEMS = [
   { id: 'arrow',  name: '黄金の矢',        aname: '覚醒 黄金の矢',        img: 'art/item-arrow.png',  aimg: 'art/item-arrow-awake.png',
@@ -730,11 +740,11 @@ const CHARS = [
     dmg: 300,  rate: 1 / 1.5,  range: 150, melee: 'slash',
     senior: { waves: [2, 3, 5], team: 0.1, cost: 300, p: 0.4, young: { dmg: 3500, rate: 1 / 0.5, splash: 40 } },
     desc: '17000歳の木のおじいさん。2・3・5の倍数ウェーブごとに紅参キャンディで味方の攻撃力+10%。お金300をかけると40%の確率で27歳にもどります！' },
-  // 신작 오리지널 (2026-11-20, 그림·설정: グ・イェジュン) — 블루 · 보라돌이 · 분홍이 셋이 한 캐릭터
+  // 신작 오리지널 (2026-11-20, 그림·設定: グ・イェジュン) — 블루 · 보라돌이 · 분홍이 셋이 한 캐릭터
   { id: 'bakbak',   name: 'パクパク恐竜三兄弟', img: 'art/bakbak.png', grade: '神話', color: '#B9A8F5', role: '近距離', pref: 'front',
     dmg: 800,  rate: 1 / 0.7,  range: 150, melee: 'bite', bites: 3, bitePassive: { every: 300, min: 0.2, max: 0.4 },
     desc: 'ブルー・ムラサキ・ピンクが1回ずつかみます（攻撃1回 = かみつき3回、3人合わせて800）。パッシブかみつき：300回かむたびに攻撃力が20〜40%ずつずっと上がります。' },
-  // 신작 오리지널 (2026-11-20, 그림·설정: グ・イェジュン) — ロボット コントゥギ + ドクター大頭 2명이 한 조
+  // 신작 오리지널 (2026-11-20, 그림·設定: グ・イェジュン) — ロボット コントゥギ + ドクター大頭 2명이 한 조
   { id: 'kongttuk', name: 'コントゥギ & ドクター大頭', img: 'art/kongttuk.png', imgDuo: 'art/kongttuk-duo.png', grade: '伝説', color: '#DDF2B8', role: 'ロボット', pref: 'back',
     dmg: 1400, rate: 1 / 2.5, range: 240, proj: 'punch',
     doctor: { hits: 30, waves: 6, dmg: 1000, every: 1, chain: 4, range: 280, at: { x: 0.80, y: 0.24 } },   // ドクター大頭 숫자는 Claude가 정함
@@ -753,7 +763,7 @@ const CHARS = [
 ];
 const BY = {}; CHARS.forEach((c) => { BY[c.id] = c; });
 
-/* ===== 敵 (그림·설정: グ・イェジュン) =====
+/* ===== 敵 (그림·設定: グ・イェジュン) =====
    이속: 보통 잡몹 = 8, ガイコツ将軍 = 10 (빠른 편)
    체력: hp = 그 ウェーブ 잡몹 평균 체력의 몇 배인지 */
 const SPEED_UNIT = (w) => (32 + Math.min(w, 40) * 0.45) / 8;    // 이속 1が 화면에서 몇 칸인지
@@ -761,10 +771,10 @@ const FOES = [
   { id: 'zolla', name: 'ゾラ剣客', img: 'art/enemy-zolla.png', hp: 0.7, speed: 8, r: 9,   w: 4 },               // 체력 약한 쩌리
   { id: 'skull', name: 'ガイコツ兵', img: 'art/enemy-skull.png', hp: 0.9, speed: 8, r: 9,   w: 4 },               // 쩌리
   { id: 'slime', name: 'スライム',   img: 'art/enemy-slime.png', hp: 1.0, speed: 8, r: 9.5, w: 2, dodge: 0.15 },  // 가끔 점프로 공격을 피함
-  // 신규 敵 (그림·설정: グ・イェジュン, 2026-11-21)
+  // 신규 敵 (그림·設定: グ・イェジュン, 2026-11-21)
   { id: 'squid', name: 'ワカメイカ', img: 'art/enemy-squid.png', hp: 0.5, speed: 8, r: 9, w: 2, from: 11, shield: { time: 2, every: 6 } },   // 체력은 낮지만 2秒 동안 공격을 아예 안 맞는 실드
-  { id: 'doomi', name: 'ドォドミ',   img: 'art/enemy-doomi.png', hp: 1.6, speed: 15, r: 10, w: 1, from: 11, hop: true, sturdy: true },     // 팔딱팔딱 · 체력 높음 · 무조건 한 번은 1 남기고 버팀 · 매우 빠름 (그림·설정: グ・イェジュン, 2026-11-21)
-  { id: 'seamole', name: 'ウミモグラ', img: 'art/enemy-seamole.png', hp: 1.3, speed: 8, r: 10, w: 1, from: 21, burrow: true },     // 땅속으로 성 앞까지 와서 튀어나오며 아군 攻撃力 10초간 ½ · 체력 은근 높음 (그림·설정: グ・イェジュン, 2026-11-21)
+  { id: 'doomi', name: 'ドォドミ',   img: 'art/enemy-doomi.png', hp: 1.6, speed: 15, r: 10, w: 1, from: 11, hop: true, sturdy: true },     // 팔딱팔딱 · 체력 높음 · 무조건 한 번은 1 남기고 버팀 · 매우 빠름 (그림·設定: グ・イェジュン, 2026-11-21)
+  { id: 'seamole', name: 'ウミモグラ', img: 'art/enemy-seamole.png', hp: 1.3, speed: 8, r: 10, w: 1, from: 21, burrow: true },     // 땅속으로 성 앞까지 와서 튀어나오며 아군 攻撃力 10초간 ½ · 체력 은근 높음 (그림·設定: グ・イェジュン, 2026-11-21)
   { id: 'pink',  name: 'ピンクスライム', img: 'art/enemy-pinkslime.png', fixedHp: 1, speed: 8, r: 9.5, w: 1, from: 11, hitP: 0.4 },  // 체력 1 · 공격이 맞을 확률 40% (1% → 40%, 예준이 조정)
 ];
 const BOSSES = [
@@ -862,7 +872,7 @@ function waveHooks() {
     else { for (const e of S.enemies) if (!e.dead && !e.boss) e.hp *= 0.8; fx({ k: 'text', x: W / 2, y: WALL_Y - 152, s: '⛏️ ホチ：爆発キャンディ！敵の体力 20%↓', c: RED, life: 1.8, size: 14 }); }
   }
 }
-function castSkill(u, def) {                               // ⚔️ 캐릭터 스킬 (그림·설정: グ・イェジュン)
+function castSkill(u, def) {                               // ⚔️ 캐릭터 스킬 (그림·設定: グ・イェジュン)
   const t = findTarget(u, def); if (!t) return false;
   const p = slotXY(u.slot), sk = def.skill;
   const mul = lvMult(def.id) * (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1) * teamMul() * itemDmgMul(u, def);
@@ -2610,6 +2620,19 @@ function resetChar(id) {                                      // 🔄 リセッ�
   META.resetTix--; META.up[id] = 0; if (META.paid) META.paid[id] = 0; META.crystal += back; metaSave();
   toast('🔄 ' + BY[id].name + ' ⭐0 · 💎+' + back.toLocaleString() + ' 返してもらいました'); openUpg();
 }
+/* ⚙️ アカウントリセット (2026-11-22 예준이 요청): 두 回 눌러야 해요 · が 기기 저장만 지워요 (언어 설정은 남겨요) */
+let resetArm = 0;
+$('#bSettings').addEventListener('click', () => { resetArm = 0; $('#bReset').textContent = '🗑️ アカウントリセット'; $('#setOv').hidden = false; });
+$('#bSetClose').addEventListener('click', () => { $('#setOv').hidden = true; });
+$('#bReset').addEventListener('click', () => {
+  const b = $('#bReset');
+  if (Date.now() - resetArm > 4000) { resetArm = Date.now(); b.textContent = '本当に？もう一回押すと全部消えます'; return; }
+  try {
+    const ks = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && (k.startsWith('yj2') || k === 'yj.meta')) ks.push(k); }
+    ks.forEach((k) => localStorage.removeItem(k));
+  } catch (e) { /* 괜찮아요 */ }
+  location.reload();
+});
 $('#bStarter').addEventListener('click', openStarter);
 $('#bStarterClose').addEventListener('click', () => { $('#starterOv').hidden = true; });
 $('#bBox').addEventListener('click', openBox);
