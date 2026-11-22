@@ -1,7 +1,7 @@
 // 타워 디펜스 777 — 앱처럼 쓰기 위한 서비스 워커
 // ⚠️ index.html 은 '네트워크 먼저'. 캐시를 먼저 주면 패치를 배포해도 옛날 게임이 계속 뜬다.
 //    그림은 '캐시 먼저' — 안 바뀌는 파일이라 빠르고, 지하철에서도 나온다.
-const CACHE = 'td777-v1';
+const CACHE = 'td777-v2';   // v2: 무지성 디펜스(new-game/)가 같은 사이트에 생겨서 캐시를 새로 (2026-11-22)
 const SHELL = ['./index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -18,6 +18,7 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;          // 서버(파이어베이스)는 건드리지 않는다
 
+  if (url.pathname.includes('/new-game/')) return;       // 무지성 디펜스는 이 서비스 워커가 손대지 않아요 (항상 새 버전)
   const isDoc = req.mode === 'navigate' || url.pathname.endsWith('/') || url.pathname.endsWith('index.html');
   if (isDoc) {                                          // 네트워크 먼저 → 실패하면 캐시
     e.respondWith(fetch(req).then(res => {

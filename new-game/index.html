@@ -2655,7 +2655,10 @@ $('#bCoupon').addEventListener('click', async () => {
   if (c.recent) { seasonCheck(); META.recent = (META.recent || []).concat([c.recent]).slice(-10); META.coupons[c.id + ':r'] = Date.now(); }
   metaSave(); checkAch(false); renderHome();
   note.textContent = '🎁 ' + (c.msg || '쿠폰') + ': 🪙+' + (c.coin || 0).toLocaleString() + ' 💎+' + (c.crystal || 0).toLocaleString() + (c.wave ? ' · 최고 기록 WAVE ' + c.wave : '') + (c.recent ? ' · 배치고사 ' + Math.min(META.recent.length, PLACE_N) + '/' + PLACE_N : '');
-  if (c.wave && store.get('yj2.nick', '')) { try { const r = await rankSubmit(); if (r === 'ok') note.textContent += ' · 랭킹 등록!'; } catch (e) { /* 괜찮아요 */ } }
+  if (c.wave && store.get('yj2.nick', '')) {               // 랭킹 결과를 꼭 보여 줘요 (실패하면 왜 실패했는지도)
+    try { const r = await rankSubmit(); note.textContent += r === 'ok' ? ' · 랭킹 등록!' : ' · ⚠️ 랭킹 등록 실패 (' + r + ')'; }
+    catch (e) { note.textContent += ' · ⚠️ 랭킹 서버에 연결할 수 없어요'; }
+  }
   else if (c.wave) note.textContent += ' · 닉네임을 정하면 랭킹에 올라가요';
 });
 
@@ -3180,6 +3183,7 @@ async function showPlays() {
 }
 async function openRank() {
   const ov = $('#rankOv'), list = $('#rankList'), note = $('#rankNote');
+  if (RANK.mode === 'fb' && store.get('yj2.nick', '') && S.best && !RANK.sentBest) { RANK.sentBest = true; try { await rankSubmit(); } catch (e) { /* 이미 같은 기록이면 서버가 거절해도 괜찮아요 */ } }
   $('#nickIn').value = store.get('yj2.nick', '');
   const rt = myRating();
   seasonCheck();
