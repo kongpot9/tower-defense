@@ -2638,7 +2638,7 @@ function resetChar(id) {                                      // 🔄 초기화�
 const hashCode = (t) => { let h = 5381; for (const ch of t.trim().toUpperCase()) h = ((h << 5) + h + ch.codePointAt(0)) >>> 0; return h.toString(36); };
 const COUPONS = {
   // D님 배상 (claude.ai 버전에서 세운 121웨이브 기록이 안 남아서, 2026-11-22 예준이 결정)
-  '74okd2': { id: 'd121', coin: 12100, crystal: 1063, wave: 121, msg: 'D님 배상' },
+  '74okd2': { id: 'd121', coin: 12100, crystal: 1063, wave: 121, recent: 121, msg: 'D님 배상' },   // recent: 배치고사(최근 판)에 121웨이브 1판 넣기
 };
 $('#bCouponOpen').addEventListener('click', () => { $('#couponIn').value = ''; $('#couponNote').textContent = ''; $('#couponOv').hidden = false; });
 $('#bCouponClose').addEventListener('click', () => { $('#couponOv').hidden = true; });
@@ -2651,8 +2651,9 @@ $('#bCoupon').addEventListener('click', async () => {
   META.coin += c.coin || 0; META.crystal += c.crystal || 0;
   if (c.wave && c.wave > (S.best || 0)) { S.best = c.wave; store.set('yj2.best', c.wave); }
   if (c.wave && c.wave > (META.bestWave || 0)) META.bestWave = c.wave;
+  if (c.recent) { seasonCheck(); META.recent = (META.recent || []).concat([c.recent]).slice(-10); META.coupons[c.id + ':r'] = Date.now(); }
   metaSave(); checkAch(false); renderHome();
-  note.textContent = '🎁 ' + (c.msg || '쿠폰') + ': 🪙+' + (c.coin || 0).toLocaleString() + ' 💎+' + (c.crystal || 0).toLocaleString() + (c.wave ? ' · 최고 기록 WAVE ' + c.wave : '');
+  note.textContent = '🎁 ' + (c.msg || '쿠폰') + ': 🪙+' + (c.coin || 0).toLocaleString() + ' 💎+' + (c.crystal || 0).toLocaleString() + (c.wave ? ' · 최고 기록 WAVE ' + c.wave : '') + (c.recent ? ' · 배치고사 ' + Math.min(META.recent.length, PLACE_N) + '/' + PLACE_N : '');
   if (c.wave && store.get('yj2.nick', '')) { try { const r = await rankSubmit(); if (r === 'ok') note.textContent += ' · 랭킹 등록!'; } catch (e) { /* 괜찮아요 */ } }
   else if (c.wave) note.textContent += ' · 닉네임을 정하면 랭킹에 올라가요';
 });
@@ -3345,6 +3346,8 @@ function start(data) {
   S.best = store.get('yj2.best', 0) || 0;
   if (S.best > (META.bestWave || 0)) { META.bestWave = S.best; metaSave(); }   // 예전 최고 기록도 업적에 쳐요
   if (seasonCheck()) setTimeout(() => toast('🗓️ 새 시즌! ' + seasonName(curSeason()) + ' · 배치고사부터 다시'), 900);
+  for (const k in COUPONS) { const c = COUPONS[k];                 // 🎟️ 쿠폰을 먼저 받은 사람한테도 나중에 추가된 '배치고사 판'을 넣어 줘요
+    if (c.recent && META.coupons && META.coupons[c.id] && !META.coupons[c.id + ':r']) { META.recent = (META.recent || []).concat([c.recent]).slice(-10); META.coupons[c.id + ':r'] = Date.now(); metaSave(); } }
   setTimeout(() => checkAch(false), 600);
   show('home');
   if (document.fonts && document.fonts.load) { document.fonts.load('12px Jua').then(() => { if (S.screen === 'battle') layout(); }).catch(() => {}); }
