@@ -3103,7 +3103,13 @@ function startBattle(mode) {
   if (mode === 'normal') { clearSave(); countPlay(); META.games = (META.games || 0) + 1; metaSave(); checkAch(false); }
   newBattle();
   S.mode = mode;
-  if (mode === 'dungeon') { S.dgLeft = DUNGEON.time; S.dgKills = 0; S.dgSpawn = 0; }
+  if (mode === 'dungeon') {
+    S.dgLeft = DUNGEON.time; S.dgKills = 0; S.dgSpawn = 0;
+    for (const c of CHARS) if (c.grade === '伝説' && !c.pot) {      // 🎁 ダンジョン スタート プレゼント: 伝説 4匹 (2026-11-22 예준이 결정) · 텐한은 텐조가 없으면 잠만 자서 빼요
+      if (S.levels[c.id] == null) S.levels[c.id] = 1;               // デッキに 없는 전설도 Lv.1로 싸워요 (デッキに 없으면 강화는 못 해요)
+      placeUnit(c.id);
+    }
+  }
   for (const k in ui) delete ui[k];
   buildDeckBar();
   $('#overOv').hidden = true; $('#pauseOv').hidden = true; $('#rewardOv').hidden = true; pop.hidden = true; $('#equipBar').hidden = true;
