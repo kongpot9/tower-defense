@@ -2832,26 +2832,69 @@ setInterval(() => { if (S.screen === 'home') renderVillage(); }, 30000);   // �
 /* ===== 🏰 로비 = わたしの村 (그림: グ・イェジュン, 2026-11-21) — 마을 성 그림이 화면을 꽉 채워요 · 성벽 뒤(하늘 쪽)는 あとで 건물을 짓는 자리
    (代表キャラ 기능 · 제목 글자는 예준이 결정으로 뺌, 2026-11-21) */
 const VILLAGE = new Image(); VILLAGE.src = 'art/village.jpg';
-const YARD = { wall: 0.6, wallAt: 0.42, cv: null, ctx: null, key: '' };
+const YARD = { wall: 0.6, wallAt: 0.42, cv: null, ctx: null, key: '', bg: null, walkers: [], deckKey: '' };
 function yardInit() { YARD.key = ''; }
-function yardTick() {
+/* 🚶 마을 산책 (2026-11-22 예준이 요청): マイデッキ 캐릭터 8명이 성벽 안 마당을 돌아다녀요 */
+const WALK = { speed: 22, size: 46, rest: [1, 4] };
+function yardWalkers(top, bot, w) {
+  const ids = (S.deck || []).filter((id) => BY[id]), key = ids.join() + '|' + Math.round(top) + '|' + Math.round(bot) + '|' + Math.round(w);
+  if (key === YARD.deckKey) return;
+  const old = {}; for (const k of YARD.walkers) old[k.id] = k;
+  const rnd = (a, b) => a + Math.random() * (b - a), pad = WALK.size / 2;
+  YARD.walkers = ids.map((id) => {
+    const k = old[id] || { id, x: rnd(pad, w - pad), y: rnd(top, bot), tx: 0, ty: 0, wait: rnd(0, 2), face: Math.random() < 0.5 ? -1 : 1, ph: rnd(0, 6) };
+    k.x = Math.min(w - pad, Math.max(pad, k.x)); k.y = Math.min(bot, Math.max(top, k.y)); k.tx = k.x; k.ty = k.y;
+    return k;
+  });
+  YARD.area = { top, bot, w }; YARD.deckKey = key;
+}
+function yardTick(dt) {
   const cv = YARD.cv || (YARD.cv = $('#yardCv'));
   if (!cv || !cv.isConnected) return;
   const r = cv.getBoundingClientRect(); if (!r.width || !r.height) return;
   const dpr = Math.min(2, window.devicePixelRatio || 1), pw = Math.round(r.width * dpr), ph = Math.round(r.height * dpr);
   const ready = !!(VILLAGE.complete && VILLAGE.naturalWidth), key = pw + 'x' + ph + ':' + ready;
-  if (key === YARD.key) return;                              // 움직이는 게 없어서 크기가 바뀔 때만 다시 그려요
-  YARD.key = key; cv.width = pw; cv.height = ph;
   const c = YARD.ctx || (YARD.ctx = cv.getContext('2d'));
+  if (key !== YARD.key) {                                     // 마을 그림은 크기가 바뀔 때만 새로 그려 두고 (bg), 매 프레임엔 그걸 깔고 캐릭터만 그려요
+    YARD.key = key; cv.width = pw; cv.height = ph;
+    const bg = YARD.bg || (YARD.bg = document.createElement('canvas')); bg.width = pw; bg.height = ph;
+    const b = bg.getContext('2d');
+    b.fillStyle = '#d9dcd6'; b.fillRect(0, 0, pw, ph);
+    if (ready) {
+      const iw = VILLAGE.naturalWidth, ih = VILLAGE.naturalHeight, sc = Math.max(pw / iw, ph / ih);   // 꽉 채우기 (넘치는 곳은 잘라요)
+      const dw = iw * sc, dh = ih * sc, dx = (pw - dw) / 2;
+      const dy = Math.min(0, Math.max(ph - dh, ph * YARD.wallAt - YARD.wall * dh));                     // 성벽이 화면 위쪽 40%쯤에 오게
+      b.drawImage(VILLAGE, dx, dy, dw, dh);
+      YARD.geo = { dx: dx / dpr, dy: dy / dpr, dw: dw / dpr, dh: dh / dpr };
+      renderVillage();
+    }
+  }
   c.setTransform(1, 0, 0, 1, 0, 0);
-  c.fillStyle = '#d9dcd6'; c.fillRect(0, 0, pw, ph);
-  if (!ready) return;
-  const iw = VILLAGE.naturalWidth, ih = VILLAGE.naturalHeight, sc = Math.max(pw / iw, ph / ih);   // 꽉 채우기 (넘치는 곳은 잘라요)
-  const dw = iw * sc, dh = ih * sc, dx = (pw - dw) / 2;
-  const dy = Math.min(0, Math.max(ph - dh, ph * YARD.wallAt - YARD.wall * dh));                     // 성벽이 화면 위쪽 40%쯤에 오게
-  c.drawImage(VILLAGE, dx, dy, dw, dh);
-  YARD.geo = { dx: dx / dpr, dy: dy / dpr, dw: dw / dpr, dh: dh / dpr };
-  renderVillage();
+  c.drawImage(YARD.bg, 0, 0);
+  if (!YARD.geo) return;
+  const g = YARD.geo, lb = $('.lobby-bottom'), lbTop = lb && lb.offsetParent ? lb.getBoundingClientRect().top - r.top : r.height;
+  const top = g.dy + (YARD.wall + 0.06) * g.dh + WALK.size * 0.6, bot = Math.min(r.height, lbTop) - 6;   // 성벽 안 마당 (아래 패널 위까지)
+  if (bot - top < 20) return;
+  yardWalkers(top, bot, r.width);
+  const pad = WALK.size / 2, now = performance.now() / 1000;
+  for (const k of YARD.walkers) {
+    if (k.wait > 0) {
+      k.wait -= dt;
+      if (k.wait <= 0) { k.tx = pad + Math.random() * (r.width - 2 * pad); k.ty = top + Math.random() * (bot - top); }
+    } else {
+      const ddx = k.tx - k.x, ddy = k.ty - k.y, d = Math.hypot(ddx, ddy), st = WALK.speed * dt;
+      if (d <= st) { k.x = k.tx; k.y = k.ty; k.wait = WALK.rest[0] + Math.random() * (WALK.rest[1] - WALK.rest[0]); }
+      else { k.x += ddx / d * st; k.y += ddy / d * st; if (Math.abs(ddx) > 1) k.face = ddx < 0 ? -1 : 1; }
+    }
+  }
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  for (const k of YARD.walkers.slice().sort((a, b) => a.y - b.y)) {   // 아래(앞)에 있는 캐릭터가 위에 그려져요
+    const im = imgReady(k.id); if (!im) continue;
+    const moving = k.wait <= 0, hop = moving ? Math.abs(Math.sin(now * 9 + k.ph)) * 3 : 0;
+    const s = WALK.size / Math.max(im.naturalWidth, im.naturalHeight), w = im.naturalWidth * s, h = im.naturalHeight * s;
+    c.fillStyle = 'rgba(27,34,50,0.18)'; c.beginPath(); c.ellipse(k.x, k.y, w * 0.38, 4, 0, 0, Math.PI * 2); c.fill();
+    c.drawImage(im, k.x - w / 2, k.y - hop - h, w, h);            // 예준이 그림 그대로 (뒤집지 않아요)
+  }
 }
 window.addEventListener('resize', () => { YARD.key = ''; });
 
