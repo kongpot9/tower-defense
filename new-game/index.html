@@ -967,12 +967,12 @@ function startWave() {
   S.dmgW = 0; S.fightT = 0;
   S.wave++; S.waveT = 0;
   waveHooks();
-  const boss = S.mode === 'dungeon' || S.wave % BAL.bossEvery === 0;   // 🕳️ 던전은 매 웨이브 보스
-  let n = BAL.count(S.wave);
+  const dg = S.mode === 'dungeon', boss = !dg && S.wave % BAL.bossEvery === 0;   // 🕳️ 던전 보스는 웨이브랑 상관없이 계속 나와요 (update에서)
+  let n = dg ? 0 : BAL.count(S.wave);
   const q = [];
   if (boss) { q.push(true); n = 0; }                     // 👹 보스 웨이브: 10웨이브마다 보스 혼자 (예준이 결정)
   for (let i = 0; i < n; i++) q.push(false);
-  S.queue = q; S.spawnGap = BAL.spawnWindow / q.length; S.spawnT = 0;
+  S.queue = q; S.spawnGap = q.length ? BAL.spawnWindow / q.length : 1; S.spawnT = 0;
   S.banner = { s: boss ? '보스 웨이브!' : 'WAVE ' + S.wave, t: 0, c: boss ? RED : INK };
   saveGame();
   if (boss) fx({ k: 'text', x: W / 2, y: 160, s: '👹 ' + BOSSES[0].name + ' 등장!', c: RED, life: 2, size: 18 });
@@ -1302,7 +1302,14 @@ function separate() {
 
 function update(dt) {
   S.time += dt; S.waveT += dt;
-  if (S.mode === 'dungeon') { S.dgLeft -= dt; if (S.dgLeft <= 0) { dungeonEnd(); return; } }
+  if (S.mode === 'dungeon') {
+    S.dgLeft -= dt; if (S.dgLeft <= 0) { dungeonEnd(); return; }
+    if (S.wave > 0 && (S.dgSpawn -= dt) <= 0) {               // 🕳️ 보스가 끝없이 몰려와요 · 시간이 갈수록 더 자주
+      const p = 1 - S.dgLeft / DUNGEON.time, gap = DUNGEON.gap[0] + (DUNGEON.gap[1] - DUNGEON.gap[0]) * p;
+      if (S.enemies.length < DUNGEON.cap) S.enemies.push(makeEnemy(true));
+      S.dgSpawn += gap;
+    }
+  }
   if (S.enemies.some((e) => !e.dead && e.y > 0)) S.fightT = (S.fightT || 0) + dt;   // 📊 싸우는 시간
   if (S.weakT > 0) S.weakT -= dt;
   if (S.tDmgT > 0) S.tDmgT -= dt;
@@ -1505,7 +1512,7 @@ function update(dt) {
   let c = 0;
   for (const e of S.enemies) c += e.weight;
   S.count = c;
-  if (c >= BAL.maxEnemies) gameOver();
+  if (c >= BAL.maxEnemies && S.mode !== 'dungeon') gameOver();   // 🕳️ 던전은 지는 게 없어요
   if (S.pendingLv > 0 && !S.over && !S.choosing) openLvGift();
 }
 
@@ -2686,7 +2693,9 @@ $('#bBoxClose').addEventListener('click', () => { $('#boxOv').hidden = true; });
 /* ===== 🏘️ 마을 건물 (그림 · 기능 · 가격: 구예준, 2026-11-21) =====
    성벽 뒤에 건물을 지어요. 시간 · 출석으로 코인 · 크리스탈을 주거나, 던전에 들어가요.
    '출석' = 그날 처음 들어왔을 때 (하루에 한 번) */
-const DUNGEON = { time: 600, bossHp: 18, reward: 1000, coin: 20000 };   // 10분 · 잡은 보스 하나마다 💎1000 + 🪙20000 (5마리면 🪙10만, 2026-11-21 예준이 결정)
+const DUNGEON = { time: 600, bossHp: 450, reward: 1000, coin: 20000, gap: [3, 0.8], cap: 150 };   // 10분 · 잡은 보스 하나마다 💎1000 + 🪙20000 (5마리면 🪙10만, 2026-11-21 예준이 결정)
+// 2026-11-22 예준이 결정: 보스 체력 25배 (18 → 450) · 보스가 끝없이 몰려와요 (3초마다 → 10분 끝엔 0.8초마다) · 던전은 지는 게 없어요 (100마리 패배 없음)
+// cap = 화면에 보스가 너무 많으면 (150마리) 잠깐 안 나와요 (폰이 버벅이지 않게)
 const BLD = {
   mold:    { name: '거푸집',     img: 'art/bld-mold.png',    cost: [400, 100],        max: 2, needGames: 10,
              d: '하루 첫 출석 때 또는 5시간마다 코인 10,000을 줘요', every: 5 * 3600e3, give: { coin: 10000 } },
@@ -2778,7 +2787,7 @@ function openBld(b, i) {
       btns.appendChild(bldBtn(crysIco + '12,000 받기', () => take(0, 12000), !ready));
     } else btns.appendChild(bldBtn(b === 'mold' ? coinIco + '10,000 받기' : crysIco + '500 받기', () => b === 'mold' ? take(10000, 0) : take(0, 500), !ready));
   } else if (b === 'dungeon') {
-    $('#bldNote').textContent = '10분 동안 매 웨이브 보스가 나와요. 10분을 끝까지 버텨야 보상! 지면 보상 없음';
+    $('#bldNote').textContent = '10분 동안 보스가 끝없이 몰려와요! 지는 건 없어요. 잡은 보스 하나마다 보상';
     btns.appendChild(bldBtn('🕳️ 던전 들어가기', () => { $('#bldOv').hidden = true; startBattle('dungeon'); }));
   } else if (b === 'dwarf') {
     const need = dwarfNeed(x);
@@ -2813,7 +2822,7 @@ function openDwarf() {
 function dungeonEnd() {                                             // 🕳️ 던전 끝: 잡은 보스 × 1000 크리스탈
   if (S.over) return;
   S.over = true; select(-1);
-  const k = S.dgKills || 0, clear = S.dgLeft <= 0;                 // 10분을 다 버텨야 보상! (지면 0 — 2026-11-21 예준이 결정)
+  const k = S.dgKills || 0, clear = S.dgLeft <= 0;                 // 10분이 끝나야 보상 (중간에 나가면 0) · 던전은 지는 게 없어요 (2026-11-22)
   const gain = clear ? k * DUNGEON.reward : 0, coin = clear ? k * DUNGEON.coin : 0;
   META.dgBoss = (META.dgBoss || 0) + k;
   META.crystal += gain; META.coin += coin; metaSave(); checkAch(false);
@@ -3093,7 +3102,7 @@ function startBattle(mode) {
   if (mode === 'normal') { clearSave(); countPlay(); META.games = (META.games || 0) + 1; metaSave(); checkAch(false); }
   newBattle();
   S.mode = mode;
-  if (mode === 'dungeon') { S.dgLeft = DUNGEON.time; S.dgKills = 0; }
+  if (mode === 'dungeon') { S.dgLeft = DUNGEON.time; S.dgKills = 0; S.dgSpawn = 0; }
   for (const k in ui) delete ui[k];
   buildDeckBar();
   $('#overOv').hidden = true; $('#pauseOv').hidden = true; $('#rewardOv').hidden = true; pop.hidden = true; $('#equipBar').hidden = true;
