@@ -831,7 +831,10 @@ const ACH = {
   kongttuk: { d: '웨이브 60 가기',           n: () => META.bestWave || 0, goal: 60 },
 };
 const CRYS_PRICE = { '영웅': 500, '신화': 3000, '전설': 10000 };
-const BOX = { price: 50, odds: { '영웅': 70, '신화': 27, '전설': 3 } };   // 🎁 아직 없는 크리스탈 캐릭터만 나와요 (중복 없음) · 값 💎300 → 💎50 (2026-11-22 예준이 결정)
+// ⚡ 깜짝 세일 (2026-11-22 예준이 결정): 상자 💎50은 5분 동안만 (한국 시간 12:30까지) → 끝나면 💎300
+const BOX_SALE = { price: 50, until: 1795318200000 };
+const boxPrice = () => (Date.now() < BOX_SALE.until ? BOX_SALE.price : BOX.price);
+const BOX = { price: 300, odds: { '영웅': 70, '신화': 27, '전설': 3 } };   // 🎁 아직 없는 크리스탈 캐릭터만 나와요 (중복 없음) · 평소 💎300 · 깜짝 세일 땐 💎50
 const isCrysChar = (id) => BY[id] && !START_UNLOCK.includes(id) && !ACH[id];
 const validDeck = (d) => Array.isArray(d) && d.length === 8 && new Set(d).size === 8 && d.every((id) => BY[id] && unlocked(id)) && d.includes('sword') ? d.slice() : null;
 
@@ -2588,23 +2591,24 @@ function buyChar(id) {                                        // 💎 바로 사
 function boxLeft() { return CHARS.filter((c) => isCrysChar(c.id) && !unlocked(c.id)); }
 function openBox() {
   const left = boxLeft(), ov = $('#boxOv');
-  $('#boxPrice').innerHTML = crysIco + BOX.price;
+  const sale = Date.now() < BOX_SALE.until;
+  $('#boxPrice').innerHTML = crysIco + boxPrice() + (sale ? ' <b style="color:#C9403A">⚡ 깜짝 세일! (원래 ' + BOX.price + ') · ' + Math.max(0, Math.ceil((BOX_SALE.until - Date.now()) / 1000)) + '초 남음</b>' : '');
   $('#boxOdds').textContent = '영웅 ' + BOX.odds['영웅'] + '% · 신화 ' + BOX.odds['신화'] + '% · 전설 ' + BOX.odds['전설'] + '% · 아직 없는 캐릭터만 나와요 (남은 ' + left.length + '명)';
   $('#boxResult').innerHTML = '';
-  const b = $('#bBoxOpen'); b.disabled = !left.length || META.crystal < BOX.price;
-  b.innerHTML = left.length ? crysIco + BOX.price + ' 열기' : '다 모았어요!';
+  const b = $('#bBoxOpen'); b.disabled = !left.length || META.crystal < boxPrice();
+  b.innerHTML = left.length ? crysIco + boxPrice() + ' 열기' : '다 모았어요!';
   ov.hidden = false;
 }
 function rollBox() {
-  const left = boxLeft(); if (!left.length || META.crystal < BOX.price) return;
+  const left = boxLeft(); if (!left.length || META.crystal < boxPrice()) return;
   const grades = Object.keys(BOX.odds).filter((g) => left.some((c) => c.grade === g));
   let r = Math.random() * grades.reduce((a, g) => a + BOX.odds[g], 0), g = grades[0];
   for (const x of grades) { if ((r -= BOX.odds[x]) < 0) { g = x; break; } }
   const pool = left.filter((c) => c.grade === g), c = pool[Math.floor(Math.random() * pool.length)];
-  META.crystal -= BOX.price; META.unlock = META.unlock || {}; META.unlock[c.id] = true; metaSave();
+  META.crystal -= boxPrice(); META.unlock = META.unlock || {}; META.unlock[c.id] = true; metaSave();
   $('#boxResult').innerHTML = '<div class="box-got">' + stickerHTML(c, 84) + '<b></b><em class="grade" style="background:' + GRADE_C[c.grade] + '">' + c.grade + '</em></div>';
   $('#boxResult b').textContent = c.name + ' 해금!';
-  const b = $('#bBoxOpen'), l2 = boxLeft(); b.disabled = !l2.length || META.crystal < BOX.price; b.innerHTML = l2.length ? crysIco + BOX.price + ' 한 번 더' : '다 모았어요!';
+  const b = $('#bBoxOpen'), l2 = boxLeft(); b.disabled = !l2.length || META.crystal < boxPrice(); b.innerHTML = l2.length ? crysIco + boxPrice() + ' 한 번 더' : '다 모았어요!';
   $('#boxOdds').textContent = '영웅 ' + BOX.odds['영웅'] + '% · 신화 ' + BOX.odds['신화'] + '% · 전설 ' + BOX.odds['전설'] + '% · 아직 없는 캐릭터만 나와요 (남은 ' + l2.length + '명)';
 }
 /* 🎁 입문 상자 세트 (2026-11-21 예준이 결정): 한 번만 · 신화 캐릭터 하나 골라서 해금 + 🔄 초기화권 1장 */
