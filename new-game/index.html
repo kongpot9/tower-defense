@@ -669,8 +669,10 @@ const CHARS = [
   { id: 'noesi',    name: '노에시',       img: 'art/noesi.png',    grade: '희귀', color: '#C9B8F0', role: '변신',   pref: 'front',
     dmg: 60,   rate: 1 / 1,    range: 150, melee: 'slash', drill: { cost: 250, time: 20, dmg: 800, every: 0.4, splash: 40 },
     desc: '작고 약한 아이. 돈 250을 내면 20초 동안 드릴차를 타고 주변을 갈아 버려요.' },
-  { id: 'tenjo',    name: '텐조',         img: 'art/tenjo.png',    grade: '희귀', color: '#F6AE6B', role: '닌자',   pref: 'back',
-    dmg: 70,   rate: 1 / 0.25, range: 260, proj: 'paper', wake: true, desc: '시험지를 수리검처럼 던져요. 엄청 빨라요. 상하좌우 바로 옆의 🪴텐한을 항상 깨워 둬요!' },
+  // 🔥 텐조 리워크 (2026-11-22 예준이 결정): 공격은 사라지고, 777처럼 '원' 안의 텐한을 깨워요 (범위 +75%) · 제일 가까운 텐한은 공속 +40%
+  { id: 'tenjo',    name: '텐조',         img: 'art/tenjo.png',    grade: '희귀', color: '#F6AE6B', role: '깨우기', pref: 'back',
+    dmg: 0,    rate: 1,        range: 0,   support: true, wake: { r: 125, haste: 0.4 },
+    desc: '싸우지 않아요. 둘레 원 안의 🪴텐한을 항상 깨워 두고, 제일 가까운 텐한은 공격 속도 +40%!' },
   { id: 'stein',    name: '데스슈타인',   img: 'art/stein.png',    grade: '영웅', color: '#C2E07A', role: '감전',   pref: 'back',
     dmg: 300,  rate: 1 / 0.8,  range: 250, proj: 'punch', chainP: 0.3, chainN: 3, desc: '주먹을 날려요. 30% 확률로 감전돼서 옆에 있는 적 3명도 같은 피해!' },
   { id: 'lumber',   name: '나무꾼',       img: 'art/lumber.png',   grade: '영웅', color: '#D9A880', role: '근거리', pref: 'front',
@@ -746,7 +748,7 @@ const CHARS = [
   // 🛬 재입국 (2026-11-22 예준이 결정): 텐한 — 777 숫자(400 · 0.5초 · 광역 55)를 이 게임 크기로 ×4 (Claude)
   { id: 'tenhan', name: '텐한', img: 'art/tenhan.png', grade: '전설', color: '#CFE8A8', role: '화분', pref: 'front',
     dmg: 1600, rate: 1 / 0.5, range: 150, proj: 'orb', splash: 55, pot: 3,
-    desc: '화분에 사는 요괴. 3웨이브에 1번만 화분에서 나와서 압도적으로 싸워요. 🔥텐조가 상하좌우 바로 옆에 있으면 항상 깨어 있어요!' },
+    desc: '화분에 사는 요괴. 3웨이브에 1번만 화분에서 나와서 압도적으로 싸워요. 🔥텐조의 원 안에 있으면 항상 깨어 있어요!' },
 ];
 const BY = {}; CHARS.forEach((c) => { BY[c.id] = c; });
 
@@ -915,6 +917,7 @@ function unitRate(u, def) {
   const it = itemOf(u);
   if (it && it.id === 'guitar') r *= it.awake ? 1.5 : 1.2;                       // 🎸 공격 속도
   if (it && it.id === 'glove' && !it.awake) r = 1 / (1 / r + 1);                 // 🥊 대신 1초 느려짐
+  if (def.pot) r *= 1 + tenjoHaste(u);                                              // 🔥 텐조 버프
   return r;
 }
 function itemDmgMul(u, def) {
@@ -2045,12 +2048,28 @@ function drawItemBadge(u) {                                   // 🎁 끼운 장
   ctx.restore();
 }
 // 🪴 텐한은 3웨이브에 1번만 나와요 · 🔥텐조가 상하좌우 바로 옆 칸에 있으면 항상 깨어 있어요 (777 그대로)
+// 🔥 깨우는 범위: 777 원(80px · 칸 72px)을 이 게임 칸(64px)에 맞추고 +75% → 반지름 125 (가로 · 세로 · 대각선 옆 칸까지)
 function potAwoken(u) {
-  const r = Math.floor(u.slot / COLS), c = u.slot % COLS;
-  return [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]].some(([rr, cc]) => rr >= 0 && rr < ROWS && cc >= 0 && cc < COLS && S.units[rr * COLS + cc] && BY[S.units[rr * COLS + cc].type].wake);
+  const p = slotXY(u.slot);
+  return S.units.some((w) => w && w !== u && BY[w.type].wake && (() => { const q = slotXY(w.slot); return Math.hypot(q.x - p.x, q.y - p.y) <= BY[w.type].wake.r; })());
+}
+function tenjoHaste(u) {                                    // 🔥 이 텐한이 어떤 텐조의 '제일 가까운 텐한'이면 공속 +40%
+  const p = slotXY(u.slot);
+  for (const w of S.units) {
+    if (!w || !BY[w.type].wake) continue;
+    const q = slotXY(w.slot); let best = null, bd = Infinity;
+    for (const t of S.units) { if (!t || !BY[t.type].pot) continue; const tp = slotXY(t.slot), d = Math.hypot(tp.x - q.x, tp.y - q.y); if (d < bd) { bd = d; best = t; } }
+    if (best === u) return BY[w.type].wake.haste;
+  }
+  return 0;
 }
 const potAsleep = (u) => S.wave % BY[u.type].pot !== 0 && !potAwoken(u);
 function drawUnit(u, at) {
+  if (!at && BY[u.type].wake) {                              // 🔥 텐조: 깨우는 범위 원 (777처럼)
+    const p = slotXY(u.slot);
+    ctx.save(); ctx.strokeStyle = 'rgba(255,138,101,' + (0.35 + Math.abs(Math.sin(S.time * 3)) * 0.4).toFixed(2) + ')'; ctx.lineWidth = 2; ctx.setLineDash([6, 5]);
+    circle(ctx, p.x, p.y, BY[u.type].wake.r); ctx.stroke(); ctx.restore();
+  }
   if (!at && BY[u.type].pot && potAsleep(u)) {             // 💤 화분에서 쉬는 중: 흐리게 + 💤
     ctx.save(); ctx.globalAlpha = 0.45; drawUnit0(u, at); ctx.restore();
     const p = slotXY(u.slot); ctx.font = '14px ' + UIF; ctx.textAlign = 'center'; ctx.fillText('💤', p.x + 16, p.y - 20 + Math.sin(S.time * 3) * 2);
@@ -3261,7 +3280,7 @@ function start(data) {
     bl.addEventListener('click', () => { try { localStorage.setItem('yj.lang', BUILD_LANG === 'ko' ? 'ja' : 'ko'); } catch (e) { /* 괜찮아요 */ } location.reload(); });
   }
   rankInit(); liveInit();
-  S.deck = validDeck(data && data.deck) || validDeck(store.get('yj2.deck', null)) || CHARS.filter((c) => unlocked(c.id)).slice(0, 8).map((c) => c.id);
+  S.deck = validDeck(data && data.deck) || validDeck(store.get('yj2.deck', null)) || CHARS.filter((c) => unlocked(c.id) && !c.support).slice(0, 8).map((c) => c.id);   // 처음 덱엔 싸우는 캐릭터만 (텐조는 리워크로 공격 안 함)
   S.best = store.get('yj2.best', 0) || 0;
   if (S.best > (META.bestWave || 0)) { META.bestWave = S.best; metaSave(); }   // 예전 최고 기록도 업적에 쳐요
   if (seasonCheck()) setTimeout(() => toast('🗓️ 새 시즌! ' + seasonName(curSeason()) + ' · 배치고사부터 다시'), 900);
@@ -3271,7 +3290,7 @@ function start(data) {
   requestAnimationFrame(frame);
 }
 window.claude?.hot?.snapshot?.(() => ({ deck: S.deck }));
-window.__td = { S, BAL, CHARS, FOES, avgDps, avgHit, hurt, mk: () => makeEnemy(false), makeEnemyOf: (f) => { const e = makeEnemy(false); const hp = f.fixedHp || BAL.hp0 * Math.pow(BAL.hpGrow, S.wave - 1) * f.hp; return Object.assign(e, { foe: f, hp, maxHp: hp, shieldCd: f.shield ? 1 : 0 }); }, pick, offerHTML, equip, upgrade: (id) => upgrade(id, deckbar.querySelector('[data-id="' + id + '"]')), startBattle };
+window.__td = { S, BAL, CHARS, FOES, avgDps, avgHit, hurt, potAsleep, unitRate, mk: () => makeEnemy(false), makeEnemyOf: (f) => { const e = makeEnemy(false); const hp = f.fixedHp || BAL.hp0 * Math.pow(BAL.hpGrow, S.wave - 1) * f.hp; return Object.assign(e, { foe: f, hp, maxHp: hp, shieldCd: f.shield ? 1 : 0 }); }, pick, offerHTML, equip, upgrade: (id) => upgrade(id, deckbar.querySelector('[data-id="' + id + '"]')), startBattle };
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
 </script>

@@ -670,8 +670,10 @@ const CHARS = [
   { id: 'noesi',    name: 'ノエシ',       img: 'art/noesi.png',    grade: 'レア', color: '#C9B8F0', role: '変身',   pref: 'front',
     dmg: 60,   rate: 1 / 1,    range: 150, melee: 'slash', drill: { cost: 250, time: 20, dmg: 800, every: 0.4, splash: 40 },
     desc: '小さくて弱い子。お金250をはらうと20秒間ドリルカーに乗ってまわりをけずりまくります。' },
-  { id: 'tenjo',    name: 'テンゾー',         img: 'art/tenjo.png',    grade: 'レア', color: '#F6AE6B', role: '忍者',   pref: 'back',
-    dmg: 70,   rate: 1 / 0.25, range: 260, proj: 'paper', wake: true, desc: 'テスト用紙を手裏剣みたいに投げます。めちゃくちゃ速い。上下左右のとなりの🪴テンハンをいつも起こしておきます！' },
+  // 🔥 テンゾー 리워크 (2026-11-22 예준이 결정): 공격은 사라지고, 777처럼 '원' 안의 텐한을 깨워요 (범위 +75%) · 제일 가까운 텐한은 공속 +40%
+  { id: 'tenjo',    name: 'テンゾー',         img: 'art/tenjo.png',    grade: 'レア', color: '#F6AE6B', role: '起こし役', pref: 'back',
+    dmg: 0,    rate: 1,        range: 0,   support: true, wake: { r: 125, haste: 0.4 },
+    desc: '戦いません。まわりの円の中の🪴テンハンをいつも起こしておき、いちばん近いテンハンは攻撃速度+40%！' },
   { id: 'stein',    name: 'デスシュタイン',   img: 'art/stein.png',    grade: 'ヒーロー', color: '#C2E07A', role: '感電',   pref: 'back',
     dmg: 300,  rate: 1 / 0.8,  range: 250, proj: 'punch', chainP: 0.3, chainN: 3, desc: 'パンチを飛ばします。30%の確率で感電して、となりの敵3体にも同じダメージ！' },
   { id: 'lumber',   name: 'きこり',       img: 'art/lumber.png',   grade: 'ヒーロー', color: '#D9A880', role: '近距離', pref: 'front',
@@ -747,7 +749,7 @@ const CHARS = [
   // 🛬 재입국 (2026-11-22 예준이 결정): テンハン — 777 숫자(400 · 0.5秒 · 範囲 55)를 が 게임 크기로 ×4 (Claude)
   { id: 'tenhan', name: 'テンハン', img: 'art/tenhan.png', grade: '伝説', color: '#CFE8A8', role: '植木鉢', pref: 'front',
     dmg: 1600, rate: 1 / 0.5, range: 150, proj: 'orb', splash: 55, pot: 3,
-    desc: '植木鉢に住む妖怪。3ウェーブに1回だけ鉢から出てきて圧倒的に戦います。🔥テンゾーが上下左右のとなりにいるといつも起きています！' },
+    desc: '植木鉢に住む妖怪。3ウェーブに1回だけ鉢から出てきて圧倒的に戦います。🔥テンゾーの円の中にいるといつも起きています！' },
 ];
 const BY = {}; CHARS.forEach((c) => { BY[c.id] = c; });
 
@@ -916,6 +918,7 @@ function unitRate(u, def) {
   const it = itemOf(u);
   if (it && it.id === 'guitar') r *= it.awake ? 1.5 : 1.2;                       // 🎸 攻撃速度
   if (it && it.id === 'glove' && !it.awake) r = 1 / (1 / r + 1);                 // 🥊 대신 1秒 느려짐
+  if (def.pot) r *= 1 + tenjoHaste(u);                                              // 🔥 テンゾー 버프
   return r;
 }
 function itemDmgMul(u, def) {
@@ -2046,12 +2049,28 @@ function drawItemBadge(u) {                                   // 🎁 끼운 장
   ctx.restore();
 }
 // 🪴 텐한은 3웨이브에 1번만 나와요 · 🔥텐조가 상하좌우 바로 옆 칸에 있으면 항상 깨어 있어요 (777 그대로)
+// 🔥 깨우는 범위: 777 원(80px · 칸 72px)을 が 게임 칸(64px)에 맞추고 +75% → 반지름 125 (가로 · 세로 · 대각선 옆 칸까지)
 function potAwoken(u) {
-  const r = Math.floor(u.slot / COLS), c = u.slot % COLS;
-  return [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]].some(([rr, cc]) => rr >= 0 && rr < ROWS && cc >= 0 && cc < COLS && S.units[rr * COLS + cc] && BY[S.units[rr * COLS + cc].type].wake);
+  const p = slotXY(u.slot);
+  return S.units.some((w) => w && w !== u && BY[w.type].wake && (() => { const q = slotXY(w.slot); return Math.hypot(q.x - p.x, q.y - p.y) <= BY[w.type].wake.r; })());
+}
+function tenjoHaste(u) {                                    // 🔥 が 텐한이 어떤 텐조의 '제일 가까운 テンハン'이면 공속 +40%
+  const p = slotXY(u.slot);
+  for (const w of S.units) {
+    if (!w || !BY[w.type].wake) continue;
+    const q = slotXY(w.slot); let best = null, bd = Infinity;
+    for (const t of S.units) { if (!t || !BY[t.type].pot) continue; const tp = slotXY(t.slot), d = Math.hypot(tp.x - q.x, tp.y - q.y); if (d < bd) { bd = d; best = t; } }
+    if (best === u) return BY[w.type].wake.haste;
+  }
+  return 0;
 }
 const potAsleep = (u) => S.wave % BY[u.type].pot !== 0 && !potAwoken(u);
 function drawUnit(u, at) {
+  if (!at && BY[u.type].wake) {                              // 🔥 テンゾー: 깨우는 범위 원 (777처럼)
+    const p = slotXY(u.slot);
+    ctx.save(); ctx.strokeStyle = 'rgba(255,138,101,' + (0.35 + Math.abs(Math.sin(S.time * 3)) * 0.4).toFixed(2) + ')'; ctx.lineWidth = 2; ctx.setLineDash([6, 5]);
+    circle(ctx, p.x, p.y, BY[u.type].wake.r); ctx.stroke(); ctx.restore();
+  }
   if (!at && BY[u.type].pot && potAsleep(u)) {             // 💤 화분에서 쉬는 중: 흐리게 + 💤
     ctx.save(); ctx.globalAlpha = 0.45; drawUnit0(u, at); ctx.restore();
     const p = slotXY(u.slot); ctx.font = '14px ' + UIF; ctx.textAlign = 'center'; ctx.fillText('💤', p.x + 16, p.y - 20 + Math.sin(S.time * 3) * 2);
@@ -3262,7 +3281,7 @@ function start(data) {
     bl.addEventListener('click', () => { try { localStorage.setItem('yj.lang', BUILD_LANG === 'ko' ? 'ja' : 'ko'); } catch (e) { /* 괜찮아요 */ } location.reload(); });
   }
   rankInit(); liveInit();
-  S.deck = validDeck(data && data.deck) || validDeck(store.get('yj2ja.deck', null)) || CHARS.filter((c) => unlocked(c.id)).slice(0, 8).map((c) => c.id);
+  S.deck = validDeck(data && data.deck) || validDeck(store.get('yj2ja.deck', null)) || CHARS.filter((c) => unlocked(c.id) && !c.support).slice(0, 8).map((c) => c.id);   // 처음 덱엔 싸우는 캐릭터만 (텐조는 리워크로 공격 안 함)
   S.best = store.get('yj2ja.best', 0) || 0;
   if (S.best > (META.bestWave || 0)) { META.bestWave = S.best; metaSave(); }   // 예전 최고 기록도 업적에 쳐요
   if (seasonCheck()) setTimeout(() => toast('🗓️ 新シーズン！ ' + seasonName(curSeason()) + ' · 配置テストからやり直し'), 900);
@@ -3272,7 +3291,7 @@ function start(data) {
   requestAnimationFrame(frame);
 }
 window.claude?.hot?.snapshot?.(() => ({ deck: S.deck }));
-window.__td = { S, BAL, CHARS, FOES, avgDps, avgHit, hurt, mk: () => makeEnemy(false), makeEnemyOf: (f) => { const e = makeEnemy(false); const hp = f.fixedHp || BAL.hp0 * Math.pow(BAL.hpGrow, S.wave - 1) * f.hp; return Object.assign(e, { foe: f, hp, maxHp: hp, shieldCd: f.shield ? 1 : 0 }); }, pick, offerHTML, equip, upgrade: (id) => upgrade(id, deckbar.querySelector('[data-id="' + id + '"]')), startBattle };
+window.__td = { S, BAL, CHARS, FOES, avgDps, avgHit, hurt, potAsleep, unitRate, mk: () => makeEnemy(false), makeEnemyOf: (f) => { const e = makeEnemy(false); const hp = f.fixedHp || BAL.hp0 * Math.pow(BAL.hpGrow, S.wave - 1) * f.hp; return Object.assign(e, { foe: f, hp, maxHp: hp, shieldCd: f.shield ? 1 : 0 }); }, pick, offerHTML, equip, upgrade: (id) => upgrade(id, deckbar.querySelector('[data-id="' + id + '"]')), startBattle };
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
 </script>
