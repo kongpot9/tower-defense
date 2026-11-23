@@ -89,6 +89,21 @@
             ".validate": false
           }
         }
+      },
+      "users": {
+        "$id": {
+          ".read": true,
+          ".write": "!data.exists() && $id.length <= 12 && newData.hasChildren(['name','t']) && newData.child('name').isString() && newData.child('name').val().length <= 12 && newData.child('t').isNumber() && newData.child('t').val() <= now + 60000",
+          "name": {
+            ".validate": "newData.isString()"
+          },
+          "t": {
+            ".validate": "newData.isNumber()"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
       }
     }
   }
