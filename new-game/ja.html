@@ -595,8 +595,6 @@ const BUFFS = [
   { id: 'spd',   name: 'いなずまグローブ',   emo: '🧤', color: '#F7D774', base: 0.10, max: 5, d: (v) => '味方全体の攻撃速度 +' + P(v), s: (v) => '+' + P(v) },
   { id: 'rng',   name: '望遠鏡',      emo: '🔭', color: '#9AD3F2', base: 15, max: 5, d: (v) => '味方全体の射程 +' + Math.round(v), s: (v) => '+' + Math.round(v) },
   { id: 'gold',  name: '黄金ぶくろ', emo: '👛', color: '#EDD38A', base: 1, max: 3, d: (v) => '敵をたおすたびにお金 +' + v, s: (v) => '+' + v },
-  { id: 'thorn', name: 'トゲの城壁', emo: '🌵', color: '#B5DE85', base: 0.005, max: 3,
-    d: (v) => '城壁にくっついた敵が1秒ごとに体力の ' + P(v) + 'をうしないます（ボスは4分の1）', s: (v) => P(v) },
   { id: 'chest', name: '宝箱',   emo: '🎁', color: '#C7A6E6', max: 5, d: (v) => 'お金 ' + Math.round(v) + 'をすぐもらえます', s: (v) => 'お金 ' + Math.round(v) },
 ];
 const buffVal = (b, n = S.stacks[b.id] || 0) => (b.id === 'chest' ? chestGold() : b.base) * (1 + n);
