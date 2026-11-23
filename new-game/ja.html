@@ -588,7 +588,7 @@ const slotXY = (i) => ({ x: GX + CW * (i % COLS + 0.5), y: GY + CH * (Math.floor
 const BAL = {
   startGold: 50,
   upBase: 25, upMult: 1.3,             // 強化 비용 = 25 × レベル, 強化 1번에 ダメージ ×1.3
-  waveLen: 20, spawnWindow: 13,        // ウェーブ 20秒, 처음 13秒 동안 적이 나와요
+  waveLen: 20, spawnWindow: 13,        // ウェーブ 20秒, 처음 13秒 の間 적이 나와요
   hp0: 150, hpGrow: 1.15,              // 敵 체력 = 150 × 1.15^(ウェーブ-1)  (버프템이 점점 세지니까 적도 빨리 세져요)
   lateFrom: 50, lateHits: 2, lateStep: 0.1,   // 50웨이브부터 잡몹 체력 ≥ 우리 보통 한 방 × 2 (웨이브마다 +0.1방) → 한 방에 안 죽어요
   count: (w) => Math.round(0.9 * (8 + Math.floor(w * 1.2) + Math.floor(0.06 * Math.max(0, w - 12) ** 2))),   // 12웨이브부터 점점 더 많이 (예준이 요청) · 너무 몰려서 10% 줄임 (2026-11-21, 敵 능력치는 그대로)
@@ -602,7 +602,7 @@ const BAL = {
 };
 
 /* ===== ウェーブ プレゼント: バフ · タレット (임시 — 예준이가 바꿀 예정) ===== */
-// 같은 버프템을 또 고를수록 세져요: 처음 숫자의 1배 → 2배 → 3배 → … (예준이 규칙: 10% → 20% → 30%, 10%씩 계속)
+// 같은 버프템을 또 고를수록 세져요: 처음 숫자의 1倍 → 2倍 → 3倍 → … (예준이 규칙: 10% → 20% → 30%, 10%씩 계속)
 // 끝없이 고르면 너무 세져서 최대 5回 (お金 주머니·가시 방어선은 3回)
 const P = (v) => (Math.round(v * 1000) / 10) + '%';
 const BUFFS = [
@@ -634,7 +634,7 @@ const TRAP_LV = [null, 100, 400, 700, 1200, 1900];
 const AWAKE = {
   turret: { name: '覚醒タレット', img: 'art/turret-awake.png', dmg: 4000, every: 0.15, quarterP: 0.02,   // 2%: ボス 빼고 체력을 4분의 1만 남김
             h: 46, tip: { x: 119 / 121, y: 132 / 200 }, ratio: 121 / 200 },
-  trap:   { name: '覚醒トラップ', img: 'art/trap-awake.png', dmg: 5000, every: 1, halfP: 0.03,          // 3%: ボス 빼고 체력 절반 + 맹독
+  trap:   { name: '覚醒トラップ', img: 'art/trap-awake.png', dmg: 5000, every: 1, halfP: 0.03,          // 3%: ボス 빼고 체력 절반 + 猛毒
             h: 40, ratio: 167 / 160 },
   cannon: { name: '覚醒キャノン', img: 'art/cannon-awake.png', dmg: 7000, every: 1,                         // 메테오는 예준이가 삭제 (2026-11-20)
             h: 34, ratio: 183 / 120, tip: { x: 181 / 183, y: 59 / 120 } },
@@ -649,7 +649,7 @@ const CANNON_LV = [null,
   { dmg: 1900, every: 1 },     // Lv.5
 ];
 const CANNON_IMG = new Image(); CANNON_IMG.src = CANNON.img;
-// 👽 エイリアン (그림·設定: グ・イェジュン, 2026-11-21) — 城壁の上に 떠 있는 防衛ユニット · 번개 공격
+// 👽 エイリアン (그림·設定: グ・イェジュン, 2026-11-21) — 城壁の上に 떠 있는 防衛ユニット · 稲妻攻撃
 const ALIEN = {
   yellow: { name: 'イエロー・エイリアン', img: 'art/alien-yellow.png', x: 92,  c: '#F2C440', maxLv: 5 },
   purple: { name: 'パープル・エイリアン', img: 'art/alien-purple.png', x: 290, c: '#8A4FE0', bonusP: 0.2 },   // ウェーブ 선물을 20% 확률로 2回
@@ -695,7 +695,7 @@ ITEMS.forEach((it) => { ITEM_IMG[it.id] = new Image(); ITEM_IMG[it.id].src = it.
 const SKILL_IMG = { jaws: new Image(), kunai: new Image(), wave: new Image() };
 SKILL_IMG.jaws.src = 'art/skill-jaws.png'; SKILL_IMG.kunai.src = 'art/skill-kunai.png'; SKILL_IMG.wave.src = 'art/skill-wave.png';
 const itemOf = (u) => u && S.items.find((it) => it.unit === u);
-const itemName = (it) => it.awake ? ITEM_BY[it.id].aname : ITEM_BY[it.id].name + ' Lv.' + it.lv;   // 맹독: 777 콜드나이퍼 맹독탄과 같아요 (갈수록 아파짐)
+const itemName = (it) => it.awake ? ITEM_BY[it.id].aname : ITEM_BY[it.id].name + ' Lv.' + it.lv;   // 猛毒: 777 콜드나이퍼 맹독탄과 같아요 (갈수록 아파짐)
 const TRAP_IMG = new Image(); TRAP_IMG.src = TRAP.img;
 const AWAKE_IMG = { turret: new Image(), trap: new Image() };
 AWAKE_IMG.turret.src = AWAKE.turret.img; AWAKE_IMG.trap.src = AWAKE.trap.img;
@@ -814,14 +814,14 @@ const FOES = [
   { id: 'skull', name: 'ガイコツ兵', img: 'art/enemy-skull.png', hp: 0.9, speed: 8, r: 9,   w: 4 },               // 쩌리
   { id: 'slime', name: 'スライム',   img: 'art/enemy-slime.png', hp: 1.0, speed: 8, r: 9.5, w: 2, dodge: 0.15 },  // 가끔 점프로 공격을 피함
   // 신규 敵 (그림·設定: グ・イェジュン, 2026-11-21)
-  { id: 'squid', name: 'ワカメイカ', img: 'art/enemy-squid.png', hp: 0.5, speed: 8, r: 9, w: 2, from: 11, shield: { time: 2, every: 6 } },   // 체력은 낮지만 2秒 동안 공격을 아예 안 맞는 실드
+  { id: 'squid', name: 'ワカメイカ', img: 'art/enemy-squid.png', hp: 0.5, speed: 8, r: 9, w: 2, from: 11, shield: { time: 2, every: 6 } },   // 체력은 낮지만 2秒 の間 공격을 아예 안 맞는 실드
   { id: 'doomi', name: 'ドォドミ',   img: 'art/enemy-doomi.png', hp: 1.6, speed: 15, r: 10, w: 1, from: 11, hop: true, sturdy: true },     // 팔딱팔딱 · 체력 높음 · 무조건 한 번은 1 남기고 버팀 · 매우 빠름 (그림·設定: グ・イェジュン, 2026-11-21)
-  { id: 'seamole', name: 'ウミモグラ', img: 'art/enemy-seamole.png', hp: 1.3, speed: 8, r: 10, w: 1, from: 21, burrow: true },     // 땅속으로 성 앞까지 와서 튀어나오며 아군 攻撃力 10초간 ½ · 체력 은근 높음 (그림·設定: グ・イェジュン, 2026-11-21)
+  { id: 'seamole', name: 'ウミモグラ', img: 'art/enemy-seamole.png', hp: 1.3, speed: 8, r: 10, w: 1, from: 21, burrow: true },     // 땅속으로 성 앞까지 와서 튀어나오며 아군 攻撃力 10秒間 ½ · 체력 은근 높음 (그림·設定: グ・イェジュン, 2026-11-21)
   { id: 'pink',  name: 'ピンクスライム', img: 'art/enemy-pinkslime.png', fixedHp: 1, speed: 8, r: 9.5, w: 1, from: 11, hitP: 0.4 },  // 체력 1 · 공격이 맞을 확률 40% (1% → 40%, 예준이 조정)
 ];
 const BOSSES = [
-  { id: 'skullgen', name: 'ガイコツ将軍', img: 'art/boss-skullgen.png', skillImg: 'art/boss-skullgen-gumgi.png', hp: 270, dpsMul: 186, speed: 10, r: 28, skill: 'gumgi' },   // 체력: 플레이어 평균 딜량(1秒 ダメージ)의 186배 (4배 → 30배 → 450배 → 딜량 310배 → 40% 내려서 186배, 예준이 결정) · hp는 딜량을 아직 모를 때만 · 보스는 1.5배 크게
-  // ↑ 검기: 아군 攻撃力 10초간 ½ · 검기를 쓸 때만 보라색 검기가 있는 그림으로 바뀌어요
+  { id: 'skullgen', name: 'ガイコツ将軍', img: 'art/boss-skullgen.png', skillImg: 'art/boss-skullgen-gumgi.png', hp: 270, dpsMul: 186, speed: 10, r: 28, skill: 'gumgi' },   // 체력: 플레이어 평균 딜량(1秒 ダメージ)의 186倍 (4倍 → 30倍 → 450倍 → 딜량 310倍 → 40% 내려서 186倍, 예준이 결정) · hp는 딜량을 아직 모를 때만 · 보스는 1.5倍 크게
+  // ↑ 검기: 아군 攻撃力 10秒間 ½ · 검기를 쓸 때만 보라색 검기가 있는 그림으로 바뀌어요
 ];
 const FOE_IMG = {};
 FOES.concat(BOSSES).forEach((f) => {
@@ -882,7 +882,7 @@ function newBattle() {
     wave: 0, waveT: BAL.waveLen - 3, queue: [], spawnT: 0, spawnGap: 1,
     gold: BAL.startGold, picks: 0, upN: 0, kills: 0, time: 0,
     units: new Array(SLOTS).fill(null), enemies: [], projs: [], fx: [], pools: [],
-    levels: {}, count: 0, weakT: 0, shake: 0, items: [], pendingLv: 0, chooseMode: null, equipping: null, party: false, candy: false, poolT: 0, tDmgT: 0, tDmgV: 0, tSpdT: 0, tSpdV: 0, drag: null, merges: 0, paused: false, over: false, choosing: false, offer: null, sel: -1, banner: null,
+    levels: {}, count: 0, weakT: 0, shake: 0, items: [], pendingLv: 0, balls: [], runCoin: 0, tubeT: 0, s2DmgT: 0, s2DmgV: 0, s2SpdT: 0, s2SpdV: 0, chooseMode: null, equipping: null, party: false, candy: false, poolT: 0, tDmgT: 0, tDmgV: 0, tSpdT: 0, tSpdV: 0, drag: null, merges: 0, paused: false, over: false, choosing: false, offer: null, sel: -1, banner: null,
     buff: { dmg: 0, spd: 0, rng: 0, gold: 0, thorn: 0 }, stacks: {}, turrets: [], turretLv: 1, traps: [], trapLv: 1, aliens: [], xw: {}, bonusPick: false, lv: 1, xp: 0,
   });
   S.deck.forEach((id) => { S.levels[id] = 1; });
@@ -903,8 +903,9 @@ function segDist2(px, py, x1, y1, x2, y2) {
 /* ===== ウェーブ ===== */
 const hasUnit = (id, ok) => S.units.some((u) => u && u.type === id && (!ok || ok(u)));
 const teamMul = () => 1 + (S.party ? BY.jeff.party.team : 0) + (S.candy ? BY.guru.senior.team : 0)
-  + (S.poolT > 0 ? BY.willy.pool.team : 0) + (S.tDmgT > 0 ? S.tDmgV : 0);
-const spdMul = () => 1 + (S.tSpdT > 0 ? S.tSpdV : 0);
+  + (S.poolT > 0 ? BY.willy.pool.team : 0) + (S.tDmgT > 0 ? S.tDmgV : 0) + (S.s2DmgT > 0 ? S.s2DmgV : 0);
+const spdMul = () => 1 + (S.tSpdT > 0 ? S.tSpdV : 0) + (S.s2SpdT > 0 ? S.s2SpdV : 0);
+const weakF = () => (S.weakT > 0 && !(S.tubeT > 0) ? 0.5 : 1);   // 검기 · ウミモグラ: 아군 攻撃力 ½ (🛟 ウィリー チューブ 중엔 무시)
 function say(s, c) { fx({ k: 'text', x: W / 2, y: WALL_Y - 80, s, c: c || YEL, life: 1.8, size: 16 }); }
 function waveHooks() {
   const w = S.wave;
@@ -921,11 +922,91 @@ function waveHooks() {
     else { for (const e of S.enemies) if (!e.dead && !e.boss) e.hp *= 0.8; fx({ k: 'text', x: W / 2, y: WALL_Y - 152, s: '⛏️ ホチ：爆発キャンディ！敵の体力 20%↓', c: RED, life: 1.8, size: 14 }); }
   }
 }
-function castSkill(u, def) {                               // ⚔️ 캐릭터 스킬 (그림·設定: グ・イェジュン)
+/* ===== 🎯 캐릭터 スキル 2 (기획: グ・イェジュン, 2026-11-23) =====
+   ヒーロー ~ 전설만 (부리사우르스는 もとは スキル) · 공격할 때마다 p 확률로 발동 · 호치는 안 싸워서 1秒ごと 굴려요
+   빈칸 数字(はね返り 5回 · 遅く 50% 3秒 · 10秒 · 반경 · オーバークロック ×10 · 大地震 3秒 등)는 Claude 초안을 예준이가 "그렇게 해" (2026-11-23) */
+const SKILLS = {
+  stein:      { n: '稲妻攻撃',   p: 0.07, bounce: 5, d: '壁でポンポンはねる稲妻がビリヤードのように敵を連続攻撃 · はね返り 5回' },
+  lumber:     { n: '切断',        p: 0.05, self: 3, time: 10, d: '10秒間 攻撃力 3倍' },
+  wolf:       { n: '急所大補足', p: 0.04, team: 1.5, time: 10, d: '10秒間、味方 攻撃力 2.5倍' },
+  jeff:       { n: 'マイクアタック', p: 0.20, slow: 0.5, slowT: 3, d: 'うるさい攻撃で敵を 3秒 の間 50% 遅く' },
+  hochi:      { n: '金銀財宝',    p: 0.10, every: 1, team: 0.5, time: 10, coin: 1000, d: '10秒間、味方 攻撃力 +50% · コイン 1000' },
+  willy:      { n: 'チューブ',        p: 0.09, tube: 10, d: '10秒間、敵のシールド · 回避 · ふんばり · 剣気を無視' },
+  ricecake:   { n: 'お餅爆弾',      p: 0.04, shots: 20, d: 'お餅 20個を投げる' },
+  angel:      { n: '10連打',      p: 0.04, shots: 10, d: '10連打' },
+  sunin:      { n: '繁殖',        p: 0.05, rats: 30, d: 'ネズミたちが 敵 30匹まで繁殖 (猛毒 + 25% かためる, ボス のぞく)' },
+  blader:     { n: '投げ槍',        p: 0.04, shots: 5, d: '槍を 5回 連打' },
+  press:      { n: 'エラー',        p: 0.06, self: 2, time: 20, d: '20秒間 攻撃力 2倍' },
+  swallow:    { n: '粉砕',        p: 0.05, splash: 50, time: 30, d: '30秒間、範囲攻撃' },
+  gail:       { n: 'とどめ 1900',   p: 0.05, steal: 1900, time: 120, d: '2分間、とどめを取られると お金 1900' },
+  guru:       { n: '若返り加速',   p: 0.04, young: true, teamSpd: 1, time: 30, d: '若返りフォームだけ: 30秒間、味方 攻撃速度 2倍' },
+  bakbak:     { n: 'コイン かみつき',   p: 0.05, bite: 100, time: 30, d: '30秒間、たたくたびに コイン 100' },
+  kongttuk:   { n: 'オーバークロック',    p: 0.04, boomX: 10, boomR: 100, d: 'とても強い爆発 (攻撃力 × 10)' },
+  dragon:     { n: 'ブレス',      p: 0.03, shots: 5, d: 'ブレス 5連打' },
+  dosa:       { n: '境地',        p: 0.03, self: 1.5, spd: 0.5, time: 20, d: '20秒間 攻撃力 · 攻撃速度 +50%' },
+  catmachine: { n: '境地',        p: 0.03, self: 1.5, spd: 0.5, time: 20, d: '20秒間 攻撃力 · 攻撃速度 +50%' },
+  tenhan:     { n: '大地震',      p: 0.05, quake: 3, d: '地震で 敵 全部を 3秒 の間つかまえる' },
+};
+for (const id in SKILLS) if (BY[id]) BY[id].desc += ' スキル 「' + SKILLS[id].n + '」 ' + Math.round(SKILLS[id].p * 100) + '%: ' + SKILLS[id].d + '.';
+const s2On = (u) => u && u.s2T > 0;
+function s2Team(kind, v, t) {                                  // 아군 全体 버프 (더 센 걸로)
+  if (kind === 'dmg') { if (!(S.s2DmgT > 0)) S.s2DmgV = 0; S.s2DmgV = Math.max(S.s2DmgV, v); S.s2DmgT = Math.max(S.s2DmgT || 0, t); }
+  else { if (!(S.s2SpdT > 0)) S.s2SpdV = 0; S.s2SpdV = Math.max(S.s2SpdV, v); S.s2SpdT = Math.max(S.s2SpdT || 0, t); }
+}
+function skill2(u, def, t, dmg) {                              // 발동! (dmg = 이번 평타 한 방)
+  const K = SKILLS[def.id], p = slotXY(u.slot);
+  fx({ k: 'text', x: p.x, y: p.y - 58, s: '「' + K.n + '」!', c: '#C0392B', life: 1.4, size: 15 });
+  if (K.time && (K.self || K.splash || K.steal || K.bite)) u.s2T = K.time;       // 자기 버프 (時間)
+  if (K.team) s2Team('dmg', K.team, K.time);
+  if (K.teamSpd) s2Team('spd', K.teamSpd, K.time);
+  if (K.coin) { S.runCoin = (S.runCoin || 0) + K.coin; fx({ k: 'text', x: p.x, y: p.y - 76, s: '🪙 +' + K.coin, c: YEL, life: 1.2, size: 13 }); }
+  if (K.tube) S.tubeT = Math.max(S.tubeT || 0, K.tube);
+  if (K.slow && t && !t.dead) { t.slowF = Math.max(t.slowT > 0 ? t.slowF : 0, K.slow); t.slowT = Math.max(t.slowT, K.slowT); fx({ k: 'ring', x: t.x, y: t.y, r: 20, c: '#7A5CE0', life: 0.4 }); }
+  if (K.quake) { for (const e of S.enemies) if (!e.dead) e.stunT = Math.max(e.stunT, K.quake); S.shake = 0.5; }
+  if (K.boomX && t) { area(t.x, t.y, K.boomR, dmg * K.boomX, def.id); fx({ k: 'boom', x: t.x, y: t.y, r: K.boomR, c: ORANGE, life: 0.45 }); S.shake = 0.3; }
+  if (K.rats) {                                                // 🐀 777 봉산 쥐 (猛毒 0.4倍 + 25% 0.3秒 かためる, ボス 몸엔 못 들어감)
+    const pool = S.enemies.filter((e) => !e.dead && !e.boss && e.y > 0).sort((a, b) => b.y - a.y).slice(0, K.rats);
+    for (const e of pool) {
+      if (!(e.poisonT > 0)) { e.poisonT = POISON.time; e.poisonCd = POISON.tick; e.poisonN = 0; e.poisonD = dmg * 0.4; }
+      if (Math.random() < 0.25) e.stunT = Math.max(e.stunT, 0.3);
+      fx({ k: 'text', x: e.x, y: e.y - 12, s: '🐀', c: INK, life: 0.8, size: 12 });
+    }
+  }
+  if (K.bounce && t) {                                         // ⚡ ドクター大頭 같은 번개가 벽에 통통 튀어요
+    const a = Math.atan2(t.y - p.y, t.x - p.x);
+    (S.balls || (S.balls = [])).push({ x: p.x, y: p.y - 20, vx: Math.cos(a) * 420, vy: Math.sin(a) * 420, n: K.bounce, dmg, src: def.id, hit: new Map(), trail: [] });
+  }
+  if (K.shots && t) {                                          // 여러 발: お餅 20個 · 10連打 · 창 5連打 · ブレス 5回
+    const r2 = (def.range + S.buff.rng) ** 2;
+    const pool = def.id === 'ricecake' ? S.enemies.filter((e) => !e.dead && e.y >= 2 && !e.boss && (e.x - p.x) ** 2 + (e.y - p.y) ** 2 <= r2) : [t];
+    if (!pool.length) pool.push(t);
+    for (let i = 0; i < K.shots; i++) {
+      const tg = pool[i % pool.length], ox = (Math.random() - 0.5) * 16;
+      S.projs.push({ k: def.proj || 'dagger', x: p.x + ox, y: p.y - 8 + i * 3, t: tg, lx: tg.x, ly: tg.y, sp: (PSPEED[def.proj] || 450) * (0.85 + Math.random() * 0.3), dmg, def,
+                     d0: Math.max(1, Math.hypot(tg.x - p.x, tg.y - p.y)), prog: 0, spin: Math.random() * 6 });
+    }
+  }
+}
+function ballsTick(dt) {                                       // ⚡ 튕기는 번개 공
+  if (!S.balls || !S.balls.length) return;
+  for (const b of S.balls) {
+    b.x += b.vx * dt; b.y += b.vy * dt;
+    b.trail.push({ x: b.x, y: b.y }); if (b.trail.length > 8) b.trail.shift();
+    const top = 4, bot = WALL_Y - 4;
+    if (b.x < 6) { b.x = 6; b.vx = Math.abs(b.vx); b.n--; } else if (b.x > W - 6) { b.x = W - 6; b.vx = -Math.abs(b.vx); b.n--; }
+    if (b.y < top) { b.y = top; b.vy = Math.abs(b.vy); b.n--; } else if (b.y > bot) { b.y = bot; b.vy = -Math.abs(b.vy); b.n--; }
+    for (const e of S.enemies) {
+      if (e.dead || (b.hit.get(e) || 0) > S.time) continue;
+      if ((e.x - b.x) ** 2 + (e.y - b.y) ** 2 < (e.r + 7) ** 2) { hurt(e, b.dmg, b.src); b.hit.set(e, S.time + 0.4); fx({ k: 'ring', x: e.x, y: e.y, r: 12, c: YEL, life: 0.25 }); }
+    }
+  }
+  S.balls = S.balls.filter((b) => b.n >= 0);
+}
+function castSkill(u, def) {                               // ⚔️ 캐릭터 スキル (그림·設定: グ・イェジュン)
   const t = findTarget(u, def); if (!t) return false;
   const p = slotXY(u.slot), sk = def.skill;
-  const mul = lvMult(def.id) * (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1) * teamMul() * itemDmgMul(u, def);
-  if (sk.kind === 'jaws') {                                  // 🦕 초록 턱 3연타
+  const mul = lvMult(def.id) * (1 + S.buff.dmg) * weakF() * teamMul() * itemDmgMul(u, def);
+  if (sk.kind === 'jaws') {                                  // 🦕 초록 턱 3連打
     for (let i = 0; i < sk.hits; i++) hurt(t, sk.dmg * mul, def.id);
     fx({ k: 'jaws', x: t.x, y: t.y, life: 0.6 });
     fx({ k: 'text', x: t.x, y: t.y - 30, s: 'ガブガブガブ！', c: '#5E9A2C', life: 0.9, size: 14 });
@@ -942,7 +1023,10 @@ function castSkill(u, def) {                               // ⚔️ 캐릭터 �
   }
   return true;
 }
-function unitTimers(u, def, dt) {                          // 시간마다 하는 일: 스킬 · ホスパー 앙코르 · 셰프 料理
+function unitTimers(u, def, dt) {                          // 시간마다 하는 일: スキル · ホスパー 앙코르 · 셰프 料理
+  if (u.s2T > 0) u.s2T -= dt;                                // 🎯 スキル 2 지속시간
+  const K2 = SKILLS[def.id];
+  if (K2 && K2.every) { u.s2R = (u.s2R || 0) + dt; if (u.s2R >= K2.every) { u.s2R = 0; if (Math.random() < K2.p) skill2(u, def, null, 0); } }   // ⛏️ ホチ: 1秒ごと
   if (def.skill) {
     u.skillT = (u.skillT || 0) + dt;
     if (u.skillT >= def.skill.every * (1 - cdCut(u)) && castSkill(u, def)) u.skillT = 0;
@@ -978,6 +1062,7 @@ function unitRate(u, def) {
   if (it && it.id === 'guitar') r *= it.awake ? 1.5 : 1.2;                       // 🎸 攻撃速度
   if (it && it.id === 'glove' && !it.awake) r = 1 / (1 / r + 1);                 // 🥊 대신 1秒 느려짐
   if (def.pot) r *= 1 + tenjoHaste(u);                                              // 🔥 テンゾー 버프
+  if (s2On(u) && SKILLS[def.id] && SKILLS[def.id].spd) r *= 1 + SKILLS[def.id].spd;   // 🎯 境地
   return r;
 }
 function itemDmgMul(u, def) {
@@ -1020,7 +1105,7 @@ function catchFire(src) {                                   // 🔥 전염: 제�
   for (const e of S.enemies) { if (e === src || e.dead || e.burrow || e.fireT > 0) continue; const d = dist2(e, src); if (d < bd) { bd = d; best = e; } }
   if (best) { setFire(best, src.fireD); fx({ k: 'boom', x: best.x, y: best.y, r: 6, c: ORANGE, life: 0.2 }); }
 }
-const xwMul = () => (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1);
+const xwMul = () => (1 + S.buff.dmg) * weakF();
 const xwY = () => WALL_Y + 12;
 function xwTick(dt) {
   for (const id in S.xw) {
@@ -1120,9 +1205,10 @@ const foeSay = (e, s, c) => { if (e.msgT > 0) return; e.msgT = 0.7; fx({ k: 'tex
 function hurt(e, a, src) {
   if (e.dead) return;
   if (e.burrow) return;                                     // 🦫 ウミモグラ: 땅속에선 안 맞아요
-  if (e.shieldT > 0) { foeSay(e, 'シールド！', '#3F8F3A'); return; }        // 🦑 ワカメイカ 실드: 아예 안 맞아요
-  if (e.foe.hitP && Math.random() >= e.foe.hitP) { foeSay(e, 'ミス！', '#E07A9B'); return; }   // 🩷 ピンクスライム: 1%만 맞아요
-  if (src && e.foe.dodge) {                               // スライム 점프: 공중에선 안 맞고, 착지 후 잠깐은 다시 못 뜀
+  const tube = S.tubeT > 0;                                 // 🛟 ウィリー チューブ: 부가효과 무시
+  if (e.shieldT > 0 && !tube) { foeSay(e, 'シールド！', '#3F8F3A'); return; }        // 🦑 ワカメイカ 실드: 아예 안 맞아요
+  if (e.foe.hitP && !tube && Math.random() >= e.foe.hitP) { foeSay(e, 'ミス！', '#E07A9B'); return; }   // 🩷 ピンクスライム: 1%만 맞아요
+  if (src && e.foe.dodge && !tube) {                               // スライム 점프: 공중에선 안 맞고, 착지 후 잠깐은 다시 못 뜀
     if (e.jumpT > 0) return;
     if (e.jumpCd <= 0 && Math.random() < e.foe.dodge) {
       e.jumpT = 0.4; e.jumpCd = 1.5;
@@ -1135,7 +1221,7 @@ function hurt(e, a, src) {
     const hs = S.hitHist || (S.hitHist = []);
     if (hs.length < 300) hs.push(Math.round(a)); else hs[Math.floor(Math.random() * 300)] = Math.round(a);
   }
-  if (e.foe.sturdy && !e.sturdyUsed && e.hp - a <= 0 && e.hp > 1) {   // 🐟 ドォドミ: 무조건 한 번은 1 남기고 버텨요
+  if (e.foe.sturdy && !tube && !e.sturdyUsed && e.hp - a <= 0 && e.hp > 1) {   // 🐟 ドォドミ: 무조건 한 번은 1 남기고 버텨요
     e.sturdyUsed = true; e.hp = 1; e.flash = 0.07; foeSay(e, 'こらえる！', '#E0952B'); return;
   }
   e.hp -= a;
@@ -1150,7 +1236,8 @@ function hurt(e, a, src) {
       }
     }
     if (src !== 'gail') for (const g of S.units) if (g && g.type === 'gail' && g.lastT === e) {
-      S.gold += BY.gail.steal; g.lastT = null; fx({ k: 'text', x: e.x, y: e.y - 20, s: 'トドメとられた +' + BY.gail.steal, c: YEL, life: 0.9, size: 11 });
+      const st = s2On(g) ? SKILLS.gail.steal : BY.gail.steal;   // 🎯 ガイル スキル: 2분간 1900
+      S.gold += st; g.lastT = null; fx({ k: 'text', x: e.x, y: e.y - 20, s: 'トドメとられた +' + st, c: YEL, life: 0.9, size: 11 });
     }
     S.xp += e.boss ? 10 : 1;
     while (S.xp >= xpNeed()) { S.xp -= xpNeed(); S.lv++; S.pendingLv++; fx({ k: 'text', x: W / 2, y: 140, s: 'レベルアップ！Lv.' + S.lv, c: BLUE, life: 1.3, size: 20 }); }
@@ -1236,11 +1323,18 @@ function attack(u, def, t) {   // def는 ドリルカー·27살일 때 잠깐 �
     own *= def.sunin.luckyX; fx({ k: 'text', x: t.x, y: t.y - 18, s: 'ラッキーショット！', c: ORANGE, life: 0.8, size: 13 });
   }
   if (def.steal) u.lastT = t;
+  const K2 = SKILLS[def.id];
+  if (K2 && s2On(u)) {                                       // 🎯 スキル 2 지속 효과
+    if (K2.self) own *= K2.self;                             // 切断 ×3 · エラー ×2 · 境地 +50%
+    if (K2.splash) def = Object.assign({}, def, { splash: Math.max(def.splash || 0, K2.splash) });   // 粉砕: 범위 공격
+    if (K2.bite) S.runCoin = (S.runCoin || 0) + K2.bite;     // 빡빡공룡: 때릴 때마다 コイン
+  }
   if (def.weakSpot && Math.random() < def.weakSpot.p) {                               // 🐺 급소 발견 → 아군 全体 +30%
     if (!(S.tDmgT > 0)) fx({ k: 'text', x: p.x, y: p.y - 50, s: '🐺 急所発見！味方 +30%', c: '#8B5A2B', life: 1.3, size: 14 });
     S.tDmgT = Math.max(S.tDmgT, def.weakSpot.time); S.tDmgV = Math.max(S.tDmgV, def.weakSpot.team);
   }                                                         // 👊 ガイル: 누구를 노렸는지 기억
-  const dmg = base * lvMult(def.id) * BAL.dmgMul * (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1) * own * teamMul() * itemDmgMul(u, def);
+  const dmg = base * lvMult(def.id) * BAL.dmgMul * (1 + S.buff.dmg) * weakF() * own * teamMul() * itemDmgMul(u, def);
+  if (K2 && !K2.every && (!K2.young || u.young) && Math.random() < K2.p) skill2(u, def, t, dmg);   // 🎯 スキル 2 발동 굴리기
   const ang = Math.atan2(t.y - p.y, t.x - p.x);
   u.anim = 0.12;
   if (def.melee) {
@@ -1251,7 +1345,7 @@ function attack(u, def, t) {   // def는 ドリルカー·27살일 때 잠깐 �
       if (tg.dead) { tg = findTarget(u, def); if (!tg) break; }
       fx({ k: def.melee === 'bite' ? 'bite' : 'slash', x: tg.x + (n > 1 ? (i - 1) * 8 : 0), y: tg.y, a: ang, life: 0.22 });
       hitTarget(def, tg, dmg / n, tg.x, tg.y);
-      if (def.sunin && !sunMode() && !tg.dead && !tg.boss) {                          // 🐀 ボンサンモード: 맹독 + 気絶
+      if (def.sunin && !sunMode() && !tg.dead && !tg.boss) {                          // 🐀 ボンサンモード: 猛毒 + 気絶
         if (!(tg.poisonT > 0)) { tg.poisonT = POISON.time; tg.poisonCd = POISON.tick; tg.poisonN = 0; tg.poisonD = dmg; }
         if (Math.random() < def.sunin.stunP) tg.stunT = Math.max(tg.stunT, 1);
       }
@@ -1345,6 +1439,7 @@ function update(dt) {
   }
   if (S.enemies.some((e) => !e.dead && e.y > 0)) S.fightT = (S.fightT || 0) + dt;   // 📊 싸우는 時間
   if (S.weakT > 0) S.weakT -= dt;
+  if (S.tubeT > 0) S.tubeT -= dt; if (S.s2DmgT > 0) S.s2DmgT -= dt; if (S.s2SpdT > 0) S.s2SpdT -= dt;
   if (S.tDmgT > 0) S.tDmgT -= dt;
   if (S.tSpdT > 0) S.tSpdT -= dt;
   if (S.poolT > 0) {                                       // 🛟 윌리의 プール: 그동안 모든 적이 느려요
@@ -1367,7 +1462,7 @@ function update(dt) {
       else if ((e.shieldCd -= dt) <= 0) { e.shieldT = e.foe.shield.time; e.shieldCd = e.foe.shield.every; }
     }
     if (e.castT > 0) e.castT -= dt;
-    if (e.poisonT > 0) {                                   // ☠️ 맹독: 0.5秒ごと, 한 回 줄 때마다 더 아파요
+    if (e.poisonT > 0) {                                   // ☠️ 猛毒: 0.5秒ごと, 한 回 줄 때마다 더 아파요
       e.poisonT -= dt; e.poisonCd -= dt;
       if (e.poisonCd <= 0) { e.poisonCd = POISON.tick; e.poisonN++; hurt(e, e.poisonD * POISON.step * e.poisonN, null); if (e.dead) continue; }
     }
@@ -1432,7 +1527,7 @@ function update(dt) {
         const ox = p.x + (D.at.x - 0.5) * 62 * gs * 0.9, oy = p.y + 27 - 64 * gs * (1 - D.at.y);
         let cur = findTargetAt(ox, oy, D.range + S.buff.rng, false);
         if (cur) {
-          const dmg = D.dmg * lvMult(dd.id) * (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1);
+          const dmg = D.dmg * lvMult(dd.id) * (1 + S.buff.dmg) * weakF();
           const pts = [{ x: ox, y: oy }], hit = [];
           while (cur && hit.length < D.chain) {
             hit.push(cur); pts.push({ x: cur.x, y: cur.y });
@@ -1459,7 +1554,7 @@ function update(dt) {
       const m = turretMuzzle(tu);
       S.projs.push({ k: 'shell', x: m.x, y: m.y, t: tg, lx: tg.x, ly: tg.y, sp: tu.awake ? 700 : 520, d0: 1, prog: 0,
                      def: tu.awake ? { id: 'turret', quarterP: AWAKE.turret.quarterP } : { id: 'turret' },
-                     dmg: L.dmg * (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1) });
+                     dmg: L.dmg * (1 + S.buff.dmg) * weakF() });
       fx({ k: 'boom', x: m.x, y: m.y, r: tu.awake ? 7 : 5, c: YEL, life: 0.12 });
       tu.cd = L.every / (1 + S.buff.spd);
     } else tu.cd = 0.1;
@@ -1470,7 +1565,7 @@ function update(dt) {
     tr.cd -= dt;
     if (tr.cd > 0) continue;
     tr.cd = (tr.awake ? AWAKE.trap.every : TRAP.every) / (1 + S.buff.spd);
-    const dmg = (tr.awake ? AWAKE.trap.dmg : TRAP_LV[S.trapLv]) * (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1);
+    const dmg = (tr.awake ? AWAKE.trap.dmg : TRAP_LV[S.trapLv]) * (1 + S.buff.dmg) * weakF();
     let hit = false;
     for (const e of S.enemies) {
       if (e.dead || Math.abs(e.x - tr.x) > TRAP.w / 2 + e.r * 0.5 || Math.abs(e.y - tr.y) > 22) continue;
@@ -1495,14 +1590,14 @@ function update(dt) {
         cn.face = tg.x < cn.x ? -1 : 1; cn.anim = 0.18;
         const m = cannonMuzzle(cn);
         S.projs.push({ k: 'cannonball', x: m.x, y: m.y, t: tg, lx: tg.x, ly: tg.y, sp: 420, d0: Math.max(1, Math.hypot(tg.x - m.x, tg.y - m.y)), prog: 0,
-                       def: { id: 'cannon', arc: true }, dmg: L.dmg * (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1) });
+                       def: { id: 'cannon', arc: true }, dmg: L.dmg * (1 + S.buff.dmg) * weakF() });
         fx({ k: 'boom', x: m.x, y: m.y, r: 8, c: ORANGE, life: 0.15 });
         cn.cd = L.every / (1 + S.buff.spd);
       } else cn.cd = 0.1;
     }
   }
   xwTick(dt);
-  for (const al of S.aliens) {                             // 👽 エイリアン: 번개 공격 (한 번에 여러 발)
+  for (const al of S.aliens) {                             // 👽 エイリアン: 稲妻攻撃 (한 번에 여러 발)
     al.born += dt; al.bob += dt; if (al.anim > 0) al.anim -= dt;
     const L = ALIEN_LV[al.kind === 'yellow' ? al.lv : 1], y = alienY(al);
     if (al.burst > 0) {
@@ -1511,7 +1606,7 @@ function update(dt) {
         const tg = findTargetAt(al.x, y, ALIEN.range + S.buff.rng, false);
         if (tg) {
           S.projs.push({ k: 'beam', c: ALIEN[al.kind].c, x: al.x, y: y + 6, t: tg, lx: tg.x, ly: tg.y, sp: 760, d0: 1, prog: 0,
-                         def: { id: 'alien' }, dmg: L.dmg * (1 + S.buff.dmg) * (S.weakT > 0 ? 0.5 : 1) });
+                         def: { id: 'alien' }, dmg: L.dmg * (1 + S.buff.dmg) * weakF() });
           al.anim = 0.08;
         }
         al.burst--; al.bt = ALIEN.gap;
@@ -1533,6 +1628,7 @@ function update(dt) {
     else { pr.x += dx / d * st; pr.y += dy / d * st; }
   }
   S.projs = S.projs.filter((p) => !p.done);
+  ballsTick(dt);
 
   for (const f of S.fx) {
     f.t += dt;
@@ -2197,7 +2293,7 @@ function drawProj(pr) {
     case 'straw': c.fillStyle = '#F5B7C5'; circle(c, 0, 0, 4); c.fill(); c.stroke(); break;
     case 'shell': c.fillStyle = INK; circle(c, 0, 0, pr.def.id === 'turret' ? 3.6 : 5.5); c.fill(); break;
     case 'cannonball': c.fillStyle = INK; circle(c, 0, 0, 5); c.fill(); c.fillStyle = '#6B7280'; circle(c, -1.5, -1.5, 1.6); c.fill(); break;
-    case 'beam':                                            // 👽 번개 공격
+    case 'beam':                                            // 👽 稲妻攻撃
       c.rotate(a); c.lineCap = 'round'; c.strokeStyle = INK; c.lineWidth = 5; c.beginPath(); c.moveTo(-11, 0); c.lineTo(5, 0); c.stroke();
       c.strokeStyle = pr.c; c.lineWidth = 3; c.beginPath(); c.moveTo(-11, 0); c.lineTo(5, 0); c.stroke();
       break;
@@ -2367,6 +2463,11 @@ function render() {
     c.save(); c.strokeStyle = BLUE; c.lineWidth = 3; circle(c, p.x, p.y, 27); c.stroke(); c.restore();
   }
   for (const pr of S.projs) drawProj(pr);
+  for (const b of S.balls || []) {                            // ⚡ デスシュタイン 번개 공
+    c.save(); c.strokeStyle = YEL; c.lineWidth = 3; c.globalAlpha = 0.6; c.beginPath();
+    b.trail.forEach((q, i) => (i ? c.lineTo(q.x, q.y) : c.moveTo(q.x, q.y))); c.stroke();
+    c.globalAlpha = 1; c.fillStyle = '#FFF6C2'; circle(c, b.x, b.y, 6); c.fill(); c.strokeStyle = INK; c.lineWidth = 1.5; c.stroke(); c.restore();
+  }
   if (S.weakT > 0) {
     c.save(); c.fillStyle = 'rgba(155,93,229,.14)'; c.fillRect(0, WALL_Y, W, H - WALL_Y);
     c.font = '14px ' + UIF; c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineJoin = 'round';
@@ -2561,11 +2662,12 @@ function showWallet() {
 function payRun() {                                           // 게임이 끝날 때 이번 回 보상 (부활하면 이어서 더 받아요)
   const w = S.wave, from = S.paidWave || 0;
   const coin = Math.max(0, w - from) * EARN.coinPerWave;
+  const coin2 = coin + (S.runCoin || 0); S.runCoin = 0;        // 🎯 ホチ 金銀財宝 · 빡빡공룡 コイン かみつき
   let crys = Math.max(0, w - from) * EARN.crystalPerWave + (S.runCrystal || 0);
   if (S.newRecord && !S.paidRecord) { crys += EARN.crystalRecord; S.paidRecord = true; }
   S.paidWave = w; S.runCrystal = 0;
-  META.coin += coin; META.crystal += crys; metaSave();
-  return { coin, crys };
+  META.coin += coin2; META.crystal += crys; metaSave();
+  return { coin: coin2, crys };
 }
 function openUpg() {
   const list = $('#upList'); list.innerHTML = '';
@@ -2730,7 +2832,7 @@ $('#bBoxClose').addEventListener('click', () => { $('#boxOv').hidden = true; });
    성벽 뒤에 건물을 지어요. 時間 · 출석으로 コイン · 크리스탈을 주거나, 던전에 들어가요.
    '출석' = 그날 처음 들어왔을 때 (하루에 한 回) */
 const DUNGEON = { time: 600, bossHp: 450, reward: 1000, coin: 20000, gap: [3, 0.8], cap: 150, gift: 4, perDay: 5 };   // perDay: 하루에 5번만 들어갈 수 있어요 (2026-11-22 예준이 결정)   // 10分 · たおしたボス 하나마다 💎1000 + 🪙20000 (5마리면 🪙10만, 2026-11-21 예준이 결정)
-// 2026-11-22 예준이 결정: ボス 체력 25배 (18 → 450) · 보스가 끝없이 몰려와요 (3秒ごと → 10分 끝엔 0.8秒ごと） · 던전은 지는 게 없어요 (100匹 패배 없음)
+// 2026-11-22 예준이 결정: ボス 체력 25倍 (18 → 450) · 보스가 끝없이 몰려와요 (3秒ごと → 10分 끝엔 0.8秒ごと） · 던전은 지는 게 없어요 (100匹 패배 없음)
 // cap = 화면에 보스가 너무 많으면 (150匹) 잠깐 안 나와요 (폰이 버벅이지 않게)
 const BLD = {
   mold:    { name: '鋳型工房',     img: 'art/bld-mold.png',    cost: [400, 100],        max: 2, needGames: 10,
@@ -2868,7 +2970,7 @@ function dungeonEnd() {                                             // 🕳️ �
   const k = S.dgKills || 0, clear = S.dgLeft <= 0;                 // 10분이 끝나야 보상 (중간에 나가면 0) · 던전은 지는 게 없어요 (2026-11-22)
   const gain = clear ? k * DUNGEON.reward : 0, coin = clear ? k * DUNGEON.coin : 0;
   META.dgBoss = (META.dgBoss || 0) + k;
-  META.crystal += gain; META.coin += coin; metaSave(); checkAch(false);
+  META.crystal += gain; META.coin += coin + (S.runCoin || 0); S.runCoin = 0; metaSave(); checkAch(false);
   $('#goWave').textContent = k;
   $('.go-wave small').textContent = 'たおしたボス';
   $('.go-title').textContent = S.dgLeft <= 0 ? 'ダンジョン おわり！' : 'ダンジョンで負けました!';
@@ -3098,7 +3200,7 @@ $('#bWatchExit').addEventListener('click', exitWatch);
 
 /* ===== 💾 세이브 (2026-11-21 예준이 요청) — 웨이브가 시작될 때 · 멈출 때 · 앱을 나갈 때 자동 保存 ===== */
 const SAVE_KEY = 'yj2ja.save', SAVE_V = 1;
-const SKIP = new Set(['screen', 'best', 'speed', 'projs', 'fx', 'drag', 'banner', 'sel', 'paused', 'equipping', 'over']);
+const SKIP = new Set(['screen', 'best', 'speed', 'projs', 'balls', 'fx', 'drag', 'banner', 'sel', 'paused', 'equipping', 'over']);
 function saveGame() {
   if (S.screen !== 'battle' || S.over || S.watching || !S.units || S.mode === 'dungeon') return;
   const units = new Set(S.units.filter(Boolean)), foes = new Set(S.enemies);
@@ -3122,7 +3224,7 @@ function resumeBattle() {
   if (!d) { startBattle(); return; }
   try {
     const D = d.S;
-    Object.assign(S, D, { projs: [], fx: [], drag: null, banner: null, sel: -1, paused: false, over: false, equipping: null });
+    Object.assign(S, D, { projs: [], balls: [], fx: [], drag: null, banner: null, sel: -1, paused: false, over: false, equipping: null });
     S.enemies = (D.enemies || []).map((e) => Object.assign(e, { foe: (e.foe && e.foe.b >= 0 ? BOSSES[e.foe.b] : FOES[e.foe && e.foe.f]) || FOES[0] }));
     S.units = (D.units || []).map((u) => (u && BY[u.type] ? u : null));
     S.items = (D.items || []).map((it) => Object.assign(it, { unit: typeof it.unit === 'number' ? S.units[it.unit] || null : null }));
@@ -3579,7 +3681,7 @@ function start(data) {
   requestAnimationFrame(frame);
 }
 window.claude?.hot?.snapshot?.(() => ({ deck: S.deck }));
-window.__td = { YARD, S, BAL, CHARS, FOES, avgDps, avgHit, hurt, potAsleep, unitRate, mk: () => makeEnemy(false), makeEnemyOf: (f) => { const e = makeEnemy(false); const hp = f.fixedHp || BAL.hp0 * Math.pow(BAL.hpGrow, S.wave - 1) * f.hp; return Object.assign(e, { foe: f, hp, maxHp: hp, shieldCd: f.shield ? 1 : 0 }); }, pick, offerHTML, equip, upgrade: (id) => upgrade(id, deckbar.querySelector('[data-id="' + id + '"]')), startBattle };
+window.__td = { SKILLS, YARD, S, BAL, CHARS, FOES, avgDps, avgHit, hurt, potAsleep, unitRate, mk: () => makeEnemy(false), makeEnemyOf: (f) => { const e = makeEnemy(false); const hp = f.fixedHp || BAL.hp0 * Math.pow(BAL.hpGrow, S.wave - 1) * f.hp; return Object.assign(e, { foe: f, hp, maxHp: hp, shieldCd: f.shield ? 1 : 0 }); }, pick, offerHTML, equip, upgrade: (id) => upgrade(id, deckbar.querySelector('[data-id="' + id + '"]')), startBattle };
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
 </script>
