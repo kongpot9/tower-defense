@@ -673,13 +673,19 @@ const ITEMS = [
   { id: 'glove',  name: '권투글러브',       aname: '각성 권투글러브',       img: 'art/item-glove.png',  aimg: 'art/item-glove-awake.png',
     d: (a) => a ? '공격력 +90% (기본 공격력 100 이하면 +200%)' : '공격력 +60% · 대신 공격이 1초 느려짐' },
 ];
+// 🛒 상점 아이템 (2026-11-23 예준이 요청): 웨이브가 끝나고 1~4웨이브에 한 번쯤 상점이 떠요 · 판 안의 돈으로 사요 · 레벨업 선물에는 안 나와요
+//    가격 = 기본 + 웨이브마다 조금씩 (가격은 Claude가 정함 — 예준이가 바꿔도 돼요) · 그림이 오기 전엔 이모지로
+const SHOP = { every: [1, 4], items: [
+  { id: 'soul', name: '혼이 깃든 검', emo: '🗡️', shop: true, price: (w) => 100 + 10 * w, dmg: 1.3, d: () => '장착한 캐릭터 데미지 +30%' },
+] };
+SHOP.items.forEach((it) => ITEMS.push(it));
 const ITEM_BY = {}; ITEMS.forEach((it) => { ITEM_BY[it.id] = it; });
 const ITEM_IMG = {};
-ITEMS.forEach((it) => { ITEM_IMG[it.id] = new Image(); ITEM_IMG[it.id].src = it.img; ITEM_IMG[it.id + ':a'] = new Image(); ITEM_IMG[it.id + ':a'].src = it.aimg; });
+ITEMS.forEach((it) => { if (!it.img) return; ITEM_IMG[it.id] = new Image(); ITEM_IMG[it.id].src = it.img; ITEM_IMG[it.id + ':a'] = new Image(); ITEM_IMG[it.id + ':a'].src = it.aimg; });
 const SKILL_IMG = { jaws: new Image(), kunai: new Image(), wave: new Image() };
 SKILL_IMG.jaws.src = 'art/skill-jaws.png'; SKILL_IMG.kunai.src = 'art/skill-kunai.png'; SKILL_IMG.wave.src = 'art/skill-wave.png';
 const itemOf = (u) => u && S.items.find((it) => it.unit === u);
-const itemName = (it) => it.awake ? ITEM_BY[it.id].aname : ITEM_BY[it.id].name + ' Lv.' + it.lv;   // 맹독: 777 콜드나이퍼 맹독탄과 같아요 (갈수록 아파짐)
+const itemName = (it) => ITEM_BY[it.id].shop ? ITEM_BY[it.id].name : it.awake ? ITEM_BY[it.id].aname : ITEM_BY[it.id].name + ' Lv.' + it.lv;   // 맹독: 777 콜드나이퍼 맹독탄과 같아요 (갈수록 아파짐)
 const TRAP_IMG = new Image(); TRAP_IMG.src = TRAP.img;
 const AWAKE_IMG = { turret: new Image(), trap: new Image() };
 AWAKE_IMG.turret.src = AWAKE.turret.img; AWAKE_IMG.trap.src = AWAKE.trap.img;
@@ -866,7 +872,7 @@ function newBattle() {
     wave: 0, waveT: BAL.waveLen - 3, queue: [], spawnT: 0, spawnGap: 1,
     gold: BAL.startGold, picks: 0, upN: 0, kills: 0, time: 0,
     units: new Array(SLOTS).fill(null), enemies: [], projs: [], fx: [], pools: [],
-    levels: {}, count: 0, weakT: 0, shake: 0, items: [], pendingLv: 0, chooseMode: null, equipping: null, party: false, candy: false, poolT: 0, tDmgT: 0, tDmgV: 0, tSpdT: 0, tSpdV: 0, drag: null, merges: 0, paused: false, over: false, choosing: false, offer: null, sel: -1, banner: null,
+    levels: {}, count: 0, weakT: 0, shake: 0, items: [], shopIn: 0, pendingLv: 0, chooseMode: null, equipping: null, party: false, candy: false, poolT: 0, tDmgT: 0, tDmgV: 0, tSpdT: 0, tSpdV: 0, drag: null, merges: 0, paused: false, over: false, choosing: false, offer: null, sel: -1, banner: null,
     buff: { dmg: 0, spd: 0, rng: 0, gold: 0, thorn: 0 }, stacks: {}, turrets: [], turretLv: 1, traps: [], trapLv: 1, aliens: [], xw: {}, bonusPick: false, lv: 1, xp: 0,
   });
   S.deck.forEach((id) => { S.levels[id] = 1; });
@@ -969,6 +975,7 @@ function itemDmgMul(u, def) {
   if (!it) return 1;
   if (it.id === 'glove') return it.awake ? (BY[u.type].dmg <= 100 ? 3 : 1.9) : 1.6;  // 🥊
   if (it.id === 'guitar' && it.awake) return 1.3;                                 // 🎸 일렉기타
+  if (ITEM_BY[it.id].shop && ITEM_BY[it.id].dmg) return ITEM_BY[it.id].dmg;      // 🛒 혼이 깃든 검 +30%
   return 1;
 }
 const cdCut = (u) => { const it = itemOf(u); return it && it.id === 'orb' ? (it.awake ? 0.5 : 0.15) : 0; };   // 🔮
@@ -1590,9 +1597,45 @@ function buffNote(b) {
   const next = b.max && n + 1 >= b.max ? '' : ' · 또 고르면 ' + b.s(buffVal(b, n + 1)) + '!';
   return (n + 1) + '번째' + now + left + next;
 }
+const rndShop = () => SHOP.every[0] + Math.floor(Math.random() * (SHOP.every[1] - SHOP.every[0] + 1));
+function shopDue() {                                          // 🛒 1~4웨이브에 한 번쯤 (일반 판만)
+  if (S.mode !== 'normal' || S.watching) return false;
+  if (!S.shopIn) S.shopIn = rndShop();
+  if (--S.shopIn > 0) return false;
+  S.shopIn = rndShop(); return true;
+}
+function openShop() {
+  S.choosing = true; S.chooseMode = 'shop'; select(-1);
+  S.offer = SHOP.items.map((d) => ({ k: 'shop', id: d.id })).concat([{ k: 'shopSkip' }]);
+  $('#rwTitle').textContent = '🛒 상점';
+  $('#rwSub').textContent = '돈으로 아이템을 살 수 있어요 · 지금 돈 ' + Math.floor(S.gold);
+  $('#rwCards').innerHTML = S.offer.map(offerHTML).join('');
+  $('#rewardOv').hidden = false;
+}
+function pickShop(o) {
+  if (o.k === 'shop') {
+    const d = ITEM_BY[o.id], price = d.price(S.wave);
+    if (S.gold < price) { say('💰 돈이 부족해요 (' + price + ')'); return; }
+    S.gold -= price;
+    const ni = { id: o.id, lv: 1, awake: false, unit: null, kills: 0 };
+    S.items.push(ni);
+    if (S.units.some(Boolean)) { S.equipping = ni; equipBar().textContent = '🛒 ' + d.name + ' — 끼울 캐릭터를 눌러요'; equipBar().hidden = false; }
+    say('🛒 ' + d.name + ' 샀어요!', '#B8860B');
+  }
+  S.offer = null; S.chooseMode = null; S.choosing = false; $('#rewardOv').hidden = true;
+  startWave();
+}
 function offerHTML(o, i) {
   let ico, name, tag, desc, note = '';
-  if (o.k === 'freeUp') {
+  if (o.k === 'shop') {
+    const d = ITEM_BY[o.id], price = d.price(S.wave), cnt = S.items.filter((x) => x.id === o.id).length;
+    ico = '<span class="rc-ico" style="--c:#F5E6B8">' + (d.img ? '<img src="' + d.img + '" alt="" style="max-width:46px;max-height:46px">' : d.emo) + '</span>';
+    name = d.name; tag = '<span class="rc-tag" style="background:#B8860B">💰 ' + price + '</span>';
+    desc = d.d(); note = (S.gold >= price ? '사면 끼울 캐릭터를 골라요' : '돈이 부족해요 (지금 ' + Math.floor(S.gold) + ')') + (cnt ? ' · 지금 ' + cnt + '개' : '');
+  } else if (o.k === 'shopSkip') {
+    ico = '<span class="rc-ico" style="--c:#E4E7EE">👋</span>'; name = '그냥 나가기'; tag = '';
+    desc = '아무것도 안 사고 다음 웨이브로'; note = '돈은 강화에 쓸 수 있어요';
+  } else if (o.k === 'freeUp') {
     ico = '<span class="rc-ico" style="--c:#CFE3F7">🎟️</span>'; name = '무료 강화권'; tag = '<span class="rc-tag" style="background:#2F6BD8">강화</span>';
     desc = '장비 대신 받아요. 아래 캐릭터 카드 하나를 돈 없이 1번 강화!'; note = '받으면 강화할 캐릭터 카드를 눌러요' + (S.freeUp ? ' · 지금 ' + S.freeUp + '장' : '');
   } else if (o.k === 'lvGold') {
@@ -1731,6 +1774,7 @@ function endWave() {
 function openLvGift() {
   const opts = [];
   for (const d of ITEMS) {
+    if (d.shop) continue;                                      // 🛒 상점 아이템은 돈 주고만 사요
     const it = S.items.find((x) => x.id === d.id);
     opts.push({ k: 'itemNew', id: d.id });                     // 같은 장비도 하나 더 받을 수 있어요 (예준이 결정)
     if (it && !it.awake) opts.push({ k: it.lv < 5 ? 'itemUp' : 'itemAwake', id: d.id });
@@ -1770,6 +1814,7 @@ function pick(i) {
   const o = S.offer && S.offer[i];
   if (!o) return;
   if (S.chooseMode === 'lv') { pickLv(o); return; }
+  if (S.chooseMode === 'shop') { pickShop(o); return; }
   S.picks++;
   if (o.k === 'char') placeUnit(o.id);
   else if (o.k === 'turretUp') {
@@ -1823,6 +1868,7 @@ function pick(i) {
     return;
   }
   S.bonusPick = false;
+  if (shopDue()) { openShop(); return; }
   startWave();
 }
 function upgrade(id, el) {
@@ -2091,8 +2137,13 @@ function drawTrap(tr) {                                    // 한 줄로 쭉: �
 }
 function drawItemBadge(u) {                                   // 🎁 끼운 장비를 발밑에 작게
   const it = itemOf(u); if (!it) return;
-  const im = ITEM_IMG[it.id + (it.awake ? ':a' : '')]; if (!im.complete || !im.naturalWidth) return;
-  const p = slotXY(u.slot), k = 16 / Math.max(im.naturalWidth, im.naturalHeight);
+  const im = ITEM_IMG[it.id + (it.awake ? ':a' : '')], p = slotXY(u.slot);
+  if (!im) {                                                  // 🛒 그림이 아직 없는 상점 아이템은 이모지로
+    ctx.save(); ctx.fillStyle = 'rgba(244,246,241,.9)'; circle(ctx, p.x - 18, p.y + 19, 10); ctx.fill(); ctx.strokeStyle = INK; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.font = '12px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ITEM_BY[it.id].emo || '🎁', p.x - 18, p.y + 20); ctx.restore(); return;
+  }
+  if (!im.complete || !im.naturalWidth) return;
+  const k = 16 / Math.max(im.naturalWidth, im.naturalHeight);
   ctx.save(); ctx.fillStyle = 'rgba(244,246,241,.9)'; circle(ctx, p.x - 18, p.y + 19, 10); ctx.fill();
   ctx.strokeStyle = it.awake ? '#B8860B' : INK; ctx.lineWidth = 1.5; ctx.stroke();
   ctx.drawImage(im, p.x - 18 - im.naturalWidth * k / 2, p.y + 19 - im.naturalHeight * k / 2, im.naturalWidth * k, im.naturalHeight * k);
@@ -3116,8 +3167,8 @@ function resumeBattle() {
   $('#bSpeed').textContent = '×' + S.speed;
   show('battle');
   if (S.choosing && S.offer) {                                // 선물을 고르던 중이었으면 그 카드 그대로
-    $('#rwTitle').textContent = S.chooseMode === 'lv' ? '레벨 업!' : S.bonusPick ? '👽 보라 에일리언 보너스!' : '웨이브 ' + S.wave + ' 끝!';
-    $('#rwSub').textContent = S.chooseMode === 'lv' ? '특수 선물을 하나 골라요' : '선물을 하나 골라요';
+    $('#rwTitle').textContent = S.chooseMode === 'shop' ? '🛒 상점' : S.chooseMode === 'lv' ? '레벨 업!' : S.bonusPick ? '👽 보라 에일리언 보너스!' : '웨이브 ' + S.wave + ' 끝!';
+    $('#rwSub').textContent = S.chooseMode === 'shop' ? '돈으로 아이템을 살 수 있어요' : S.chooseMode === 'lv' ? '특수 선물을 하나 골라요' : '선물을 하나 골라요';
     $('#rwCards').innerHTML = S.offer.map(offerHTML).join('');
     $('#rewardOv').hidden = false;
   } else { S.choosing = false; S.offer = null; }
