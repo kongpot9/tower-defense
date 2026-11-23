@@ -71,6 +71,24 @@
             ".validate": false
           }
         }
+      },
+      "save": {
+        "$key": {
+          ".read": "$key.length === 64",
+          ".write": "$key.length === 64 && newData.hasChildren(['d','t']) && newData.child('d').isString() && newData.child('d').val().length < 500000 && newData.child('t').isNumber() && newData.child('t').val() <= now + 60000",
+          "d": {
+            ".validate": "newData.isString()"
+          },
+          "t": {
+            ".validate": "newData.isNumber()"
+          },
+          "nick": {
+            ".validate": "newData.isString() && newData.val().length <= 12"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
       }
     }
   }

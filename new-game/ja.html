@@ -279,6 +279,9 @@ img.ic{width:22px;height:22px;object-fit:contain;vertical-align:-5px;margin:0 2p
 .rank-list li .n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rank-list .empty{display:block;text-align:center;color:var(--muted);background:none}
 .nick-row{display:grid;grid-template-columns:auto 1fr auto;gap:6px;align-items:center;font-size:13px;text-align:left}
+.cloud-box{border-top:2px dashed #C9D1DF;border-bottom:2px dashed #C9D1DF;margin:10px 0;padding:6px 0}
+.cloud-box h3{margin:4px 0;font:18px var(--f-display);font-weight:400}
+.cloud-row{grid-template-columns:1fr 1fr}
 .nick-row input{min-width:0;font:inherit;font-size:15px;padding:7px 10px;border:2.5px solid var(--ink);border-radius:10px;background:var(--paper);color:var(--ink)}
 .rank-note{font-size:12px;color:var(--muted);line-height:1.4}
 .go-rank{font-size:14px;color:var(--muted)}
@@ -307,14 +310,14 @@ img.ic{width:22px;height:22px;object-fit:contain;vertical-align:-5px;margin:0 2p
 </style>
 </head>
 <body>
-<script>/* 🌐 언어: 한 回 고르면 기억 · さいしょは 기기 언어 (일본어면 일본판) — 한·일이 같은 ランキング · 같은 접속 서버를 써요 */
+<script>/* 🌐 언어: 한 回 고르면 기억 · さいしょは 端末 언어 (일본어면 일본판) — 한·일이 같은 ランキング · 같은 접속 서버를 써요 */
 window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if (l === 'ko' || l === 'ja') return l; } catch (e) {} return /^ja/i.test(navigator.language || '') ? 'ja' : 'ko'; })();
 </script>
 <div id="app">
 
   <!-- ===== 홈 ===== -->
   <section id="home" class="screen home">
-    <!-- 🏰 로비 = わたしの村: 마을 성 그림이 화면을 꽉 채우고, 위에 コイン · 버튼, 아래에 전투 버튼 (2026-11-21 예준이 결정: 제목 글자 빼기) -->
+    <!-- 🏰 로비 = わたしの村: 마을 성 그림이 화면을 꽉 채우고, 위에 コイン · 버튼, 아래에 전투 버튼 (2026-11-21 예준이 결정: 제목 文字 빼기) -->
     <div class="yard" id="yard"><canvas id="yardCv" aria-label="わたしの村"></canvas><div class="walk" id="walk"></div><div class="village" id="village"></div></div>
     <div class="wallet"><span><img src="art/coin.png" alt="コイン"><b id="wCoin">0</b></span><span><img src="art/crystal.png" alt="クリスタル"><b id="wCrystal">0</b></span></div>
     <div class="lobby-top">
@@ -459,6 +462,16 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
   <div class="ov ov-fixed" id="setOv" hidden>
     <div class="ov-card">
       <h2>⚙️ 設定</h2>
+      <div class="cloud-box">
+        <h3>☁️ クラウド 保存</h3>
+        <p class="bld-note" id="cloudState">ニックネーム + パスワードでサーバーに保存します. 機種変更やアプリを消しても、そのまま読み込めます</p>
+        <div id="cloudForm">
+          <div class="nick-row cloud-row"><input id="cloudNick" maxlength="12" placeholder="ニックネーム" autocomplete="username"><input id="cloudPw" type="password" maxlength="32" placeholder="パスワード (4文字以上)" autocomplete="current-password"></div>
+          <div class="ov-btns"><button class="btn btn-blue" id="bCloudGo" type="button">☁️ 接続する</button></div>
+        </div>
+        <div class="ov-btns" id="cloudBtns" hidden></div>
+        <p class="bld-note" id="cloudNote"></p>
+      </div>
       <p class="sub">アカウントをリセットすると、この端末の <b>コイン・クリスタル・解放したキャラ・⭐レベル・村・レーティング・デッキ・つづき</b>が全部最初にもどります</p>
       <p class="bld-note">ランキングサーバーの記録はそのままのこります（歴代記録は消えません）</p>
       <div class="ov-btns"><button class="btn btn-red big" id="bReset" type="button">🗑️ アカウントリセット</button><button class="btn" id="bSetClose" type="button">とじる</button></div>
@@ -636,7 +649,7 @@ const ALIEN_LV = [null,
 ];
 const ALIEN_IMG = { yellow: new Image(), purple: new Image() };
 ALIEN_IMG.yellow.src = ALIEN.yellow.img; ALIEN_IMG.purple.src = ALIEN.purple.img;
-// 🪖🔥🚀 새 성 防衛ユニット (그림·숫자: グ・イェジュン, 2026-11-21) — Lv.1~5 다음 카드에서 覚醒 · 자리는 성벽 위 (Claude가 정함)
+// 🪖🔥🚀 새 성 防衛ユニット (그림·数字: グ・イェジュン, 2026-11-21) — Lv.1~5 다음 카드에서 覚醒 · 자리는 성벽 위 (Claude가 정함)
 const XW = {
   soldier: { name: '兵隊', img: 'art/xw-soldier.png', aimg: 'art/xw-soldier-awake.png', x: 22, h: 40, range: 330,
              lv: [null, { dmg: 100, every: 2 }, { dmg: 300, every: 2 }, { dmg: 400, every: 2 }, { dmg: 500, every: 1 }, { dmg: 700, every: 1 }],
@@ -650,7 +663,7 @@ const XW = {
 const XW_IMG = {}; for (const k in XW) { XW_IMG[k] = new Image(); XW_IMG[k].src = XW[k].img; XW_IMG[k + ':a'] = new Image(); XW_IMG[k + ':a'].src = XW[k].aimg; }
 const POISON = { time: 6, tick: 0.5, step: 0.03 };
 // 🎁 装備 (그림·設定: グ・イェジュン, 2026-11-21) — レベル 업 とくべつ プレゼント · 캐릭터 하나에 하나씩 끼워요 · Lv.1~5 다음에 覚醒
-const ARROW_GOLD = { base: 1570, awake: 3100, every: 30 };   // 🏹 황금스탯: 30마리마다 お金 (예준이 숫자, 2026-11-21 조정)
+const ARROW_GOLD = { base: 1570, awake: 3100, every: 30 };   // 🏹 황금스탯: 30마리마다 お金 (예준이 数字, 2026-11-21 조정)
 const ITEMS = [
   { id: 'arrow',  name: '黄金の矢',        aname: '覚醒 黄金の矢',        img: 'art/item-arrow.png',  aimg: 'art/item-arrow-awake.png',
     d: (a) => '装備したキャラが ' + ARROW_GOLD.every + '匹たおすたびにゴールデンステータス：お金 +' + (a ? ARROW_GOLD.awake : ARROW_GOLD.base) },
@@ -702,7 +715,7 @@ const CHARS = [
     dmg: 300,  rate: 1 / 0.8,  range: 250, proj: 'punch', chainP: 0.3, chainN: 3, desc: 'パンチを飛ばします。30%の確率で感電して、となりの敵3体にも同じダメージ！' },
   { id: 'lumber',   name: 'きこり',       img: 'art/lumber.png',   grade: 'ヒーロー', color: '#D9A880', role: '近距離', pref: 'front',
     dmg: 520,  rate: 1 / 1,    range: 150, melee: 'slash', desc: 'オノで前の敵を強くたたきます。' },
-  // 🥷 다크라이더: 다른 게임(냥코 대전쟁)의 다크라이더와 닮아서 입국 실패 (2026-11-20, グ・イェジュン 결정)
+  // 🥷 다크라이더: 다른 게임(냥코 대전쟁)의 다크라이더와 닮아서 입국 失敗 (2026-11-20, グ・イェジュン 결정)
   // ⛏️ 능력자광부 · 🗡️ 낭인: 결별 (2026-11-20, グ・イェジュン 결정)
   // ↓ 3차 입국 (2026-11-20): ヒーロー 등급은 다크라이더 빼고 전부
   { id: 'wolf',     name: 'ウルフ受講生',   img: 'art/wolf.png',     grade: 'ヒーロー', color: '#C9B48A', role: '近距離', pref: 'front',
@@ -770,7 +783,7 @@ const CHARS = [
     dmg: 900,  rate: 1 / 0.8,  range: 300, proj: 'fan', desc: 'せんすを投げると敵をどこまでも追いかけて当てます。' },
   { id: 'catmachine', name: 'キャットマシン',     img: 'art/catmachine.png', grade: '伝説', color: '#F4C7A1', role: '範囲', pref: 'back',
     dmg: 600,  rate: 1 / 0.5,  range: 250, proj: 'missile', splash: 30, desc: 'ミサイルを速くうってまわりまでばくはつさせます。' },
-  // 🛬 재입국 (2026-11-22 예준이 결정): テンハン — 777 숫자(400 · 0.5秒 · 範囲 55)를 が 게임 크기로 ×4 (Claude)
+  // 🛬 재입국 (2026-11-22 예준이 결정): テンハン — 777 数字(400 · 0.5秒 · 範囲 55)를 が 게임 크기로 ×4 (Claude)
   { id: 'tenhan', name: 'テンハン', img: 'art/tenhan.png', grade: '伝説', color: '#CFE8A8', role: '植木鉢', pref: 'front',
     dmg: 1600, rate: 1 / 0.5, range: 150, proj: 'orb', splash: 55, pot: 3,
     desc: '植木鉢に住む妖怪。3ウェーブに1回だけ鉢から出てきて圧倒的に戦います。🔥テンゾーの円の中にいるといつも起きています！' },
@@ -837,8 +850,12 @@ const ACH = {
 const CRYS_PRICE = { 'ヒーロー': 500, '神話': 3000, '伝説': 10000 };
 // ⚡ タイムセール (2026-11-22 예준이 결정): ボックス 💎50은 5分 동안만 (한국 時間 12:30까지) → 끝나면 💎300
 const BOX_SALE = { price: 50, until: 1795318200000 };
-const boxPrice = () => (Date.now() < BOX_SALE.until ? BOX_SALE.price : BOX.price);
-const BOX = { price: 300, odds: { 'ヒーロー': 70, '神話': 27, '伝説': 3 } };   // 🎁 아직 없는 クリスタル 캐릭터만 나와요 (중복 없음) · 평소 💎300 · タイムセール 땐 💎50
+// 🎁 ボックス 가격 (2026-11-23 예준이 결정): 평소 💎1500 · 계정 만들고 15일까지 💎900 · 1~2일차는 💎300 (이미 하던 사람은 2026-11-23が 1일차)
+const BOX = { price: 1500, newbie: [[2, 300], [15, 900]], odds: { 'ヒーロー': 70, '神話': 27, '伝説': 3 } };   // 아직 없는 クリスタル 캐릭터만 나와요 (중복 없음)
+const midnight = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+const accountDay = () => Math.round((midnight(Date.now()) - (META.born || midnight(Date.now()))) / 86400000) + 1;   // 계정 만든 날 = 1일차
+const newbieTier = () => BOX.newbie.find(([d]) => accountDay() <= d);
+const boxPrice = () => (Date.now() < BOX_SALE.until ? BOX_SALE.price : newbieTier() ? newbieTier()[1] : BOX.price);
 const isCrysChar = (id) => BY[id] && !START_UNLOCK.includes(id) && !ACH[id];
 const validDeck = (d) => Array.isArray(d) && d.length === 8 && new Set(d).size === 8 && d.every((id) => BY[id] && unlocked(id)) && d.includes('sword') ? d.slice() : null;
 
@@ -2472,7 +2489,7 @@ function showPop() {
   if (d.drill && !(u.drillT > 0)) { sk.hidden = false; sk.textContent = '🔩 ドリラー変身 ' + d.drill.cost + 'G'; }
   else if (d.senior && !u.young) { sk.hidden = false; sk.textContent = '🌱 若返りチャレンジ ' + d.senior.cost + 'G (40%)'; }
   else sk.hidden = true;
-  // 💪 ダメージ: もとは 숫자 + 버프로 늘어난 만큼을 연두색으로 (예준이 요청)
+  // 💪 ダメージ: もとは 数字 + 버프로 늘어난 만큼을 연두색으로 (예준이 요청)
   if (d.support) $('#popStat').textContent = 'サポートキャラ・攻撃しない';
   else {
     const now = d.dmg * lvMult(d.id) * (1 + S.buff.dmg) * teamMul() * itemDmgMul(u, d) * (1 + (u.bonus || 0)) * (d.party && S.party ? d.party.self : 1);
@@ -2520,7 +2537,7 @@ const META_UP = { on: true, per: 0.05, max: 10, base: { 'ノーマル': 100, '�
 const META = (() => { const m = store.get('yj.meta', null); return m && typeof m === 'object' ? m : { coin: 0, crystal: EARN.welcomeCrystal, up: {} }; })();
 META.up = META.up || {};
 const metaLv = (id) => META_UP.on ? Math.min(META_UP.max, META.up[id] || 0) : 0;
-const metaSave = () => { store.set('yj.meta', META); showWallet(); };
+const metaSave = () => { store.set('yj.meta', META); showWallet(); cloudSoon(); };
 const coinIco = '<img class="ic" src="art/coin.png" alt="">', crysIco = '<img class="ic" src="art/crystal.png" alt="">';
 function showWallet() {
   const set = (sel, v) => { const el = $(sel); if (el) el.textContent = Math.floor(v).toLocaleString(); };
@@ -2603,7 +2620,9 @@ function boxLeft() { return CHARS.filter((c) => isCrysChar(c.id) && !unlocked(c.
 function openBox() {
   const left = boxLeft(), ov = $('#boxOv');
   const sale = Date.now() < BOX_SALE.until;
-  $('#boxPrice').innerHTML = crysIco + boxPrice() + (sale ? ' <b style="color:#C9403A">⚡ タイムセール! (もとは ' + BOX.price + ') · ' + Math.max(0, Math.ceil((BOX_SALE.until - Date.now()) / 1000)) + '秒のこり</b>' : '');
+  const nb = !sale && newbieTier();
+  $('#boxPrice').innerHTML = crysIco + boxPrice() + (sale ? ' <b style="color:#C9403A">⚡ タイムセール! (もとは ' + BOX.price + ') · ' + Math.max(0, Math.ceil((BOX_SALE.until - Date.now()) / 1000)) + '秒のこり</b>'
+    : nb ? ' <b style="color:#C9403A">🐣 初心者割引! (もとは ' + BOX.price + ') · ' + (nb[0] - accountDay() + 1) + '日のこり</b>' : '');
   $('#boxOdds').textContent = 'ヒーロー ' + BOX.odds['ヒーロー'] + '% · 神話 ' + BOX.odds['神話'] + '% · 伝説 ' + BOX.odds['伝説'] + '% · まだ持っていないキャラだけ出ます（のこり ' + left.length + '人)';
   $('#boxResult').innerHTML = '';
   const b = $('#bBoxOpen'); b.disabled = !left.length || META.crystal < boxPrice();
@@ -2645,7 +2664,7 @@ function resetChar(id) {                                      // 🔄 リセッ�
   META.resetTix--; META.up[id] = 0; if (META.paid) META.paid[id] = 0; META.crystal += back; metaSave();
   toast('🔄 ' + BY[id].name + ' ⭐0 · 💎+' + back.toLocaleString() + ' 返してもらいました'); openUpg();
 }
-/* 🎟️ クーポン (2026-11-22): 배상 · 선물용 · 기기마다 한 번씩 · 코드는 글자 그대로 안 넣고 해시만 넣어요 */
+/* 🎟️ クーポン (2026-11-22): 배상 · 선물용 · 기기마다 한 번씩 · 코드는 文字 그대로 안 넣고 해시만 넣어요 */
 const hashCode = (t) => { let h = 5381; for (const ch of t.trim().toUpperCase()) h = ((h << 5) + h + ch.codePointAt(0)) >>> 0; return h.toString(36); };
 const COUPONS = {
   // Dさんへのおわび (claude.ai 버전에서 세운 121ウェーブ 기록이 안 남아서, 2026-11-22 예준이 결정)
@@ -2672,15 +2691,15 @@ $('#bCoupon').addEventListener('click', async () => {
   else if (c.wave) note.textContent += ' · ニックネームを決めるとランキングにのります';
 });
 
-/* ⚙️ アカウントリセット (2026-11-22 예준이 요청): 두 回 눌러야 해요 · が 기기 저장만 지워요 (언어 설정은 남겨요) */
+/* ⚙️ アカウントリセット (2026-11-22 예준이 요청): 두 回 눌러야 해요 · この端末 저장만 지워요 (언어 설정은 남겨요) */
 let resetArm = 0;
-$('#bSettings').addEventListener('click', () => { resetArm = 0; $('#bReset').textContent = '🗑️ アカウントリセット'; $('#setOv').hidden = false; });
+$('#bSettings').addEventListener('click', () => { resetArm = 0; $('#bReset').textContent = '🗑️ アカウントリセット'; cloudUI(); $('#setOv').hidden = false; });
 $('#bSetClose').addEventListener('click', () => { $('#setOv').hidden = true; });
 $('#bReset').addEventListener('click', () => {
   const b = $('#bReset');
   if (Date.now() - resetArm > 4000) { resetArm = Date.now(); b.textContent = '本当に？もう一回押すと全部消えます'; return; }
   try {
-    const ks = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && (k.startsWith('yj2') || k === 'yj.meta')) ks.push(k); }
+    const ks = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && (k.startsWith('yj2') || k === 'yj.meta' || k === 'yj.cloud')) ks.push(k); }   // 초기화하면 クラウド 연결도 끊어요 (빈 기록으로 덮어쓰지 않게)
     ks.forEach((k) => localStorage.removeItem(k));
   } catch (e) { /* 괜찮아요 */ }
   location.reload();
@@ -3146,11 +3165,82 @@ function rankInit() {
   })();
   return rankReady;
 }
+/* ===== ☁️ クラウド 保存 (2026-11-23 예준이 요청 — 앱스토어 출시 준비) =====
+   ニックネーム + パスワード → 둘을 섞어 만든 열쇠(SHA-256) 자리에 が 기기의 기록(yj.meta · yj2…)을 통째로 올려요.
+   열쇠를 모르면 읽을 수도 쓸 수도 없어요 (パスワードは 서버에 안 올라가요). 연결하면 그다음부터는 저절로 저장돼요. */
+const CLOUD = { key: store.get('yj.cloud', null), timer: 0, busy: false, last: 0 };
+const cloudUrl = (k) => RANK.fb.replace(/\/rank$/, '/save/') + k + '.json';
+async function cloudKey(nick, pw) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('musung:' + nick + ':' + pw));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+const cloudMine = (k) => k && (k.startsWith('yj2') || k === 'yj.meta');
+function cloudPack() {
+  const o = {}; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (cloudMine(k)) o[k] = localStorage.getItem(k); } } catch (e) { /* 괜찮아요 */ }
+  return o;
+}
+async function cloudPut(k) {
+  const r = await fetch(cloudUrl(k), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ d: JSON.stringify(cloudPack()), t: Date.now(), nick: store.get('yj2ja.nick', '') || '' }) });
+  if (!r.ok) throw new Error('http ' + r.status);
+  CLOUD.last = Date.now();
+}
+async function cloudGet(k) {
+  const r = await fetch(cloudUrl(k)); if (!r.ok) throw new Error('http ' + r.status);
+  const v = await r.json(); if (!v || typeof v.d !== 'string') return null;
+  try { return { keys: JSON.parse(v.d), t: v.t || 0 }; } catch (e) { return null; }
+}
+function cloudSoon() {                                          // 기록이 바뀌면 5秒 뒤에 한 回 올려요 (너무 자주 안 보내게)
+  if (!CLOUD.key || RANK.mode !== 'fb') return;
+  clearTimeout(CLOUD.timer);
+  CLOUD.timer = setTimeout(() => { cloudPut(CLOUD.key).catch(() => {}); }, 5000);
+}
+function cloudApply(keys) {                                     // クラウド 기록으로 が 기기를 바꾸고 다시 スタート
+  try {
+    const ks = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (cloudMine(k)) ks.push(k); }
+    ks.forEach((k) => localStorage.removeItem(k));
+    for (const k in keys) if (cloudMine(k) && typeof keys[k] === 'string') localStorage.setItem(k, keys[k]);
+  } catch (e) { /* 괜찮아요 */ }
+  location.reload();
+}
+const cloudSummary = (keys) => { let m = {}; try { m = JSON.parse(keys['yj.meta'] || '{}') || {}; } catch (e) { /* 비어 있어요 */ }
+  return '最高 WAVE ' + (m.bestWave || 0) + ' · 🪙' + fmtNum(m.coin || 0) + ' · 💎' + fmtNum(m.crystal || 0); };
+let cloudArm = 0;
+function cloudUI(msg) {
+  const on = !!CLOUD.key, btns = $('#cloudBtns');
+  $('#cloudForm').hidden = on; btns.hidden = !on; btns.innerHTML = ''; $('#cloudNote').textContent = msg || '';
+  if (RANK.mode !== 'fb') { $('#cloudState').textContent = 'クラウド保存はウェブサイト · アプリでのみ使えます'; $('#cloudForm').hidden = true; btns.hidden = true; return; }
+  if (!on) { $('#cloudState').textContent = 'ニックネーム + パスワードでサーバーに保存します. 機種変更やアプリを消しても、そのまま読み込めます'; if (!$('#cloudNick').value) $('#cloudNick').value = store.get('yj2ja.nick', '') || ''; return; }
+  $('#cloudState').textContent = '✅ 接続中 · 記録が変わると自動で保存されます' + (CLOUD.last ? ' (最後の 保存 ' + new Date(CLOUD.last).toLocaleTimeString() + ')' : '');
+  btns.appendChild(bldBtn('☁️ いま 保存', async () => { try { await cloudPut(CLOUD.key); cloudUI('保存しました!'); } catch (e) { cloudUI('⚠️ 保存失敗 (' + e.message + ')'); } }, false, 'btn-blue'));
+  btns.appendChild(bldBtn('🔌 接続を切る', () => { CLOUD.key = null; try { localStorage.removeItem('yj.cloud'); } catch (e) { /* 괜찮아요 */ } cloudUI('接続を切りました (サーバーの記録はそのまま残ります)'); }));
+}
+$('#bCloudGo').addEventListener('click', async () => {
+  const nick = $('#cloudNick').value.trim(), pw = $('#cloudPw').value;
+  if (!NICK_OK.test(nick)) { cloudUI('ニックネームは 1~12文字 (ハングル · 英字 · 数字)'); return; }
+  if (pw.length < 4) { cloudUI('パスワードは 4文字以上'); return; }
+  if (CLOUD.busy) return; CLOUD.busy = true; $('#cloudNote').textContent = 'サーバーに確認中…';
+  try {
+    const k = await cloudKey(nick, pw), got = await cloudGet(k), btns = $('#cloudBtns');
+    if (!got) {                                                  // 처음 → この端末 기록을 올리고 연결
+      await cloudPut(k); CLOUD.key = k; store.set('yj.cloud', k); cloudUI('☁️ 新しく作って接続しました! この端末の記録を保存しました (前の記録があったなら、ニックネーム · パスワードをもう一度確かめてね)');
+    } else {                                                     // 이미 저장된 기록이 있으면 → 불러올지, この端末 기록으로 덮어쓸지 골라요
+      $('#cloudForm').hidden = true; btns.hidden = false; btns.innerHTML = '';
+      $('#cloudNote').textContent = 'サーバーの記録: ' + cloudSummary(got.keys) + ' / この端末: ' + cloudSummary(cloudPack());
+      btns.appendChild(bldBtn('📥 サーバーの記録を読み込む', () => { store.set('yj.cloud', k); cloudApply(got.keys); }, false, 'btn-blue'));
+      btns.appendChild(bldBtn('⬆️ この端末の記録で上書き', async (ev) => {
+        if (Date.now() - cloudArm > 4000) { cloudArm = Date.now(); ev.currentTarget.textContent = '本当に？? サーバーの記録が消えます'; return; }
+        try { await cloudPut(k); CLOUD.key = k; store.set('yj.cloud', k); cloudUI('上書きしました! これから自動で保存されます'); } catch (e) { cloudUI('⚠️ 保存失敗 (' + e.message + ')'); }
+      }));
+    }
+  } catch (e) { cloudUI('⚠️ サーバーに接続できませんでした (' + e.message + ')'); }
+  CLOUD.busy = false;
+});
+document.addEventListener('visibilitychange', () => { if (document.hidden && CLOUD.key && RANK.mode === 'fb' && Date.now() - CLOUD.last > 3000) { clearTimeout(CLOUD.timer); cloudPut(CLOUD.key).catch(() => {}); } });
 /* ===== 🏅 レーティング (2026-11-21 예준이 요청 · 재는 법은 Claude가 정함) =====
    レーティング = 最近 10回(ノーマル 모드) 도달 ウェーブ 평균 × 20 · 티어마다 비슷한 실력끼리 따로 ランキング */
 const TIERS_R = [{ min: 1400, n: 'マスター', e: '👑' }, { min: 1000, n: 'ダイヤ', e: '💎' }, { min: 700, n: 'ゴールド', e: '🥇' }, { min: 400, n: 'シルバー', e: '🥈' }, { min: 0, n: 'ブロンズ', e: '🥉' }];
 // 🚫 일부러 지는 고인물 막기 (2026-11-21 예준이 요청): 그동안 전적도 봐요
-//   레이팅은 'これまで 제일 높았던 레이팅의 80%'와 '최고 ウェーブ × 20의 60%' 아래로는 안 떨어져요
+//   레이팅은 'これまで 제일 높았던 레이팅의 80%'와 '最高 ウェーブ × 20의 60%' 아래로는 안 떨어져요
 const recentRating = () => { const r = META.recent || []; return r.length ? Math.round(20 * r.reduce((a, b) => a + b, 0) / r.length) : 0; };
 const ratingFloor = () => Math.round(Math.max(0.8 * (META.peakRating || 0), 0.6 * 20 * (META.bestWave || 0)));
 const myRating = () => (META.recent || []).length ? Math.max(recentRating(), ratingFloor()) : 0;
@@ -3165,7 +3255,7 @@ function seasonCheck() {
   if (META.season === n) return false;
   const first = !META.season;
   META.season = n; META.sBest = 0;
-  if (!first) { META.recent = []; META.peakRating = Math.round((META.peakRating || 0) * 0.7); }   // 새 シーズン: 배치고사부터 · 최고 レーティング 바닥은 70%만 남겨요
+  if (!first) { META.recent = []; META.peakRating = Math.round((META.peakRating || 0) * 0.7); }   // 새 シーズン: 배치고사부터 · 最高 レーティング 바닥은 70%만 남겨요
   metaSave();
   return !first;
 }
@@ -3196,8 +3286,8 @@ async function rankFetch() {
   await rankInit();
   if (RANK.mode === 'db') {
     const snap = await RANK.db.collection('rank').orderBy('wave', 'desc').limit(300).get();
-    let rows = snap.docs.map((d) => Object.assign({ me: d.id === RANK.uid }, d.data())).filter((r) => r.nick && r.wave > 0);   // 닉네임 없이 回 수만 센 사람은 빼요
-    rows.forEach((r) => { if (!(r.rating > 0)) r.rating = r.wave * 20; });       // 레이팅이 없던 예전 기록은 최고 웨이브로 어림
+    let rows = snap.docs.map((d) => Object.assign({ me: d.id === RANK.uid }, d.data())).filter((r) => r.nick && r.wave > 0);   // ニックネーム 없이 回 수만 센 사람은 빼요
+    rows.forEach((r) => { if (!(r.rating > 0)) r.rating = r.wave * 20; });       // 레이팅이 없던 예전 기록은 最高 웨이브로 어림
     const cs = curSeason();
     if (rankTab === 'season') rows = rows.filter((r) => r.season === cs && r.sWave > 0).sort((a, b) => b.sWave - a.sWave);
     if (rankTab === 'tier') { const mine = tierOf(myRating()).n; rows = rows.filter((r) => r.season === cs && r.placed && tierOf(r.rating).n === mine).sort((a, b) => b.rating - a.rating); }
@@ -3367,7 +3457,7 @@ $('#bPause').addEventListener('click', () => setPaused(true));
 $('#bResume').addEventListener('click', () => setPaused(false));
 $('#bGiveUp').addEventListener('click', () => { S.paused = false; $('#pauseOv').hidden = true; gameOver(); });
 // ⏩ 倍速: ×1 → ×2 → ×3 (3倍速 2026-11-21) · 🧪 앱스토어 출시 전(PRE_RELEASE)에는 ×50도 있어요 (테스트용, 2026-11-22 예준이 결정)
-const PRE_RELEASE = true;
+const PRE_RELEASE = false;                                   // 2026-11-23 예준이 결정: 출시 준비 → 50倍速 뺌
 const SPEEDS = PRE_RELEASE ? [1, 2, 3, 50] : [1, 2, 3];
 $('#bSpeed').addEventListener('click', () => { S.speed = SPEEDS[(SPEEDS.indexOf(S.speed) + 1) % SPEEDS.length] || 1; $('#bSpeed').textContent = '×' + S.speed; });
 $('#bCoachGo').addEventListener('click', () => { store.set('yj2ja.coach', true); $('#coach').hidden = true; S.paused = false; });
@@ -3420,9 +3510,10 @@ function start(data) {
     bl.addEventListener('click', () => { try { localStorage.setItem('yj.lang', BUILD_LANG === 'ko' ? 'ja' : 'ko'); } catch (e) { /* 괜찮아요 */ } location.reload(); });
   }
   rankInit(); liveInit();
+  if (!META.born) { META.born = midnight(Date.now()); metaSave(); }   // 🐣 계정 만든 날 (ボックス 뉴비 할인용) · 이미 하던 사람은 오늘이 1일차
   S.deck = validDeck(data && data.deck) || validDeck(store.get('yj2ja.deck', null)) || CHARS.filter((c) => unlocked(c.id) && !c.support).slice(0, 8).map((c) => c.id);   // 처음 덱엔 싸우는 캐릭터만 (텐조는 리워크로 공격 안 함)
   S.best = store.get('yj2ja.best', 0) || 0;
-  if (S.best > (META.bestWave || 0)) { META.bestWave = S.best; metaSave(); }   // 예전 최고 기록도 업적에 쳐요
+  if (S.best > (META.bestWave || 0)) { META.bestWave = S.best; metaSave(); }   // 예전 最高 기록도 업적에 쳐요
   if (seasonCheck()) setTimeout(() => toast('🗓️ 新シーズン！ ' + seasonName(curSeason()) + ' · 配置テストからやり直し'), 900);
   for (const k in COUPONS) { const c = COUPONS[k];                 // 🎟️ 쿠폰을 먼저 받은 사람한테도 あとで 추가된 '配置テスト 回'을 넣어 줘요
     if (c.recent && META.coupons && META.coupons[c.id] && !META.coupons[c.id + ':r']) { META.recent = (META.recent || []).concat([c.recent]).slice(-10); META.coupons[c.id + ':r'] = Date.now(); metaSave(); } }

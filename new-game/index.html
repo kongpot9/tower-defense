@@ -279,6 +279,9 @@ img.ic{width:22px;height:22px;object-fit:contain;vertical-align:-5px;margin:0 2p
 .rank-list li .n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rank-list .empty{display:block;text-align:center;color:var(--muted);background:none}
 .nick-row{display:grid;grid-template-columns:auto 1fr auto;gap:6px;align-items:center;font-size:13px;text-align:left}
+.cloud-box{border-top:2px dashed #C9D1DF;border-bottom:2px dashed #C9D1DF;margin:10px 0;padding:6px 0}
+.cloud-box h3{margin:4px 0;font:18px var(--f-display);font-weight:400}
+.cloud-row{grid-template-columns:1fr 1fr}
 .nick-row input{min-width:0;font:inherit;font-size:15px;padding:7px 10px;border:2.5px solid var(--ink);border-radius:10px;background:var(--paper);color:var(--ink)}
 .rank-note{font-size:12px;color:var(--muted);line-height:1.4}
 .go-rank{font-size:14px;color:var(--muted)}
@@ -458,6 +461,16 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
   <div class="ov ov-fixed" id="setOv" hidden>
     <div class="ov-card">
       <h2>⚙️ 설정</h2>
+      <div class="cloud-box">
+        <h3>☁️ 클라우드 저장</h3>
+        <p class="bld-note" id="cloudState">닉네임 + 비밀번호로 서버에 저장해요. 폰을 바꾸거나 앱을 지워도 그대로 불러올 수 있어요</p>
+        <div id="cloudForm">
+          <div class="nick-row cloud-row"><input id="cloudNick" maxlength="12" placeholder="닉네임" autocomplete="username"><input id="cloudPw" type="password" maxlength="32" placeholder="비밀번호 (4글자 이상)" autocomplete="current-password"></div>
+          <div class="ov-btns"><button class="btn btn-blue" id="bCloudGo" type="button">☁️ 연결하기</button></div>
+        </div>
+        <div class="ov-btns" id="cloudBtns" hidden></div>
+        <p class="bld-note" id="cloudNote"></p>
+      </div>
       <p class="sub">계정 초기화를 하면 이 기기의 <b>코인 · 크리스탈 · 해금한 캐릭터 · ⭐레벨 · 마을 · 레이팅 · 덱 · 이어하기</b>가 전부 처음으로 돌아가요</p>
       <p class="bld-note">랭킹 서버에 올라간 기록은 그대로 남아요 (역대 기록은 지워지지 않아요)</p>
       <div class="ov-btns"><button class="btn btn-red big" id="bReset" type="button">🗑️ 계정 초기화</button><button class="btn" id="bSetClose" type="button">닫기</button></div>
@@ -836,8 +849,12 @@ const ACH = {
 const CRYS_PRICE = { '영웅': 500, '신화': 3000, '전설': 10000 };
 // ⚡ 깜짝 세일 (2026-11-22 예준이 결정): 상자 💎50은 5분 동안만 (한국 시간 12:30까지) → 끝나면 💎300
 const BOX_SALE = { price: 50, until: 1795318200000 };
-const boxPrice = () => (Date.now() < BOX_SALE.until ? BOX_SALE.price : BOX.price);
-const BOX = { price: 300, odds: { '영웅': 70, '신화': 27, '전설': 3 } };   // 🎁 아직 없는 크리스탈 캐릭터만 나와요 (중복 없음) · 평소 💎300 · 깜짝 세일 땐 💎50
+// 🎁 상자 가격 (2026-11-23 예준이 결정): 평소 💎1500 · 계정 만들고 15일까지 💎900 · 1~2일차는 💎300 (이미 하던 사람은 2026-11-23이 1일차)
+const BOX = { price: 1500, newbie: [[2, 300], [15, 900]], odds: { '영웅': 70, '신화': 27, '전설': 3 } };   // 아직 없는 크리스탈 캐릭터만 나와요 (중복 없음)
+const midnight = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+const accountDay = () => Math.round((midnight(Date.now()) - (META.born || midnight(Date.now()))) / 86400000) + 1;   // 계정 만든 날 = 1일차
+const newbieTier = () => BOX.newbie.find(([d]) => accountDay() <= d);
+const boxPrice = () => (Date.now() < BOX_SALE.until ? BOX_SALE.price : newbieTier() ? newbieTier()[1] : BOX.price);
 const isCrysChar = (id) => BY[id] && !START_UNLOCK.includes(id) && !ACH[id];
 const validDeck = (d) => Array.isArray(d) && d.length === 8 && new Set(d).size === 8 && d.every((id) => BY[id] && unlocked(id)) && d.includes('sword') ? d.slice() : null;
 
@@ -2519,7 +2536,7 @@ const META_UP = { on: true, per: 0.05, max: 10, base: { '일반': 100, '희귀':
 const META = (() => { const m = store.get('yj.meta', null); return m && typeof m === 'object' ? m : { coin: 0, crystal: EARN.welcomeCrystal, up: {} }; })();
 META.up = META.up || {};
 const metaLv = (id) => META_UP.on ? Math.min(META_UP.max, META.up[id] || 0) : 0;
-const metaSave = () => { store.set('yj.meta', META); showWallet(); };
+const metaSave = () => { store.set('yj.meta', META); showWallet(); cloudSoon(); };
 const coinIco = '<img class="ic" src="art/coin.png" alt="">', crysIco = '<img class="ic" src="art/crystal.png" alt="">';
 function showWallet() {
   const set = (sel, v) => { const el = $(sel); if (el) el.textContent = Math.floor(v).toLocaleString(); };
@@ -2602,7 +2619,9 @@ function boxLeft() { return CHARS.filter((c) => isCrysChar(c.id) && !unlocked(c.
 function openBox() {
   const left = boxLeft(), ov = $('#boxOv');
   const sale = Date.now() < BOX_SALE.until;
-  $('#boxPrice').innerHTML = crysIco + boxPrice() + (sale ? ' <b style="color:#C9403A">⚡ 깜짝 세일! (원래 ' + BOX.price + ') · ' + Math.max(0, Math.ceil((BOX_SALE.until - Date.now()) / 1000)) + '초 남음</b>' : '');
+  const nb = !sale && newbieTier();
+  $('#boxPrice').innerHTML = crysIco + boxPrice() + (sale ? ' <b style="color:#C9403A">⚡ 깜짝 세일! (원래 ' + BOX.price + ') · ' + Math.max(0, Math.ceil((BOX_SALE.until - Date.now()) / 1000)) + '초 남음</b>'
+    : nb ? ' <b style="color:#C9403A">🐣 뉴비 할인! (원래 ' + BOX.price + ') · ' + (nb[0] - accountDay() + 1) + '일 남음</b>' : '');
   $('#boxOdds').textContent = '영웅 ' + BOX.odds['영웅'] + '% · 신화 ' + BOX.odds['신화'] + '% · 전설 ' + BOX.odds['전설'] + '% · 아직 없는 캐릭터만 나와요 (남은 ' + left.length + '명)';
   $('#boxResult').innerHTML = '';
   const b = $('#bBoxOpen'); b.disabled = !left.length || META.crystal < boxPrice();
@@ -2673,13 +2692,13 @@ $('#bCoupon').addEventListener('click', async () => {
 
 /* ⚙️ 계정 초기화 (2026-11-22 예준이 요청): 두 번 눌러야 해요 · 이 기기 저장만 지워요 (언어 설정은 남겨요) */
 let resetArm = 0;
-$('#bSettings').addEventListener('click', () => { resetArm = 0; $('#bReset').textContent = '🗑️ 계정 초기화'; $('#setOv').hidden = false; });
+$('#bSettings').addEventListener('click', () => { resetArm = 0; $('#bReset').textContent = '🗑️ 계정 초기화'; cloudUI(); $('#setOv').hidden = false; });
 $('#bSetClose').addEventListener('click', () => { $('#setOv').hidden = true; });
 $('#bReset').addEventListener('click', () => {
   const b = $('#bReset');
   if (Date.now() - resetArm > 4000) { resetArm = Date.now(); b.textContent = '정말요? 한 번 더 누르면 전부 지워져요'; return; }
   try {
-    const ks = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && (k.startsWith('yj2') || k === 'yj.meta')) ks.push(k); }
+    const ks = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && (k.startsWith('yj2') || k === 'yj.meta' || k === 'yj.cloud')) ks.push(k); }   // 초기화하면 클라우드 연결도 끊어요 (빈 기록으로 덮어쓰지 않게)
     ks.forEach((k) => localStorage.removeItem(k));
   } catch (e) { /* 괜찮아요 */ }
   location.reload();
@@ -3145,6 +3164,77 @@ function rankInit() {
   })();
   return rankReady;
 }
+/* ===== ☁️ 클라우드 저장 (2026-11-23 예준이 요청 — 앱스토어 출시 준비) =====
+   닉네임 + 비밀번호 → 둘을 섞어 만든 열쇠(SHA-256) 자리에 이 기기의 기록(yj.meta · yj2…)을 통째로 올려요.
+   열쇠를 모르면 읽을 수도 쓸 수도 없어요 (비밀번호는 서버에 안 올라가요). 연결하면 그다음부터는 저절로 저장돼요. */
+const CLOUD = { key: store.get('yj.cloud', null), timer: 0, busy: false, last: 0 };
+const cloudUrl = (k) => RANK.fb.replace(/\/rank$/, '/save/') + k + '.json';
+async function cloudKey(nick, pw) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('musung:' + nick + ':' + pw));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+const cloudMine = (k) => k && (k.startsWith('yj2') || k === 'yj.meta');
+function cloudPack() {
+  const o = {}; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (cloudMine(k)) o[k] = localStorage.getItem(k); } } catch (e) { /* 괜찮아요 */ }
+  return o;
+}
+async function cloudPut(k) {
+  const r = await fetch(cloudUrl(k), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ d: JSON.stringify(cloudPack()), t: Date.now(), nick: store.get('yj2.nick', '') || '' }) });
+  if (!r.ok) throw new Error('http ' + r.status);
+  CLOUD.last = Date.now();
+}
+async function cloudGet(k) {
+  const r = await fetch(cloudUrl(k)); if (!r.ok) throw new Error('http ' + r.status);
+  const v = await r.json(); if (!v || typeof v.d !== 'string') return null;
+  try { return { keys: JSON.parse(v.d), t: v.t || 0 }; } catch (e) { return null; }
+}
+function cloudSoon() {                                          // 기록이 바뀌면 5초 뒤에 한 번 올려요 (너무 자주 안 보내게)
+  if (!CLOUD.key || RANK.mode !== 'fb') return;
+  clearTimeout(CLOUD.timer);
+  CLOUD.timer = setTimeout(() => { cloudPut(CLOUD.key).catch(() => {}); }, 5000);
+}
+function cloudApply(keys) {                                     // 클라우드 기록으로 이 기기를 바꾸고 다시 시작
+  try {
+    const ks = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (cloudMine(k)) ks.push(k); }
+    ks.forEach((k) => localStorage.removeItem(k));
+    for (const k in keys) if (cloudMine(k) && typeof keys[k] === 'string') localStorage.setItem(k, keys[k]);
+  } catch (e) { /* 괜찮아요 */ }
+  location.reload();
+}
+const cloudSummary = (keys) => { let m = {}; try { m = JSON.parse(keys['yj.meta'] || '{}') || {}; } catch (e) { /* 비어 있어요 */ }
+  return '최고 WAVE ' + (m.bestWave || 0) + ' · 🪙' + fmtNum(m.coin || 0) + ' · 💎' + fmtNum(m.crystal || 0); };
+let cloudArm = 0;
+function cloudUI(msg) {
+  const on = !!CLOUD.key, btns = $('#cloudBtns');
+  $('#cloudForm').hidden = on; btns.hidden = !on; btns.innerHTML = ''; $('#cloudNote').textContent = msg || '';
+  if (RANK.mode !== 'fb') { $('#cloudState').textContent = '클라우드 저장은 웹사이트 · 앱에서만 돼요'; $('#cloudForm').hidden = true; btns.hidden = true; return; }
+  if (!on) { $('#cloudState').textContent = '닉네임 + 비밀번호로 서버에 저장해요. 폰을 바꾸거나 앱을 지워도 그대로 불러올 수 있어요'; if (!$('#cloudNick').value) $('#cloudNick').value = store.get('yj2.nick', '') || ''; return; }
+  $('#cloudState').textContent = '✅ 연결됨 · 기록이 바뀌면 저절로 저장돼요' + (CLOUD.last ? ' (마지막 저장 ' + new Date(CLOUD.last).toLocaleTimeString() + ')' : '');
+  btns.appendChild(bldBtn('☁️ 지금 저장', async () => { try { await cloudPut(CLOUD.key); cloudUI('저장했어요!'); } catch (e) { cloudUI('⚠️ 저장 실패 (' + e.message + ')'); } }, false, 'btn-blue'));
+  btns.appendChild(bldBtn('🔌 연결 끊기', () => { CLOUD.key = null; try { localStorage.removeItem('yj.cloud'); } catch (e) { /* 괜찮아요 */ } cloudUI('연결을 끊었어요 (서버 기록은 그대로 있어요)'); }));
+}
+$('#bCloudGo').addEventListener('click', async () => {
+  const nick = $('#cloudNick').value.trim(), pw = $('#cloudPw').value;
+  if (!NICK_OK.test(nick)) { cloudUI('닉네임은 1~12글자 (한글 · 영어 · 숫자)'); return; }
+  if (pw.length < 4) { cloudUI('비밀번호는 4글자 이상'); return; }
+  if (CLOUD.busy) return; CLOUD.busy = true; $('#cloudNote').textContent = '서버에 물어보는 중…';
+  try {
+    const k = await cloudKey(nick, pw), got = await cloudGet(k), btns = $('#cloudBtns');
+    if (!got) {                                                  // 처음 → 이 기기 기록을 올리고 연결
+      await cloudPut(k); CLOUD.key = k; store.set('yj.cloud', k); cloudUI('☁️ 새로 만들고 연결했어요! 이 기기 기록을 저장했어요 (예전 기록이 있었다면 닉네임 · 비밀번호를 다시 확인해요)');
+    } else {                                                     // 이미 저장된 기록이 있으면 → 불러올지, 이 기기 기록으로 덮어쓸지 골라요
+      $('#cloudForm').hidden = true; btns.hidden = false; btns.innerHTML = '';
+      $('#cloudNote').textContent = '서버 기록: ' + cloudSummary(got.keys) + ' / 이 기기: ' + cloudSummary(cloudPack());
+      btns.appendChild(bldBtn('📥 서버 기록 불러오기', () => { store.set('yj.cloud', k); cloudApply(got.keys); }, false, 'btn-blue'));
+      btns.appendChild(bldBtn('⬆️ 이 기기 기록으로 덮어쓰기', async (ev) => {
+        if (Date.now() - cloudArm > 4000) { cloudArm = Date.now(); ev.currentTarget.textContent = '정말요? 서버 기록이 지워져요'; return; }
+        try { await cloudPut(k); CLOUD.key = k; store.set('yj.cloud', k); cloudUI('덮어썼어요! 이제 저절로 저장돼요'); } catch (e) { cloudUI('⚠️ 저장 실패 (' + e.message + ')'); }
+      }));
+    }
+  } catch (e) { cloudUI('⚠️ 서버에 연결 못 했어요 (' + e.message + ')'); }
+  CLOUD.busy = false;
+});
+document.addEventListener('visibilitychange', () => { if (document.hidden && CLOUD.key && RANK.mode === 'fb' && Date.now() - CLOUD.last > 3000) { clearTimeout(CLOUD.timer); cloudPut(CLOUD.key).catch(() => {}); } });
 /* ===== 🏅 레이팅 (2026-11-21 예준이 요청 · 재는 법은 Claude가 정함) =====
    레이팅 = 최근 10판(일반 모드) 도달 웨이브 평균 × 20 · 티어마다 비슷한 실력끼리 따로 랭킹 */
 const TIERS_R = [{ min: 1400, n: '마스터', e: '👑' }, { min: 1000, n: '다이아', e: '💎' }, { min: 700, n: '골드', e: '🥇' }, { min: 400, n: '실버', e: '🥈' }, { min: 0, n: '브론즈', e: '🥉' }];
@@ -3366,7 +3456,7 @@ $('#bPause').addEventListener('click', () => setPaused(true));
 $('#bResume').addEventListener('click', () => setPaused(false));
 $('#bGiveUp').addEventListener('click', () => { S.paused = false; $('#pauseOv').hidden = true; gameOver(); });
 // ⏩ 배속: ×1 → ×2 → ×3 (3배속 2026-11-21) · 🧪 앱스토어 출시 전(PRE_RELEASE)에는 ×50도 있어요 (테스트용, 2026-11-22 예준이 결정)
-const PRE_RELEASE = true;
+const PRE_RELEASE = false;                                   // 2026-11-23 예준이 결정: 출시 준비 → 50배속 뺌
 const SPEEDS = PRE_RELEASE ? [1, 2, 3, 50] : [1, 2, 3];
 $('#bSpeed').addEventListener('click', () => { S.speed = SPEEDS[(SPEEDS.indexOf(S.speed) + 1) % SPEEDS.length] || 1; $('#bSpeed').textContent = '×' + S.speed; });
 $('#bCoachGo').addEventListener('click', () => { store.set('yj2.coach', true); $('#coach').hidden = true; S.paused = false; });
@@ -3419,6 +3509,7 @@ function start(data) {
     bl.addEventListener('click', () => { try { localStorage.setItem('yj.lang', BUILD_LANG === 'ko' ? 'ja' : 'ko'); } catch (e) { /* 괜찮아요 */ } location.reload(); });
   }
   rankInit(); liveInit();
+  if (!META.born) { META.born = midnight(Date.now()); metaSave(); }   // 🐣 계정 만든 날 (상자 뉴비 할인용) · 이미 하던 사람은 오늘이 1일차
   S.deck = validDeck(data && data.deck) || validDeck(store.get('yj2.deck', null)) || CHARS.filter((c) => unlocked(c.id) && !c.support).slice(0, 8).map((c) => c.id);   // 처음 덱엔 싸우는 캐릭터만 (텐조는 리워크로 공격 안 함)
   S.best = store.get('yj2.best', 0) || 0;
   if (S.best > (META.bestWave || 0)) { META.bestWave = S.best; metaSave(); }   // 예전 최고 기록도 업적에 쳐요
