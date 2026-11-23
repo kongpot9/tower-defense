@@ -590,14 +590,16 @@ const BAL = {
 // 끝없이 고르면 너무 세져서 최대 5번 (돈 주머니·가시 방어선은 3번)
 const P = (v) => (Math.round(v * 1000) / 10) + '%';
 const BUFFS = [
-  { id: 'dmg',   name: '힘의 물약',   emo: '💪', color: '#F08A7E', base: 0.10, max: 5, d: (v) => '아군 전체 데미지 +' + P(v), s: (v) => '+' + P(v) },
-  { id: 'spd',   name: '번개 장갑',   emo: '🧤', color: '#F7D774', base: 0.10, max: 5, d: (v) => '아군 전체 공격 속도 +' + P(v), s: (v) => '+' + P(v) },
-  { id: 'rng',   name: '망원경',      emo: '🔭', color: '#9AD3F2', base: 15, max: 5, d: (v) => '아군 전체 사거리 +' + Math.round(v), s: (v) => '+' + Math.round(v) },
-  { id: 'gold',  name: '황금 주머니', emo: '👛', color: '#EDD38A', base: 1, max: 3, d: (v) => '적을 처치할 때마다 돈 +' + v, s: (v) => '+' + v },
-  { id: 'chest', name: '보물 상자',   emo: '🎁', color: '#C7A6E6', max: 5, d: (v) => '돈 ' + Math.round(v) + '을 바로 받아요', s: (v) => '돈 ' + Math.round(v) },
+  { id: 'dmg',   name: '힘의 물약',   img: 'art/buff-dmg.png', emo: '💪', color: '#F08A7E', base: 0.10, max: 5, d: (v) => '아군 전체 데미지 +' + P(v), s: (v) => '+' + P(v) },
+  { id: 'spd',   name: '번개 장갑',   img: 'art/buff-spd.png', emo: '🧤', color: '#F7D774', base: 0.10, max: 5, d: (v) => '아군 전체 공격 속도 +' + P(v), s: (v) => '+' + P(v) },
+  { id: 'rng',   name: '망원경',      img: 'art/buff-rng.png', emo: '🔭', color: '#9AD3F2', base: 15, max: 5, d: (v) => '아군 전체 사거리 +' + Math.round(v), s: (v) => '+' + Math.round(v) },
+  { id: 'gold',  name: '황금 주머니', img: 'art/buff-gold.png', emo: '👛', color: '#EDD38A', base: 1, max: 3, d: (v) => '적을 처치할 때마다 돈 +' + v, s: (v) => '+' + v },
+  { id: 'chest', name: '보물 상자',   img: 'art/buff-chest.png', emo: '🎁', color: '#C7A6E6', max: 5, d: (v) => '돈 ' + Math.round(v) + '을 바로 받아요', s: (v) => '돈 ' + Math.round(v) },
 ];
 const buffVal = (b, n = S.stacks[b.id] || 0) => (b.id === 'chest' ? chestGold() : b.base) * (1 + n);
 const BUFF_BY = {}; BUFFS.forEach((b) => { BUFF_BY[b.id] = b; });
+// 🎨 버프템 · 선물 그림 (그림: 구예준, 2026-11-23) — 그림이 없으면 이모지
+const icoImg = (src, emo) => src ? '<img src="' + src + '" alt="" style="max-width:44px;max-height:44px">' : emo;
 // 터렛 (그림·설정: 구예준, 2026-11-20) — 레벨은 모든 터렛이 같이 올라요
 const TURRET = { name: '터렛', img: 'art/turret.png', range: 220, maxLv: 5, tip: { x: 148 / 150, y: 16 / 120 } };
 const TURRET_LV = [null,
@@ -1591,10 +1593,10 @@ function buffNote(b) {
 function offerHTML(o, i) {
   let ico, name, tag, desc, note = '';
   if (o.k === 'freeUp') {
-    ico = '<span class="rc-ico" style="--c:#CFE3F7">🎟️</span>'; name = '무료 강화권'; tag = '<span class="rc-tag" style="background:#2F6BD8">강화</span>';
+    ico = '<span class="rc-ico" style="--c:#CFE3F7">' + icoImg('art/gift-freeup.png', '🎟️') + '</span>'; name = '무료 강화권'; tag = '<span class="rc-tag" style="background:#2F6BD8">강화</span>';
     desc = '장비 대신 받아요. 아래 캐릭터 카드 하나를 돈 없이 1번 강화!'; note = '받으면 강화할 캐릭터 카드를 눌러요' + (S.freeUp ? ' · 지금 ' + S.freeUp + '장' : '');
   } else if (o.k === 'lvGold') {
-    ico = '<span class="rc-ico" style="--c:#EDD38A">💰</span>'; name = '돈'; tag = '<span class="rc-tag" style="background:#B8860B">특수</span>';
+    ico = '<span class="rc-ico" style="--c:#EDD38A">' + icoImg('art/gift-gold.png', '💰') + '</span>'; name = '돈'; tag = '<span class="rc-tag" style="background:#B8860B">특수</span>';
     desc = '돈 ' + (100 + 10 * S.wave) + '을 바로 받아요'; note = '장비를 다 각성시켜서 나온 선물';
   } else if (o.k === 'itemNew' || o.k === 'itemUp' || o.k === 'itemAwake') {
     const d = ITEM_BY[o.id], it = S.items.find((x) => x.id === o.id), aw = o.k === 'itemAwake';
@@ -1614,7 +1616,7 @@ function offerHTML(o, i) {
     note = (d.support ? '지원 캐릭터' : '데미지 ' + d.dmg + ' · ' + every(d)) + (n ? ' · 지금 ' + n + '마리' : '');
   } else if (o.k === 'buff') {
     const b = BUFF_BY[o.id];
-    ico = '<span class="rc-ico" style="--c:' + b.color + '">' + b.emo + '</span>';
+    ico = '<span class="rc-ico" style="--c:' + b.color + '">' + icoImg(b.img, b.emo) + '</span>';
     name = b.name; tag = '<span class="rc-tag buff">버프템</span>';
     desc = b.d(buffVal(b));
     note = buffNote(b);
