@@ -939,7 +939,7 @@ const SKILLS = {
 };
 for (const id in SKILLS) if (BY[id]) BY[id].desc += ' スキル 「' + SKILLS[id].n + '」 ' + Math.round(SKILLS[id].p * 100) + '%: ' + SKILLS[id].d + '.';
 // 🎨 スキル 그림 (グ・イェジュン, 2026-11-24) — 그림이 있는 스킬은 文字 · 동그라미 없이 그림만 (예준이 결정)
-const SK2_IMG = {}; ['lumber', 'hosper', 'railey', 'willy', 'wolf', 'stein', 'jeff'].forEach((id) => { const im = new Image(); im.src = 'art/skill2-' + id + '.png'; SK2_IMG[id] = im; });
+const SK2_IMG = {}; ['lumber', 'hosper', 'railey', 'willy', 'wolf', 'stein', 'jeff', 'toogom', 'angel', 'bakbak', 'gail', 'blader', 'ricecake'].forEach((id) => { const im = new Image(); im.src = 'art/skill2-' + id + '.png'; SK2_IMG[id] = im; });
 const sk2Img = (id) => { const im = SK2_IMG[id]; return im && im.complete && im.naturalWidth ? im : null; };
 const fxImg = (id, x, y, h, life, rot) => fx({ k: 'img', id, x, y, h, life, rot: rot || 0 });
 const s2On = (u) => u && u.s2T > 0;
@@ -954,7 +954,7 @@ function skill2(u, def, t, dmg) {                              // 발동! (dmg =
   if (art && (K.time || K.tube)) u.icoT = K.time || K.tube;   // 지속되는 の間 캐릭터 위에 작게
   if (def.id === 'lumber' && t) fxImg('lumber', t.x, t.y, 34, 0.5, Math.atan2(t.y - p.y, t.x - p.x));   // 🪓 칼자국
   if (def.id === 'wolf' && t) fxImg('wolf', t.x, t.y, 40, 0.9);                                        // 🐺 해골 조준경
-  if (def.id === 'willy') fxImg('willy', p.x, p.y - 40, 40, 0.7);
+  if (def.id === 'willy' || def.id === 'bakbak' || def.id === 'gail') fxImg(def.id, p.x, p.y - 40, 40, 0.7);   // 뿅!
   if (K.time && (K.self || K.splash || K.steal || K.bite)) u.s2T = K.time;       // 자기 버프 (時間)
   if (K.team) s2Team('dmg', K.team, K.time);
   if (K.teamSpd) s2Team('spd', K.teamSpd, K.time);
@@ -983,7 +983,9 @@ function skill2(u, def, t, dmg) {                              // 발동! (dmg =
   }
   if (K.shots && t && def.melee) {                             // 🐗 근접 連打 (魂のトゥゴム ベアアタック 6連打)
     for (let i = 0; i < K.shots; i++) { const tg = t.dead ? findTarget(u, def) : t; if (!tg) break;
-      fx({ k: def.melee === 'bite' ? 'bite' : 'slash', x: tg.x + (Math.random() - 0.5) * 14, y: tg.y + (Math.random() - 0.5) * 10, a: 0, life: 0.3 }); hitTarget(def, tg, dmg, tg.x, tg.y); }
+      const ox = (Math.random() - 0.5) * 14, oy = (Math.random() - 0.5) * 10;
+      if (art) fxImg(def.id, tg.x + ox, tg.y + oy, 28, 0.35); else fx({ k: def.melee === 'bite' ? 'bite' : 'slash', x: tg.x + ox, y: tg.y + oy, a: 0, life: 0.3 });   // 🐗 발톱 자국
+      hitTarget(def, tg, dmg, tg.x, tg.y); }
     return;
   }
   if (K.shots && t) {                                          // 여러 발: お餅 20個 · 10連打 · 창 5連打 · ブレス 5回
@@ -992,7 +994,7 @@ function skill2(u, def, t, dmg) {                              // 발동! (dmg =
     if (!pool.length) pool.push(t);
     for (let i = 0; i < K.shots; i++) {
       const tg = pool[i % pool.length], ox = (Math.random() - 0.5) * 16;
-      S.projs.push({ k: def.proj || 'dagger', x: p.x + ox, y: p.y - 8 + i * 3, t: tg, lx: tg.x, ly: tg.y, sp: (PSPEED[def.proj] || 450) * (0.85 + Math.random() * 0.3), dmg, def,
+      S.projs.push({ k: art ? 'skimg' : def.proj || 'dagger', img: def.id, x: p.x + ox, y: p.y - 8 + i * 3, t: tg, lx: tg.x, ly: tg.y, sp: (PSPEED[def.proj] || 450) * (0.85 + Math.random() * 0.3), dmg, def,
                      d0: Math.max(1, Math.hypot(tg.x - p.x, tg.y - p.y)), prog: 0, spin: Math.random() * 6 });
     }
   }
@@ -2296,6 +2298,12 @@ function drawProj(pr) {
       c.fillStyle = INK; c.beginPath(); c.moveTo(6, 0); c.lineTo(0, -3.5); c.lineTo(0, 3.5); c.fill();
       break;
     case 'ball': c.fillStyle = PAPER; circle(c, 0, 0, 3.8); c.fill(); c.stroke(); break;
+    case 'skimg': {                                          // 🎨 スキル 그림이 날아가요 (お餅爆弾 · 천사 이빨 · 창)
+      const im = sk2Img(pr.img); if (!im) break;
+      const h = pr.img === 'blader' ? 30 : pr.img === 'angel' ? 16 : 18, w = h * im.naturalWidth / im.naturalHeight;
+      if (pr.img === 'blader') c.rotate(a + Math.PI / 2); else if (pr.img === 'ricecake') c.rotate(pr.spin * 0.3);
+      c.drawImage(im, -w / 2, -h / 2, w, h); break;
+    }
     case 'mic': { const im = sk2Img('jeff'); if (im) { const h = 22, w = h * im.naturalWidth / im.naturalHeight; c.drawImage(im, -w / 2, -h / 2, w, h); } break; }   // 🎤 ジェフ 마이크 (グ・イェジュン)
     case 'kunai': {
       const im = SKILL_IMG.kunai;
