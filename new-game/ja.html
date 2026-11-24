@@ -762,8 +762,8 @@ const CHARS = [
     dmg: 250,  rate: 1 / 0.8,  range: 250, proj: 'straw', charge: 0.5,
     desc: 'ストローをさしたらはなしません。同じ敵を吸いつづけるとどこまでも強くなります（1回+50%）。ストローがぬけたら最初から。' },
   { id: 'gail',     name: 'ガイル',         img: 'art/gail.png',     grade: '神話', color: '#E89A7A', role: '近距離', pref: 'front',
-    dmg: 3000, rate: 1 / 1.5,  range: 150, melee: 'slash', steal: 5,
-    desc: '強いパンチ。ねらった敵をほかの味方がたおしたら、トドメをとられた代わりにお金+5。' },
+    dmg: 3000, rate: 1 / 1.5,  range: 150, melee: 'slash', steal: 500,   // 👊 777 고증: とどめ 뺏기면 お金 500 (777 GAIL_STEAL_GOLD = 500, 2026-11-24 예준이가 바로잡음)
+    desc: '強いパンチ。ねらった敵をほかの味方がたおしたら、トドメをとられた代わりにお金+500。' },
   { id: 'guru',     name: 'グルトゥ',       img: 'art/guru.png',     grade: '神話', color: '#B5DE85', role: '敬老会', pref: 'front',
     dmg: 300,  rate: 1 / 1.5,  range: 150, melee: 'slash',
     senior: { waves: [2, 3, 5], team: 0.1, cost: 300, p: 0.4, young: { dmg: 3500, rate: 1 / 0.5, splash: 40 } },
