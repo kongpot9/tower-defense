@@ -256,6 +256,7 @@ img.ic{width:22px;height:22px;object-fit:contain;vertical-align:-5px;margin:0 2p
 .plot.empty img{opacity:.28;filter:grayscale(1)}
 .plot.empty::after{content:"+";position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:28px;height:28px;border-radius:50%;background:var(--paper);color:var(--ink);border:2px solid var(--ink);font:20px/24px var(--f-display);text-align:center}
 .plot.locked::after{content:"🔒";background:none;border:0;font-size:20px}
+.plot .bcnt{position:absolute;bottom:-4px;right:-4px;background:var(--paper);color:var(--ink);border:2px solid var(--ink);border-radius:999px;font:12px/1 var(--f-display);padding:3px 6px}
 .plot .ready{position:absolute;top:-6px;right:-6px;background:#F2C440;color:var(--ink);border:2px solid var(--ink);border-radius:999px;font:13px/1 var(--f-display);padding:4px 7px;animation:bob 1s ease-in-out infinite}
 @keyframes bob{50%{transform:translateY(-4px)}}
 .bld-card{max-height:calc(100% - 20px);overflow-y:auto}
@@ -930,6 +931,10 @@ const SKILLS = {
   dosa:       { n: '경지',        p: 0.03, self: 1.5, spd: 0.5, time: 20, d: '20초간 공격력 · 공격 속도 +50%' },
   catmachine: { n: '경지',        p: 0.03, self: 1.5, spd: 0.5, time: 20, d: '20초간 공격력 · 공격 속도 +50%' },
   tenhan:     { n: '대지진',      p: 0.05, quake: 3, d: '지진으로 적 전부를 3초 동안 붙잡음' },
+  // ↓ 2026-11-24 예준이 결정
+  railey:     { n: '대감전',      p: 0.04, quake: 10, d: '적 전부 10초간 스턴' },
+  hosper:     { n: '마법폭발',    p: 0.05, execute: 15, d: '적 15마리 확정킬 (보스 제외, 성벽에 가까운 적부터)' },
+  toogom:     { n: '베어어택',    p: 0.02, shots: 6, d: '6연타' },
 };
 for (const id in SKILLS) if (BY[id]) BY[id].desc += ' 스킬 「' + SKILLS[id].n + '」 ' + Math.round(SKILLS[id].p * 100) + '%: ' + SKILLS[id].d + '.';
 const s2On = (u) => u && u.s2T > 0;
@@ -947,6 +952,10 @@ function skill2(u, def, t, dmg) {                              // 발동! (dmg =
   if (K.tube) S.tubeT = Math.max(S.tubeT || 0, K.tube);
   if (K.slow && t && !t.dead) { t.slowF = Math.max(t.slowT > 0 ? t.slowF : 0, K.slow); t.slowT = Math.max(t.slowT, K.slowT); fx({ k: 'ring', x: t.x, y: t.y, r: 20, c: '#7A5CE0', life: 0.4 }); }
   if (K.quake) { for (const e of S.enemies) if (!e.dead) e.stunT = Math.max(e.stunT, K.quake); S.shake = 0.5; }
+  if (K.execute) {                                            // 🎩 호스퍼 마법폭발: 확정킬 (보스 제외)
+    const pool = S.enemies.filter((e) => !e.dead && !e.boss && !e.burrow && e.y > 0).sort((a, b) => b.y - a.y).slice(0, K.execute);
+    for (const e of pool) { fx({ k: 'boom', x: e.x, y: e.y, r: 16, c: '#B07CE0', life: 0.35 }); hurt(e, e.hp + 1, def.id); if (!e.dead) { e.hp = 0; e.dead = true; S.kills++; } }
+  }
   if (K.boomX && t) { area(t.x, t.y, K.boomR, dmg * K.boomX, def.id); fx({ k: 'boom', x: t.x, y: t.y, r: K.boomR, c: ORANGE, life: 0.45 }); S.shake = 0.3; }
   if (K.rats) {                                                // 🐀 777 봉산 쥐 (맹독 0.4배 + 25% 0.3초 굳힘, 보스 몸엔 못 들어감)
     const pool = S.enemies.filter((e) => !e.dead && !e.boss && e.y > 0).sort((a, b) => b.y - a.y).slice(0, K.rats);
@@ -959,6 +968,11 @@ function skill2(u, def, t, dmg) {                              // 발동! (dmg =
   if (K.bounce && t) {                                         // ⚡ 닥터 대두 같은 번개가 벽에 통통 튀어요
     const a = Math.atan2(t.y - p.y, t.x - p.x);
     (S.balls || (S.balls = [])).push({ x: p.x, y: p.y - 20, vx: Math.cos(a) * 420, vy: Math.sin(a) * 420, n: K.bounce, dmg, src: def.id, hit: new Map(), trail: [] });
+  }
+  if (K.shots && t && def.melee) {                             // 🐗 근접 연타 (혼의 투곰 베어어택 6연타)
+    for (let i = 0; i < K.shots; i++) { const tg = t.dead ? findTarget(u, def) : t; if (!tg) break;
+      fx({ k: def.melee === 'bite' ? 'bite' : 'slash', x: tg.x + (Math.random() - 0.5) * 14, y: tg.y + (Math.random() - 0.5) * 10, a: 0, life: 0.3 }); hitTarget(def, tg, dmg, tg.x, tg.y); }
+    return;
   }
   if (K.shots && t) {                                          // 여러 발: 떡 20개 · 10연타 · 창 5연타 · 브레스 5번
     const r2 = (def.range + S.buff.rng) ** 2;
@@ -2818,7 +2832,7 @@ const DUNGEON = { time: 600, bossHp: 450, reward: 1000, coin: 20000, gap: [3, 0.
 // 2026-11-22 예준이 결정: 보스 체력 25배 (18 → 450) · 보스가 끝없이 몰려와요 (3초마다 → 10분 끝엔 0.8초마다) · 던전은 지는 게 없어요 (100마리 패배 없음)
 // cap = 화면에 보스가 너무 많으면 (150마리) 잠깐 안 나와요 (폰이 버벅이지 않게)
 const BLD = {
-  mold:    { name: '거푸집',     img: 'art/bld-mold.png',    cost: [400, 100],        max: 2, needGames: 10,
+  mold:    { name: '거푸집',     img: 'art/bld-mold.png',    cost: [400, 100],        needGames: 10,
              d: '하루 첫 출석 때 또는 5시간마다 코인 10,000을 줘요', every: 5 * 3600e3, give: { coin: 10000 } },
   dungeon: { name: '던전',       img: 'art/bld-dungeon.png', cost: [10000, 2500],
              d: '들어가면 10분 동안 보스만 나와요. 보스 하나 잡을 때마다 크리스탈 1,000 + 코인 20,000!' },
@@ -2834,9 +2848,14 @@ const BLD = {
 // 자리: 마을 그림 안의 위치 (가로 0~1, 세로 0~1 = 건물 바닥) · 크기 = 그림 너비에 대한 비율
 const PLOTS = [
   { b: 'dungeon', i: 0, x: 0.30, y: 0.445, w: 0.13 }, { b: 'shrine', i: 0, x: 0.50, y: 0.445, w: 0.07 }, { b: 'dwarf', i: 0, x: 0.70, y: 0.445, w: 0.15 },
-  { b: 'mold', i: 0, x: 0.255, y: 0.535, w: 0.12 }, { b: 'mold', i: 1, x: 0.415, y: 0.535, w: 0.12 },
-  { b: 'giwa', i: 0, x: 0.585, y: 0.535, w: 0.13 }, { b: 'mole', i: 0, x: 0.745, y: 0.535, w: 0.12 },
+  { b: 'mold', i: 0, x: 0.30, y: 0.535, w: 0.12 },
+  { b: 'giwa', i: 0, x: 0.50, y: 0.535, w: 0.13 }, { b: 'mole', i: 0, x: 0.70, y: 0.535, w: 0.12 },
 ];
+// 🏘️ 같은 건물을 5개까지 또 지을 수 있어요 (모든 건물, 2026-11-24 예준이 결정) — 자리는 하나, 건물에 ×개수가 붙어요
+//    하나하나가 따로 시간 · 출석을 세요 (거푸집 3개면 코인도 3배) · 던전은 하나마다 하루 5번
+const BLD_MAX = 5;
+const bldIdx = (b) => { const o = []; for (let i = 0; i < BLD_MAX; i++) if (town()[b + i]) o.push(i); return o; };
+const bldCnt = (b) => bldIdx(b).length;
 const dayKey = (t) => { const d = new Date(t); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
 const town = () => (META.town = META.town || {});
 const built = (b, i) => !!(town()[b + (i || 0)]);
@@ -2859,15 +2878,16 @@ function renderVillage() {
   const g = YARD.geo;
   box.innerHTML = '';
   for (const p of PLOTS) {
-    const B = BLD[p.b], on = built(p.b, p.i), el = document.createElement('button');
+    const B = BLD[p.b], n = bldCnt(p.b), on = n > 0, el = document.createElement('button');
     el.type = 'button';
     const locked = !on && (B.hold || (p.b === 'mold' && (META.games || 0) < B.needGames));
     el.className = 'plot' + (on ? '' : ' empty') + (locked ? ' locked' : '');
     el.style.left = (g.dx + p.x * g.dw) + 'px'; el.style.top = (g.dy + p.y * g.dh) + 'px'; el.style.width = (p.w * g.dw) + 'px';
     el.style.zIndex = Math.round(g.dy + p.y * g.dh);              // 돌아다니는 캐릭터랑 앞뒤 순서 맞추기
-    el.innerHTML = '<img src="' + B.img + '" alt="">' + (on && bldReady(p.b, p.i) ? '<span class="ready">!</span>' : '');
+    el.innerHTML = '<img src="' + B.img + '" alt="">' + (bldIdx(p.b).some((i) => bldReady(p.b, i)) ? '<span class="ready">!</span>' : '')
+      + (n > 1 ? '<span class="bcnt">×' + n + '</span>' : '');
     el.setAttribute('aria-label', B.name);
-    el.addEventListener('click', () => openBld(p.b, p.i));
+    el.addEventListener('click', () => openBld(p.b));
     box.appendChild(el);
   }
 }
@@ -2875,56 +2895,62 @@ function bldBtn(label, fn, disabled, cls) {
   const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + (cls || 'btn-blue'); b.innerHTML = label; b.disabled = !!disabled;
   b.addEventListener('click', fn); return b;
 }
-function openBld(b, i) {
-  const B = BLD[b], on = built(b, i), x = st(b, i), btns = $('#bldBtns');
-  $('#bldImg').src = B.img; $('#bldName').textContent = B.name + (b === 'mold' ? ' ' + (i + 1) : ''); $('#bldDesc').textContent = B.d;
+function openBld(b) {
+  const B = BLD[b], idx = bldIdx(b), n = idx.length, on = n > 0, btns = $('#bldBtns');
+  $('#bldImg').src = B.img; $('#bldName').textContent = B.name + (n ? ' ×' + n : ''); $('#bldDesc').textContent = B.d;
   $('#bldCost').innerHTML = ''; $('#bldNote').textContent = ''; btns.innerHTML = '';
-  const now = Date.now();
-  if (!on) {
-    $('#bldCost').innerHTML = costHTML(B.cost);
-    if (B.hold) { $('#bldNote').textContent = '상점이 생기면 지을 수 있어요'; }
-    else if (b === 'mold' && (META.games || 0) < B.needGames) $('#bldNote').textContent = '게임을 ' + B.needGames + '판 하면 지을 수 있어요 (지금 ' + (META.games || 0) + '판)';
-    else {
-      const can = META.coin >= B.cost[0] && META.crystal >= B.cost[1];
-      if (!can) $('#bldNote').textContent = '코인이나 크리스탈이 부족해요';
-      btns.appendChild(bldBtn('🔨 짓기', () => {
-        if (META.coin < B.cost[0] || META.crystal < B.cost[1]) return;
-        META.coin -= B.cost[0]; META.crystal -= B.cost[1];
-        town()[b + i] = { t: now, day: '' };                      // 처음 짓고 바로는 아직 안 줘요 (출석 · 시간이 지나면)
-        if (b === 'dwarf') Object.assign(town()[b + i], { tokens: 0, used: 0 });
-        metaSave(); renderVillage(); openBld(b, i);
-        toast('🔨 ' + B.name + ' 완성!');
-      }, !can));
+  const now = Date.now(), ready = idx.filter((i) => bldReady(b, i)), nr = ready.length;
+  const note = (t) => { $('#bldNote').textContent = ($('#bldNote').textContent ? $('#bldNote').textContent + ' · ' : '') + t; };
+  if (on && b !== 'dungeon' && b !== 'dwarf') {               // 받기
+    if (b === 'mold' || b === 'giwa' || b === 'mole') {
+      const next = Math.min(...idx.map((i) => (b === 'mole' ? Infinity : B.every - (now - st(b, i).t))));
+      if (nr) note(nr + '개에서 받을 수 있어요!');
+      else note(b === 'mole' ? '내일 출석하면 또 받아요' : '다음까지 ' + leftTxt(next) + (b === 'mold' ? ' (내일 첫 출석이면 바로)' : ''));
+      const take = (coin, crys) => { META.coin += coin * nr; META.crystal += crys * nr; for (const i of ready) { const x = st(b, i); x.t = Date.now(); x.day = dayKey(x.t); }
+        metaSave(); renderVillage(); openBld(b); toast((coin ? '🪙 +' + fmtNum(coin * nr) + ' ' : '') + (crys ? '💎 +' + fmtNum(crys * nr) : '')); };
+      const k = nr > 1 ? ' ×' + nr : '';
+      if (b === 'giwa') {
+        btns.appendChild(bldBtn(coinIco + '100,000' + k + ' 받기', () => take(100000, 0), !nr));
+        btns.appendChild(bldBtn(crysIco + '12,000' + k + ' 받기', () => take(0, 12000), !nr));
+      } else btns.appendChild(bldBtn(b === 'mold' ? coinIco + '10,000' + k + ' 받기' : crysIco + '500' + k + ' 받기', () => b === 'mold' ? take(10000, 0) : take(0, 500), !nr));
     }
-  } else if (b === 'mold' || b === 'giwa' || b === 'mole') {
-    const ready = bldReady(b, i);
-    if (b === 'mold') $('#bldNote').textContent = ready ? '받을 수 있어요!' : '다음 코인까지 ' + leftTxt(B.every - (now - x.t)) + ' (내일 첫 출석이면 바로)';
-    if (b === 'giwa') $('#bldNote').textContent = ready ? '하나를 골라 받아요!' : '다음까지 ' + leftTxt(B.every - (now - x.t));
-    if (b === 'mole') $('#bldNote').textContent = ready ? '오늘 출석 선물!' : '내일 출석하면 또 받아요';
-    const take = (coin, crys) => { META.coin += coin; META.crystal += crys; x.t = Date.now(); x.day = dayKey(x.t); metaSave(); renderVillage(); openBld(b, i);
-      toast((coin ? '🪙 +' + fmtNum(coin) + ' ' : '') + (crys ? '💎 +' + fmtNum(crys) : '')); };
-    if (b === 'giwa') {
-      btns.appendChild(bldBtn(coinIco + '100,000 받기', () => take(100000, 0), !ready));
-      btns.appendChild(bldBtn(crysIco + '12,000 받기', () => take(0, 12000), !ready));
-    } else btns.appendChild(bldBtn(b === 'mold' ? coinIco + '10,000 받기' : crysIco + '500 받기', () => b === 'mold' ? take(10000, 0) : take(0, 500), !ready));
-  } else if (b === 'dungeon') {
-    $('#bldNote').textContent = '10분 동안 보스가 끝없이 몰려와요! 지는 건 없어요. 잡은 보스 하나마다 보상';
+  } else if (on && b === 'dungeon') {
     const left = dgLeftToday();
-    $('#bldNote').textContent += ' · 오늘 남은 입장 ' + left + '/' + DUNGEON.perDay + (left ? '' : ' (내일 또 들어갈 수 있어요)');
+    note('10분 동안 보스가 끝없이 몰려와요! 지는 건 없어요. 잡은 보스 하나마다 보상');
+    note('오늘 남은 입장 ' + left + '/' + dgPerDay() + (left ? '' : ' (내일 또 들어갈 수 있어요)'));
     btns.appendChild(bldBtn('🕳️ 던전 들어가기', () => {
       if (dgLeftToday() <= 0) return;
-      META.dgDay = { day: dayKey(Date.now()), n: DUNGEON.perDay - dgLeftToday() + 1 }; metaSave();   // 🎟️ 들어갈 때 1번 써요 (중간에 나가도 1번)
+      META.dgDay = { day: dayKey(Date.now()), n: dgPerDay() - dgLeftToday() + 1 }; metaSave();   // 🎟️ 들어갈 때 1번 써요 (중간에 나가도 1번)
       $('#bldOv').hidden = true; startBattle('dungeon');
     }, left <= 0));
-  } else if (b === 'dwarf') {
-    const need = dwarfNeed(x);
-    $('#bldNote').textContent = '토큰 ' + x.tokens + ' / ' + need + (bldReady(b, i) ? ' · 오늘 토큰을 받을 수 있어요!' : ' · 내일 또 받아요');
-    btns.appendChild(bldBtn('🪙 오늘 토큰 받기', () => { x.tokens++; x.day = dayKey(Date.now()); metaSave(); renderVillage(); openBld(b, i); toast('난쟁이 토큰 +1'); }, !bldReady(b, i)));
+  } else if (on && b === 'dwarf') {
+    const x = st('dwarf', 0), need = dwarfNeed(x);
+    note('토큰 ' + x.tokens + ' / ' + need + (nr ? ' · 오늘 토큰 ' + nr + '개를 받을 수 있어요!' : ' · 내일 또 받아요'));
+    btns.appendChild(bldBtn('🪙 오늘 토큰 받기' + (nr > 1 ? ' ×' + nr : ''), () => { x.tokens += nr; for (const i of ready) st('dwarf', i).day = dayKey(Date.now()); metaSave(); renderVillage(); openBld('dwarf'); toast('난쟁이 토큰 +' + nr); }, !nr));
     btns.appendChild(bldBtn('⭐ 토큰 ' + need + '개로 레벨 올리기', () => openDwarf(), x.tokens < need, 'btn-gold'));
   }
+  if (n < BLD_MAX) {                                           // 🔨 짓기 / 하나 더 짓기 (5개까지)
+    const i = [0, 1, 2, 3, 4].find((k) => !town()[b + k]);
+    $('#bldCost').innerHTML = costHTML(B.cost);
+    if (B.hold) note('상점이 생기면 지을 수 있어요');
+    else if (b === 'mold' && (META.games || 0) < B.needGames) note('게임을 ' + B.needGames + '판 하면 지을 수 있어요 (지금 ' + (META.games || 0) + '판)');
+    else {
+      const can = META.coin >= B.cost[0] && META.crystal >= B.cost[1];
+      if (!can) note('코인이나 크리스탈이 부족해요');
+      btns.appendChild(bldBtn(n ? '🔨 하나 더 짓기 (' + n + '/' + BLD_MAX + ')' : '🔨 짓기', () => {
+        if (META.coin < B.cost[0] || META.crystal < B.cost[1] || bldCnt(b) >= BLD_MAX) return;
+        META.coin -= B.cost[0]; META.crystal -= B.cost[1];
+        town()[b + i] = { t: Date.now(), day: '' };               // 처음 짓고 바로는 아직 안 줘요 (출석 · 시간이 지나면)
+        if (b === 'dwarf' && i === 0) Object.assign(town()[b + i], { tokens: (town().dwarf0 && town().dwarf0.tokens) || 0, used: 0 });
+        metaSave(); renderVillage(); openBld(b);
+        toast('🔨 ' + B.name + ' 완성!' + (bldCnt(b) > 1 ? ' (' + bldCnt(b) + '/' + BLD_MAX + ')' : ''));
+      }, !can, n ? 'btn' : 'btn-blue'));
+    }
+  } else note('최대 ' + BLD_MAX + '개까지 다 지었어요');
   $('#bldOv').hidden = false;
 }
-const dgLeftToday = () => { const d = META.dgDay; return DUNGEON.perDay - (d && d.day === dayKey(Date.now()) ? d.n : 0); };   // 오늘 남은 던전 입장
+const dgPerDay = () => DUNGEON.perDay * Math.max(1, bldCnt('dungeon'));   // 🕳️ 던전 하나마다 하루 5번 (2026-11-24 예준이 결정)
+const dgLeftToday = () => { const d = META.dgDay; return dgPerDay() - (d && d.day === dayKey(Date.now()) ? d.n : 0); };   // 오늘 남은 던전 입장
 const leftTxt = (ms) => { const m = Math.max(1, Math.ceil(ms / 60000)); return m >= 60 ? Math.floor(m / 60) + '시간 ' + (m % 60) + '분' : m + '분'; };
 const dwarfNeed = (x) => (x.used ? 30 : 10);                     // 처음엔 10개, 그다음부터 30개
 function openDwarf() {
@@ -2941,7 +2967,7 @@ function openDwarf() {
     bt.addEventListener('click', () => {
       if (x.tokens < dwarfNeed(x) || metaLv(d.id) >= META_UP.max) return;
       x.tokens -= dwarfNeed(x); x.used = (x.used || 0) + 1; META.up[d.id] = metaLv(d.id) + 1; metaSave();
-      $('#dwarfOv').hidden = true; openBld('dwarf', 0); toast('⭐ ' + d.name + ' ⭐' + metaLv(d.id) + '!');
+      $('#dwarfOv').hidden = true; openBld('dwarf'); toast('⭐ ' + d.name + ' ⭐' + metaLv(d.id) + '!');
     });
     li.append(ic, nm, bt); list.appendChild(li);
   }
