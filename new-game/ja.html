@@ -956,7 +956,8 @@ for (const id in SKILLS) if (BY[id]) BY[id].desc += ' スキル 「' + SKILLS[id
 // 🎨 スキル 그림 (グ・イェジュン, 2026-11-24) — 그림이 있는 스킬은 文字 · 동그라미 없이 그림만 (예준이 결정)
 const SK2_IMG = {}; ['lumber', 'hosper', 'railey', 'willy', 'wolf', 'stein', 'jeff', 'toogom', 'angel', 'bakbak', 'gail', 'blader', 'ricecake'].forEach((id) => { const im = new Image(); im.src = 'art/skill2-' + id + '.png'; SK2_IMG[id] = im; });
 const sk2Img = (id) => { const im = SK2_IMG[id]; return im && im.complete && im.naturalWidth ? im : null; };
-const fxImg = (id, x, y, h, life, rot) => fx({ k: 'img', id, x, y, h, life, rot: rot || 0 });
+const SK_SCALE = 2;                                          // 🔍 スキル 그림 2倍 크게 (2026-11-24 예준이: "スキル 좀 잘 보이게")
+const fxImg = (id, x, y, h, life, rot) => fx({ k: 'img', id, x, y, h: h * SK_SCALE, life, rot: rot || 0 });
 const s2On = (u) => u && u.s2T > 0;
 function s2Team(kind, v, t) {                                  // 아군 全体 버프 (더 센 걸로)
   if (kind === 'dmg') { if (!(S.s2DmgT > 0)) S.s2DmgV = 0; S.s2DmgV = Math.max(S.s2DmgV, v); S.s2DmgT = Math.max(S.s2DmgT || 0, t); }
@@ -2272,7 +2273,7 @@ function drawUnit(u, at) {
   drawUnit0(u, at);
   if (!at && u.icoT > 0) {                                   // 🎨 스킬이 이어지는 の間 머리 위에 작은 그림
     const im = sk2Img(u.type), p = slotXY(u.slot);
-    if (im) { const h = 24, w = h * im.naturalWidth / im.naturalHeight, ww = Math.min(w, 40), hh = h * ww / w; ctx.drawImage(im, p.x - ww / 2, p.y - 46 - hh / 2 + Math.sin(S.time * 4) * 2, ww, hh); }
+    if (im) { const h = 24 * SK_SCALE, w = h * im.naturalWidth / im.naturalHeight, ww = Math.min(w, 40 * SK_SCALE), hh = h * ww / w; ctx.drawImage(im, p.x - ww / 2, p.y - 38 - hh / 2 + Math.sin(S.time * 4) * 2, ww, hh); }
   }
 }
 function drawUnit0(u, at) {
@@ -2315,14 +2316,14 @@ function drawProj(pr) {
     case 'ball': c.fillStyle = PAPER; circle(c, 0, 0, 3.8); c.fill(); c.stroke(); break;
     case 'skimg': {                                          // 🎨 スキル 그림이 날아가요 (お餅爆弾 · 천사 이빨 · 창)
       const im = sk2Img(pr.img); if (!im) break;
-      const h = pr.img === 'blader' ? 30 : pr.img === 'angel' ? 16 : 18, w = h * im.naturalWidth / im.naturalHeight;
+      const h = (pr.img === 'blader' ? 30 : pr.img === 'angel' ? 16 : 18) * SK_SCALE, w = h * im.naturalWidth / im.naturalHeight;
       if (pr.img === 'blader') c.rotate(a + Math.PI / 2); else if (pr.img === 'ricecake') c.rotate(pr.spin * 0.3);
       c.drawImage(im, -w / 2, -h / 2, w, h); break;
     }
-    case 'mic': { const im = sk2Img('jeff'); if (im) { const h = 22, w = h * im.naturalWidth / im.naturalHeight; c.drawImage(im, -w / 2, -h / 2, w, h); } break; }   // 🎤 ジェフ 마이크 (グ・イェジュン)
+    case 'mic': { const im = sk2Img('jeff'); if (im) { const h = 22 * SK_SCALE, w = h * im.naturalWidth / im.naturalHeight; c.drawImage(im, -w / 2, -h / 2, w, h); } break; }   // 🎤 ジェフ 마이크 (グ・イェジュン)
     case 'kunai': {
       const im = SKILL_IMG.kunai;
-      if (im.complete && im.naturalWidth) { c.rotate(a + Math.PI / 2); c.drawImage(im, -6, -11, 12, 22); }
+      if (im.complete && im.naturalWidth) { c.rotate(a + Math.PI / 2); c.scale(SK_SCALE, SK_SCALE); c.drawImage(im, -6, -11, 12, 22); }
       break;
     }
     case 'zap': c.fillStyle = YEL; circle(c, 0, 0, 4.5); c.fill(); c.strokeStyle = INK; c.lineWidth = 1.2; c.stroke(); break;
@@ -2419,7 +2420,7 @@ function drawFx(f) {
     }
     case 'jaws': {                                         // 초록 턱이 세 回 콱콱콱
       const im = SKILL_IMG.jaws, snap = 1 + 0.25 * Math.abs(Math.sin(k * Math.PI * 3));
-      if (im.complete && im.naturalWidth) { c.translate(f.x, f.y); c.scale(snap, snap); c.drawImage(im, -20, -20, 40, 38); }
+      if (im.complete && im.naturalWidth) { c.translate(f.x, f.y); c.scale(snap * SK_SCALE, snap * SK_SCALE); c.drawImage(im, -20, -20, 40, 38); }
       break;
     }
     case 'wave': {                                         // 파란 가시 파장이 퍼져요
@@ -2513,7 +2514,7 @@ function render() {
   for (const pr of S.projs) drawProj(pr);
   for (const b of S.balls || []) {                            // ⚡ デスシュタイン 번개 (그림: グ・イェジュン)
     const im = sk2Img('stein'); if (!im) continue;
-    const h = 30, w = h * im.naturalWidth / im.naturalHeight;
+    const h = 30 * SK_SCALE, w = h * im.naturalWidth / im.naturalHeight;
     c.save(); c.translate(b.x, b.y); c.rotate(Math.atan2(b.vy, b.vx) - Math.PI / 2); c.drawImage(im, -w / 2, -h / 2, w, h); c.restore();   // 뾰족한 끝이 앞으로
   }
   if (S.weakT > 0) {
