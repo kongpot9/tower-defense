@@ -30,7 +30,7 @@
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-*{touch-action:manipulation}   /* 🔍 광클해도 확대 안 되게 (2026-11-22 예준이 요청) — 스크롤되는 창 안쪽까지 전부 */
+*{touch-action:manipulation}   /* 🔍 광클해도 확대 안 되게 (2026-11-22 예준이 요청) — 스크롤되는 창 안쪽까지 全部 */
 html{height:100%;background:var(--desk);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{height:100%;margin:0;background:var(--desk);color:var(--paper);font-family:var(--f-ui);font-size:15px;overflow:hidden;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
@@ -256,6 +256,7 @@ img.ic{width:22px;height:22px;object-fit:contain;vertical-align:-5px;margin:0 2p
 .plot.empty img{opacity:.28;filter:grayscale(1)}
 .plot.empty::after{content:"+";position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:28px;height:28px;border-radius:50%;background:var(--paper);color:var(--ink);border:2px solid var(--ink);font:20px/24px var(--f-display);text-align:center}
 .plot.locked::after{content:"🔒";background:none;border:0;font-size:20px}
+.plot .bcnt{position:absolute;bottom:-4px;right:-4px;background:var(--paper);color:var(--ink);border:2px solid var(--ink);border-radius:999px;font:12px/1 var(--f-display);padding:3px 6px}
 .plot .ready{position:absolute;top:-6px;right:-6px;background:#F2C440;color:var(--ink);border:2px solid var(--ink);border-radius:999px;font:13px/1 var(--f-display);padding:4px 7px;animation:bob 1s ease-in-out infinite}
 @keyframes bob{50%{transform:translateY(-4px)}}
 .bld-card{max-height:calc(100% - 20px);overflow-y:auto}
@@ -603,7 +604,7 @@ const BAL = {
 
 /* ===== ウェーブ プレゼント: バフ · タレット (임시 — 예준이가 바꿀 예정) ===== */
 // 같은 버프템을 또 고를수록 세져요: 처음 숫자의 1倍 → 2倍 → 3倍 → … (예준이 규칙: 10% → 20% → 30%, 10%씩 계속)
-// 끝없이 고르면 너무 세져서 최대 5回 (お金 주머니·가시 방어선은 3回)
+// 끝없이 고르면 너무 세져서 最大 5回 (お金 주머니·가시 방어선은 3回)
 const P = (v) => (Math.round(v * 1000) / 10) + '%';
 const BUFFS = [
   { id: 'dmg',   name: '力のポーション',   img: 'art/buff-dmg.png', emo: '💪', color: '#F08A7E', base: 0.10, max: 5, d: (v) => '味方全体のダメージ +' + P(v), s: (v) => '+' + P(v) },
@@ -732,7 +733,7 @@ const CHARS = [
     dmg: 520,  rate: 1 / 1,    range: 150, melee: 'slash', desc: 'オノで前の敵を強くたたきます。' },
   // 🥷 다크라이더: 다른 게임(냥코 대전쟁)의 다크라이더와 닮아서 입국 失敗 (2026-11-20, グ・イェジュン 결정)
   // ⛏️ 능력자광부 · 🗡️ 낭인: 결별 (2026-11-20, グ・イェジュン 결정)
-  // ↓ 3차 입국 (2026-11-20): ヒーロー 등급은 다크라이더 빼고 전부
+  // ↓ 3차 입국 (2026-11-20): ヒーロー 등급은 다크라이더 빼고 全部
   { id: 'wolf',     name: 'ウルフ受講生',   img: 'art/wolf.png',     grade: 'ヒーロー', color: '#C9B48A', role: '近距離', pref: 'front',
     dmg: 500,  rate: 1 / 1.1,  range: 150, melee: 'bite', bites: 2, weakSpot: { p: 0.3, time: 15, team: 0.3 },
     desc: 'ツメで2回ひっかきます。30%の確率で急所を見つけると15秒間味方全体の攻撃力+30%！' },
@@ -848,7 +849,7 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 保存 못 해도 게임은 돼요 */ } },
 };
-// 🔓 처음부터 쓸 수 있는 캐릭터 (2026-11-21 예준이 결정): ノーマル 전부 · レア 전부(ノエシ 빼고) · 영웅은 デスシュタイン 하나 · 전설은 レッドドラゴン
+// 🔓 처음부터 쓸 수 있는 캐릭터 (2026-11-21 예준이 결정): ノーマル 全部 · レア 全部(ノエシ 빼고) · 영웅은 デスシュタイン 하나 · 전설은 レッドドラゴン
 const START_UNLOCK = ['sword', 'archer', 'farmer', 'jura', 'taein', 'tank', 'tenjo', 'stein', 'dragon'];
 const unlocked = (id) => START_UNLOCK.includes(id) || !!(META.unlock && META.unlock[id]);
 // 🏆 実績 캐릭터 · 💎 クリスタル 캐릭터 (나누기 · 조건 · 가격은 Claude 초안, 2026-11-21 예준이 "이대로 하자")
@@ -946,6 +947,10 @@ const SKILLS = {
   dosa:       { n: '境地',        p: 0.03, self: 1.5, spd: 0.5, time: 20, d: '20秒間 攻撃力 · 攻撃速度 +50%' },
   catmachine: { n: '境地',        p: 0.03, self: 1.5, spd: 0.5, time: 20, d: '20秒間 攻撃力 · 攻撃速度 +50%' },
   tenhan:     { n: '大地震',      p: 0.05, quake: 3, d: '地震で 敵 全部を 3秒 の間つかまえる' },
+  // ↓ 2026-11-24 예준이 결정
+  railey:     { n: '大感電',      p: 0.04, quake: 10, d: '敵 全部 10秒間 スタン' },
+  hosper:     { n: '魔法爆発',    p: 0.05, execute: 15, d: '敵 15匹 確定キル (ボス のぞく, 城壁に近い敵から)' },
+  toogom:     { n: 'ベアアタック',    p: 0.02, shots: 6, d: '6連打' },
 };
 for (const id in SKILLS) if (BY[id]) BY[id].desc += ' スキル 「' + SKILLS[id].n + '」 ' + Math.round(SKILLS[id].p * 100) + '%: ' + SKILLS[id].d + '.';
 const s2On = (u) => u && u.s2T > 0;
@@ -963,6 +968,10 @@ function skill2(u, def, t, dmg) {                              // 발동! (dmg =
   if (K.tube) S.tubeT = Math.max(S.tubeT || 0, K.tube);
   if (K.slow && t && !t.dead) { t.slowF = Math.max(t.slowT > 0 ? t.slowF : 0, K.slow); t.slowT = Math.max(t.slowT, K.slowT); fx({ k: 'ring', x: t.x, y: t.y, r: 20, c: '#7A5CE0', life: 0.4 }); }
   if (K.quake) { for (const e of S.enemies) if (!e.dead) e.stunT = Math.max(e.stunT, K.quake); S.shake = 0.5; }
+  if (K.execute) {                                            // 🎩 ホスパー 魔法爆発: 確定キル (ボス のぞく)
+    const pool = S.enemies.filter((e) => !e.dead && !e.boss && !e.burrow && e.y > 0).sort((a, b) => b.y - a.y).slice(0, K.execute);
+    for (const e of pool) { fx({ k: 'boom', x: e.x, y: e.y, r: 16, c: '#B07CE0', life: 0.35 }); hurt(e, e.hp + 1, def.id); if (!e.dead) { e.hp = 0; e.dead = true; S.kills++; } }
+  }
   if (K.boomX && t) { area(t.x, t.y, K.boomR, dmg * K.boomX, def.id); fx({ k: 'boom', x: t.x, y: t.y, r: K.boomR, c: ORANGE, life: 0.45 }); S.shake = 0.3; }
   if (K.rats) {                                                // 🐀 777 봉산 쥐 (猛毒 0.4倍 + 25% 0.3秒 かためる, ボス 몸엔 못 들어감)
     const pool = S.enemies.filter((e) => !e.dead && !e.boss && e.y > 0).sort((a, b) => b.y - a.y).slice(0, K.rats);
@@ -975,6 +984,11 @@ function skill2(u, def, t, dmg) {                              // 발동! (dmg =
   if (K.bounce && t) {                                         // ⚡ ドクター大頭 같은 번개가 벽에 통통 튀어요
     const a = Math.atan2(t.y - p.y, t.x - p.x);
     (S.balls || (S.balls = [])).push({ x: p.x, y: p.y - 20, vx: Math.cos(a) * 420, vy: Math.sin(a) * 420, n: K.bounce, dmg, src: def.id, hit: new Map(), trail: [] });
+  }
+  if (K.shots && t && def.melee) {                             // 🐗 근접 連打 (魂のトゥゴム ベアアタック 6連打)
+    for (let i = 0; i < K.shots; i++) { const tg = t.dead ? findTarget(u, def) : t; if (!tg) break;
+      fx({ k: def.melee === 'bite' ? 'bite' : 'slash', x: tg.x + (Math.random() - 0.5) * 14, y: tg.y + (Math.random() - 0.5) * 10, a: 0, life: 0.3 }); hitTarget(def, tg, dmg, tg.x, tg.y); }
+    return;
   }
   if (K.shots && t) {                                          // 여러 발: お餅 20個 · 10連打 · 창 5連打 · ブレス 5回
     const r2 = (def.range + S.buff.rng) ** 2;
@@ -2775,7 +2789,7 @@ function openStarter() {
   }
   $('#starterOv').hidden = false;
 }
-function resetChar(id) {                                      // 🔄 リセット券: ⭐0으로 · 쓴 クリスタル 전부 돌려받기
+function resetChar(id) {                                      // 🔄 リセット券: ⭐0으로 · 쓴 クリスタル 全部 돌려받기
   if (!(META.resetTix > 0) || !metaLv(id)) return;
   const back = (META.paid && META.paid[id]) || 0;
   META.resetTix--; META.up[id] = 0; if (META.paid) META.paid[id] = 0; META.crystal += back; metaSave();
@@ -2835,7 +2849,7 @@ const DUNGEON = { time: 600, bossHp: 450, reward: 1000, coin: 20000, gap: [3, 0.
 // 2026-11-22 예준이 결정: ボス 체력 25倍 (18 → 450) · 보스가 끝없이 몰려와요 (3秒ごと → 10分 끝엔 0.8秒ごと） · 던전은 지는 게 없어요 (100匹 패배 없음)
 // cap = 화면에 보스가 너무 많으면 (150匹) 잠깐 안 나와요 (폰이 버벅이지 않게)
 const BLD = {
-  mold:    { name: '鋳型工房',     img: 'art/bld-mold.png',    cost: [400, 100],        max: 2, needGames: 10,
+  mold:    { name: '鋳型工房',     img: 'art/bld-mold.png',    cost: [400, 100],        needGames: 10,
              d: '1日の最初のログイン時か5時間ごとにコイン10,000をくれます', every: 5 * 3600e3, give: { coin: 10000 } },
   dungeon: { name: 'ダンジョン',       img: 'art/bld-dungeon.png', cost: [10000, 2500],
              d: '入ると10分間ボスだけが出ます。ボスを1体たおすごとにクリスタル1,000＋コイン20,000！' },
@@ -2851,9 +2865,14 @@ const BLD = {
 // 자리: 마을 그림 안의 위치 (가로 0~1, 세로 0~1 = 건물 바닥) · 크기 = 그림 너비에 대한 비율
 const PLOTS = [
   { b: 'dungeon', i: 0, x: 0.30, y: 0.445, w: 0.13 }, { b: 'shrine', i: 0, x: 0.50, y: 0.445, w: 0.07 }, { b: 'dwarf', i: 0, x: 0.70, y: 0.445, w: 0.15 },
-  { b: 'mold', i: 0, x: 0.255, y: 0.535, w: 0.12 }, { b: 'mold', i: 1, x: 0.415, y: 0.535, w: 0.12 },
-  { b: 'giwa', i: 0, x: 0.585, y: 0.535, w: 0.13 }, { b: 'mole', i: 0, x: 0.745, y: 0.535, w: 0.12 },
+  { b: 'mold', i: 0, x: 0.30, y: 0.535, w: 0.12 },
+  { b: 'giwa', i: 0, x: 0.50, y: 0.535, w: 0.13 }, { b: 'mole', i: 0, x: 0.70, y: 0.535, w: 0.12 },
 ];
+// 🏘️ 같은 건물을 5개까지 또 지을 수 있어요 (모든 건물, 2026-11-24 예준이 결정) — 자리는 하나, 건물에 ×개수가 붙어요
+//    하나하나가 따로 時間 · 출석을 세요 (鋳型工房 3개면 코인도 3倍) · 던전은 하나마다 하루 5回
+const BLD_MAX = 5;
+const bldIdx = (b) => { const o = []; for (let i = 0; i < BLD_MAX; i++) if (town()[b + i]) o.push(i); return o; };
+const bldCnt = (b) => bldIdx(b).length;
 const dayKey = (t) => { const d = new Date(t); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
 const town = () => (META.town = META.town || {});
 const built = (b, i) => !!(town()[b + (i || 0)]);
@@ -2876,15 +2895,16 @@ function renderVillage() {
   const g = YARD.geo;
   box.innerHTML = '';
   for (const p of PLOTS) {
-    const B = BLD[p.b], on = built(p.b, p.i), el = document.createElement('button');
+    const B = BLD[p.b], n = bldCnt(p.b), on = n > 0, el = document.createElement('button');
     el.type = 'button';
     const locked = !on && (B.hold || (p.b === 'mold' && (META.games || 0) < B.needGames));
     el.className = 'plot' + (on ? '' : ' empty') + (locked ? ' locked' : '');
     el.style.left = (g.dx + p.x * g.dw) + 'px'; el.style.top = (g.dy + p.y * g.dh) + 'px'; el.style.width = (p.w * g.dw) + 'px';
     el.style.zIndex = Math.round(g.dy + p.y * g.dh);              // 돌아다니는 캐릭터랑 앞뒤 순서 맞추기
-    el.innerHTML = '<img src="' + B.img + '" alt="">' + (on && bldReady(p.b, p.i) ? '<span class="ready">!</span>' : '');
+    el.innerHTML = '<img src="' + B.img + '" alt="">' + (bldIdx(p.b).some((i) => bldReady(p.b, i)) ? '<span class="ready">!</span>' : '')
+      + (n > 1 ? '<span class="bcnt">×' + n + '</span>' : '');
     el.setAttribute('aria-label', B.name);
-    el.addEventListener('click', () => openBld(p.b, p.i));
+    el.addEventListener('click', () => openBld(p.b));
     box.appendChild(el);
   }
 }
@@ -2892,56 +2912,62 @@ function bldBtn(label, fn, disabled, cls) {
   const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + (cls || 'btn-blue'); b.innerHTML = label; b.disabled = !!disabled;
   b.addEventListener('click', fn); return b;
 }
-function openBld(b, i) {
-  const B = BLD[b], on = built(b, i), x = st(b, i), btns = $('#bldBtns');
-  $('#bldImg').src = B.img; $('#bldName').textContent = B.name + (b === 'mold' ? ' ' + (i + 1) : ''); $('#bldDesc').textContent = B.d;
+function openBld(b) {
+  const B = BLD[b], idx = bldIdx(b), n = idx.length, on = n > 0, btns = $('#bldBtns');
+  $('#bldImg').src = B.img; $('#bldName').textContent = B.name + (n ? ' ×' + n : ''); $('#bldDesc').textContent = B.d;
   $('#bldCost').innerHTML = ''; $('#bldNote').textContent = ''; btns.innerHTML = '';
-  const now = Date.now();
-  if (!on) {
-    $('#bldCost').innerHTML = costHTML(B.cost);
-    if (B.hold) { $('#bldNote').textContent = 'ショップができたら建てられます'; }
-    else if (b === 'mold' && (META.games || 0) < B.needGames) $('#bldNote').textContent = 'ゲームを ' + B.needGames + '回 プレイすると建てられます (いま ' + (META.games || 0) + '回)';
-    else {
-      const can = META.coin >= B.cost[0] && META.crystal >= B.cost[1];
-      if (!can) $('#bldNote').textContent = 'コインか クリスタルが足りません';
-      btns.appendChild(bldBtn('🔨 建てる', () => {
-        if (META.coin < B.cost[0] || META.crystal < B.cost[1]) return;
-        META.coin -= B.cost[0]; META.crystal -= B.cost[1];
-        town()[b + i] = { t: now, day: '' };                      // 처음 짓고 바로는 아직 안 줘요 (출석 · 시간이 지나면)
-        if (b === 'dwarf') Object.assign(town()[b + i], { tokens: 0, used: 0 });
-        metaSave(); renderVillage(); openBld(b, i);
-        toast('🔨 ' + B.name + ' 完成!');
-      }, !can));
+  const now = Date.now(), ready = idx.filter((i) => bldReady(b, i)), nr = ready.length;
+  const note = (t) => { $('#bldNote').textContent = ($('#bldNote').textContent ? $('#bldNote').textContent + ' · ' : '') + t; };
+  if (on && b !== 'dungeon' && b !== 'dwarf') {               // もらう
+    if (b === 'mold' || b === 'giwa' || b === 'mole') {
+      const next = Math.min(...idx.map((i) => (b === 'mole' ? Infinity : B.every - (now - st(b, i).t))));
+      if (nr) note(nr + '個で もらえます!');
+      else note(b === 'mole' ? '明日ログインするとまたもらえます' : '次まで ' + leftTxt(next) + (b === 'mold' ? ' (明日の最初のログインならすぐ)' : ''));
+      const take = (coin, crys) => { META.coin += coin * nr; META.crystal += crys * nr; for (const i of ready) { const x = st(b, i); x.t = Date.now(); x.day = dayKey(x.t); }
+        metaSave(); renderVillage(); openBld(b); toast((coin ? '🪙 +' + fmtNum(coin * nr) + ' ' : '') + (crys ? '💎 +' + fmtNum(crys * nr) : '')); };
+      const k = nr > 1 ? ' ×' + nr : '';
+      if (b === 'giwa') {
+        btns.appendChild(bldBtn(coinIco + '100,000' + k + ' もらう', () => take(100000, 0), !nr));
+        btns.appendChild(bldBtn(crysIco + '12,000' + k + ' もらう', () => take(0, 12000), !nr));
+      } else btns.appendChild(bldBtn(b === 'mold' ? coinIco + '10,000' + k + ' もらう' : crysIco + '500' + k + ' もらう', () => b === 'mold' ? take(10000, 0) : take(0, 500), !nr));
     }
-  } else if (b === 'mold' || b === 'giwa' || b === 'mole') {
-    const ready = bldReady(b, i);
-    if (b === 'mold') $('#bldNote').textContent = ready ? 'もらえます!' : '次のコインまで ' + leftTxt(B.every - (now - x.t)) + ' (明日の最初のログインならすぐ)';
-    if (b === 'giwa') $('#bldNote').textContent = ready ? 'ひとつえらんでもらえます!' : '次まで ' + leftTxt(B.every - (now - x.t));
-    if (b === 'mole') $('#bldNote').textContent = ready ? '今日のログイン プレゼント!' : '明日ログインするとまたもらえます';
-    const take = (coin, crys) => { META.coin += coin; META.crystal += crys; x.t = Date.now(); x.day = dayKey(x.t); metaSave(); renderVillage(); openBld(b, i);
-      toast((coin ? '🪙 +' + fmtNum(coin) + ' ' : '') + (crys ? '💎 +' + fmtNum(crys) : '')); };
-    if (b === 'giwa') {
-      btns.appendChild(bldBtn(coinIco + '100,000 もらう', () => take(100000, 0), !ready));
-      btns.appendChild(bldBtn(crysIco + '12,000 もらう', () => take(0, 12000), !ready));
-    } else btns.appendChild(bldBtn(b === 'mold' ? coinIco + '10,000 もらう' : crysIco + '500 もらう', () => b === 'mold' ? take(10000, 0) : take(0, 500), !ready));
-  } else if (b === 'dungeon') {
-    $('#bldNote').textContent = '10分間、ボスが無限に押し寄せます！負けはありません。たおしたボス1体ごとに報酬';
+  } else if (on && b === 'dungeon') {
     const left = dgLeftToday();
-    $('#bldNote').textContent += ' · 今日の残り入場回数 ' + left + '/' + DUNGEON.perDay + (left ? '' : ' (明日また入れます)');
+    note('10分間、ボスが無限に押し寄せます！負けはありません。たおしたボス1体ごとに報酬');
+    note('今日の残り入場回数 ' + left + '/' + dgPerDay() + (left ? '' : ' (明日また入れます)'));
     btns.appendChild(bldBtn('🕳️ ダンジョンに入る', () => {
       if (dgLeftToday() <= 0) return;
-      META.dgDay = { day: dayKey(Date.now()), n: DUNGEON.perDay - dgLeftToday() + 1 }; metaSave();   // 🎟️ 들어갈 때 1回 써요 (중간에 나가도 1回)
+      META.dgDay = { day: dayKey(Date.now()), n: dgPerDay() - dgLeftToday() + 1 }; metaSave();   // 🎟️ 들어갈 때 1回 써요 (중간에 나가도 1回)
       $('#bldOv').hidden = true; startBattle('dungeon');
     }, left <= 0));
-  } else if (b === 'dwarf') {
-    const need = dwarfNeed(x);
-    $('#bldNote').textContent = 'トークン ' + x.tokens + ' / ' + need + (bldReady(b, i) ? ' · 今日のトークンをもらえます!' : ' · 明日またもらえます');
-    btns.appendChild(bldBtn('🪙 今日のトークンをもらう', () => { x.tokens++; x.day = dayKey(Date.now()); metaSave(); renderVillage(); openBld(b, i); toast('こびとトークン +1'); }, !bldReady(b, i)));
+  } else if (on && b === 'dwarf') {
+    const x = st('dwarf', 0), need = dwarfNeed(x);
+    note('トークン ' + x.tokens + ' / ' + need + (nr ? ' · 今日 トークン ' + nr + '個を もらえます!' : ' · 明日またもらえます'));
+    btns.appendChild(bldBtn('🪙 今日のトークンをもらう' + (nr > 1 ? ' ×' + nr : ''), () => { x.tokens += nr; for (const i of ready) st('dwarf', i).day = dayKey(Date.now()); metaSave(); renderVillage(); openBld('dwarf'); toast('こびとトークン +' + nr); }, !nr));
     btns.appendChild(bldBtn('⭐ トークン ' + need + '個で レベル 上げる', () => openDwarf(), x.tokens < need, 'btn-gold'));
   }
+  if (n < BLD_MAX) {                                           // 🔨 建てる / もうひとつ 建てる (5개까지)
+    const i = [0, 1, 2, 3, 4].find((k) => !town()[b + k]);
+    $('#bldCost').innerHTML = costHTML(B.cost);
+    if (B.hold) note('ショップができたら建てられます');
+    else if (b === 'mold' && (META.games || 0) < B.needGames) note('ゲームを ' + B.needGames + '回 プレイすると建てられます (いま ' + (META.games || 0) + '回)');
+    else {
+      const can = META.coin >= B.cost[0] && META.crystal >= B.cost[1];
+      if (!can) note('コインか クリスタルが足りません');
+      btns.appendChild(bldBtn(n ? '🔨 もうひとつ 建てる (' + n + '/' + BLD_MAX + ')' : '🔨 建てる', () => {
+        if (META.coin < B.cost[0] || META.crystal < B.cost[1] || bldCnt(b) >= BLD_MAX) return;
+        META.coin -= B.cost[0]; META.crystal -= B.cost[1];
+        town()[b + i] = { t: Date.now(), day: '' };               // 처음 짓고 바로는 아직 안 줘요 (출석 · 시간이 지나면)
+        if (b === 'dwarf' && i === 0) Object.assign(town()[b + i], { tokens: (town().dwarf0 && town().dwarf0.tokens) || 0, used: 0 });
+        metaSave(); renderVillage(); openBld(b);
+        toast('🔨 ' + B.name + ' 完成!' + (bldCnt(b) > 1 ? ' (' + bldCnt(b) + '/' + BLD_MAX + ')' : ''));
+      }, !can, n ? 'btn' : 'btn-blue'));
+    }
+  } else note('最大 ' + BLD_MAX + '個まで全部建てました');
   $('#bldOv').hidden = false;
 }
-const dgLeftToday = () => { const d = META.dgDay; return DUNGEON.perDay - (d && d.day === dayKey(Date.now()) ? d.n : 0); };   // 오늘 のこり ダンジョン 입장
+const dgPerDay = () => DUNGEON.perDay * Math.max(1, bldCnt('dungeon'));   // 🕳️ ダンジョン 하나마다 하루 5回 (2026-11-24 예준이 결정)
+const dgLeftToday = () => { const d = META.dgDay; return dgPerDay() - (d && d.day === dayKey(Date.now()) ? d.n : 0); };   // 今日 のこり ダンジョン 입장
 const leftTxt = (ms) => { const m = Math.max(1, Math.ceil(ms / 60000)); return m >= 60 ? Math.floor(m / 60) + '時間 ' + (m % 60) + '分' : m + '分'; };
 const dwarfNeed = (x) => (x.used ? 30 : 10);                     // さいしょは 10個, 그다음부터 30個
 function openDwarf() {
@@ -2958,7 +2984,7 @@ function openDwarf() {
     bt.addEventListener('click', () => {
       if (x.tokens < dwarfNeed(x) || metaLv(d.id) >= META_UP.max) return;
       x.tokens -= dwarfNeed(x); x.used = (x.used || 0) + 1; META.up[d.id] = metaLv(d.id) + 1; metaSave();
-      $('#dwarfOv').hidden = true; openBld('dwarf', 0); toast('⭐ ' + d.name + ' ⭐' + metaLv(d.id) + '!');
+      $('#dwarfOv').hidden = true; openBld('dwarf'); toast('⭐ ' + d.name + ' ⭐' + metaLv(d.id) + '!');
     });
     li.append(ic, nm, bt); list.appendChild(li);
   }
