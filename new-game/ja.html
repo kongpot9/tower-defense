@@ -319,7 +319,7 @@ img.ic{width:22px;height:22px;object-fit:contain;vertical-align:-5px;margin:0 2p
 </style>
 </head>
 <body>
-<script>/* 🌐 언어: 한 回 고르면 기억 · さいしょは 端末 언어 (일본어면 일본판) — 한·일이 같은 ランキング · 같은 접속 서버를 써요 */
+<script>/* 🌐 언어: 한 回 고르면 기억 · さいしょは 端末 언어 (일본어면 일본판) — 한·일이 同じ ランキング · 同じ 접속 서버를 써요 */
 window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if (l === 'ko' || l === 'ja') return l; } catch (e) {} return /^ja/i.test(navigator.language || '') ? 'ja' : 'ko'; })();
 </script>
 <div id="app">
@@ -591,7 +591,7 @@ const slotXY = (i) => ({ x: GX + CW * (i % COLS + 0.5), y: GY + CH * (Math.floor
 const BAL = {
   startGold: 50,
   upBase: 25, upMult: 1.3,             // 強化 비용 = 25 × レベル, 強化 1번에 ダメージ ×1.3
-  waveLen: 20, spawnWindow: 13,        // ウェーブ 20秒, 처음 13秒 の間 적이 나와요
+  waveLen: 20, spawnWindow: 13,        // ウェーブ 20秒, 처음 13秒 の間 敵が 나와요
   hp0: 150, hpGrow: 1.15,              // 敵 体力 = 150 × 1.15^(ウェーブ-1)  (버프템이 점점 세지니까 적도 빨리 세져요)
   lateFrom: 50, lateHits: 2, lateStep: 0.1,   // 50웨이브부터 잡몹 体力 ≥ 우리 보통 한 방 × 2 (웨이브마다 +0.1방) → 한 방에 안 죽어요
   count: (w) => Math.round(0.9 * (8 + Math.floor(w * 1.2) + Math.floor(0.06 * Math.max(0, w - 12) ** 2))),   // 12웨이브부터 점점 더 많이 (예준이 요청) · 너무 몰려서 10% 줄임 (2026-11-21, 敵 능력치는 그대로)
@@ -605,7 +605,7 @@ const BAL = {
 };
 
 /* ===== ウェーブ プレゼント: バフ · タレット (임시 — 예준이가 바꿀 예정) ===== */
-// 같은 버프템을 또 고를수록 세져요: 처음 숫자의 1倍 → 2倍 → 3倍 → … (예준이 규칙: 10% → 20% → 30%, 10%씩 계속)
+// 同じ 버프템을 또 고를수록 세져요: 처음 숫자의 1倍 → 2倍 → 3倍 → … (예준이 규칙: 10% → 20% → 30%, 10%씩 계속)
 // 끝없이 고르면 너무 세져서 最大 5回 (お金 주머니·가시 방어선은 3回)
 const P = (v) => (Math.round(v * 1000) / 10) + '%';
 const BUFFS = [
@@ -702,6 +702,12 @@ const SHOPI = [
   { id: 'gauntlet', name: '青き者のガントレット', kind: '武器', price: 29000, img: 'art/shop-gauntlet.png', d: '攻撃するとき 20% の確率でクリティカル (ダメージ 2倍)', crit: { p: 0.2, x: 2 } },
   { id: 'demonx',   name: 'デーモンアックス',       kind: '武器', price: 21000, img: 'art/shop-demonx.png',   d: '攻撃速度 +40%, そのかわり攻撃の威力 -30%', spd: 1.4, dmg: 0.7 },
   { id: 'seaking',  name: '海王魚剣',       kind: '武器', price: 10000, img: 'art/shop-seaking.png',  d: '攻撃するとき 20% の確率で 敵 20匹 5秒 ストップ · 攻撃力 +20%', dmg: 1.2, freeze: { p: 0.2, n: 20, t: 5 } },
+  // ↓ 2026-11-25 예준이 추가
+  { id: 'justice',  name: '正義の石碑',    kind: '武器', price: 27000, img: 'art/shop-justice.png',  d: '攻撃力 +50% · 攻撃速度 +50%', dmg: 1.5, spd: 1.5 },
+  { id: 'tears',    name: '悪魔の涙',    kind: '魔法', price: 17000, img: 'art/shop-tears.png',    d: '攻撃するとき 20% の確率で 敵が 20秒 の間 悪魔になって味方として戦います (同じ ダメージ · ボス のぞく)', charm: { p: 0.2, t: 20 } },
+  { id: 'metalclaw', name: 'メタルクロー',      kind: '武器', price: 31000, img: 'art/shop-metalclaw.png', d: '攻撃が 2~4回 連続で当たります', reps: [2, 4] },
+  { id: 'cutter',   name: '青い切断機',    kind: '武器', price: 19000, img: 'art/shop-cutter.png',   d: '攻撃するとき 5% の確率で 敵 10匹 確定キル (ボス のぞく)', cut: { p: 0.05, n: 10 } },
+  { id: 'rift',     name: '乖離の石碑',    kind: '武器', price: 30000, img: 'art/shop-rift.png',     d: '攻撃力 +200%, そのかわり攻撃間隔 2秒 のびる', dmg: 3, addCd: 2 },
 ];
 const SHOP_BY = {}; SHOPI.forEach((x) => { SHOP_BY[x.id] = x; x.im = new Image(); x.im.src = x.img; });
 const gearOf = (u, kind) => u && (S.gear || []).find((g) => g.unit === u && SHOP_BY[g.id].kind === kind);
@@ -834,7 +840,7 @@ const FOES = [
   { id: 'squid', name: 'ワカメイカ', img: 'art/enemy-squid.png', hp: 0.5, speed: 8, r: 9, w: 2, from: 11, shield: { time: 2, every: 6 } },   // 체력은 낮지만 2秒 の間 공격을 아예 안 맞는 실드
   { id: 'doomi', name: 'ドォドミ',   img: 'art/enemy-doomi.png', hp: 1.6, speed: 15, r: 10, w: 1, from: 11, hop: true, sturdy: true },     // 팔딱팔딱 · 体力 높음 · 무조건 한 번은 1 남기고 버팀 · 매우 빠름 (그림·設定: グ・イェジュン, 2026-11-21)
   { id: 'seamole', name: 'ウミモグラ', img: 'art/enemy-seamole.png', hp: 1.3, speed: 8, r: 10, w: 1, from: 21, burrow: true },     // 땅속으로 성 앞까지 와서 튀어나오며 아군 攻撃力 10秒間 ½ · 体力 은근 높음 (그림·設定: グ・イェジュン, 2026-11-21)
-  { id: 'pink',  name: 'ピンクスライム', img: 'art/enemy-pinkslime.png', fixedHp: 1, speed: 8, r: 9.5, w: 1, from: 11, hitP: 0.4 },  // 体力 1 · 공격이 맞을 확률 40% (1% → 40%, 예준이 조정)
+  { id: 'pink',  name: 'ピンクスライム', img: 'art/enemy-pinkslime.png', fixedHp: 1, speed: 8, r: 9.5, w: 1, from: 11, hitP: 0.4 },  // 体力 1 · 攻撃が 맞을 확률 40% (1% → 40%, 예준이 조정)
 ];
 const BOSSES = [
   { id: 'skullgen', name: 'ガイコツ将軍', img: 'art/boss-skullgen.png', skillImg: 'art/boss-skullgen-gumgi.png', hp: 270, dpsMul: 186, speed: 10, r: 28, skill: 'gumgi' },   // 体力: 플레이어 평균 딜량(1秒 ダメージ)의 186倍 (4倍 → 30倍 → 450倍 → 딜량 310倍 → 40% 내려서 186倍, 예준이 결정) · hp는 딜량을 아직 모를 때만 · 보스는 1.5倍 크게
@@ -997,7 +1003,7 @@ function skill2(u, def, t, dmg) {                              // 발동! (dmg =
   }
   if (K.quake) { for (const e of S.enemies) if (!e.dead) { e.stunT = Math.max(e.stunT, K.quake); if (art && S.fx.length < 450) fxImg(def.id, e.x, e.y - 14, 34, 0.55); } S.shake = 0.5; }   // ⚡ レイリー: 적마다 번개
   if (K.execute) {                                            // 🎩 ホスパー 魔法爆発: 確定キル (ボス のぞく)
-    const pool = S.enemies.filter((e) => !e.dead && !e.boss && !e.burrow && e.y > 0).sort((a, b) => b.y - a.y).slice(0, K.execute);
+    const pool = S.enemies.filter((e) => !e.dead && !e.boss && !e.burrow && !(e.ally > 0) && e.y > 0).sort((a, b) => b.y - a.y).slice(0, K.execute);
     for (const e of pool) { if (art) fxImg('hosper', e.x, e.y - 6, 30, 0.6); else fx({ k: 'boom', x: e.x, y: e.y, r: 16, c: '#B07CE0', life: 0.35 }); hurt(e, e.hp + 1, def.id); if (!e.dead) { e.hp = 0; e.dead = true; S.kills++; } }
   }
   if (K.boomX && t) { area(t.x, t.y, K.boomR, dmg * K.boomX, def.id); fx({ k: 'boom', x: t.x, y: t.y, r: K.boomR, c: ORANGE, life: 0.45 }); S.shake = 0.3; }
@@ -1009,7 +1015,7 @@ function skill2(u, def, t, dmg) {                              // 발동! (dmg =
       fx({ k: 'text', x: e.x, y: e.y - 12, s: '🐀', c: INK, life: 0.8, size: 12 });
     }
   }
-  if (K.bounce && t) {                                         // ⚡ ドクター大頭 같은 번개가 벽에 통통 튀어요
+  if (K.bounce && t) {                                         // ⚡ ドクター大頭 同じ 번개가 벽에 통통 튀어요
     const a = Math.atan2(t.y - p.y, t.x - p.x);
     (S.balls || (S.balls = [])).push({ x: p.x, y: p.y - 20, vx: Math.cos(a) * 420, vy: Math.sin(a) * 420, n: K.bounce, dmg, src: def.id, hit: new Map(), trail: [] });
   }
@@ -1108,7 +1114,8 @@ function unitRate(u, def) {
   if (it && it.id === 'glove' && !it.awake) r = 1 / (1 / r + 1);                 // 🥊 대신 1秒 느려짐
   if (def.pot) r *= 1 + tenjoHaste(u);                                              // 🔥 テンゾー 버프
   if (s2On(u) && SKILLS[def.id] && SKILLS[def.id].spd) r *= 1 + SKILLS[def.id].spd;   // 🎯 境地
-  for (const x of gearsOf(u)) if (x.spd) r *= x.spd;                                  // 🛒 デーモンアックス
+  for (const x of gearsOf(u)) if (x.spd) r *= x.spd;                                  // 🛒 デーモンアックス · 正義の石碑
+  for (const x of gearsOf(u)) if (x.addCd) r = 1 / (1 / r + x.addCd);               // 🛒 乖離の石碑: 공격 간격 +2秒
   return r;
 }
 function itemDmgMul(u, def) {
@@ -1220,7 +1227,7 @@ function avgHit() {                                        // 우리 공격 '보
   const a = (S.hitHist || []).slice().sort((x, y) => x - y);
   return a.length >= 20 ? a[a.length >> 1] : 0;
 }
-function avgDps() {                                        // 적이 있을 때 1초에 넣은 데미지의 평균
+function avgDps() {                                        // 敵が 있을 때 1초에 넣은 데미지의 평균
   let d = 0, t = 0;
   for (const h of S.dpsHist || []) { d += h[0]; t += h[1]; }
   return t >= 3 ? d / t : 0;
@@ -1253,7 +1260,7 @@ function makeEnemy(boss) {
 /* ===== 전투 ===== */
 const foeSay = (e, s, c) => { if (e.msgT > 0) return; e.msgT = 0.7; fx({ k: 'text', x: e.x, y: e.y - 16, s, c, life: 0.6, size: 11 }); };
 function hurt(e, a, src) {
-  if (e.dead) return;
+  if (e.dead || e.ally > 0) return;                         // 😈 악마의 눈물로 내 편이 된 적은 안 맞아요
   if (e.burrow) return;                                     // 🦫 ウミモグラ: 땅속에선 안 맞아요
   const tube = S.tubeT > 0;                                 // 🛟 ウィリー チューブ: 부가효과 무시
   if (e.shieldT > 0 && !tube) { foeSay(e, 'シールド！', '#3F8F3A'); return; }        // 🦑 ワカメイカ 실드: 아예 안 맞아요
@@ -1322,7 +1329,7 @@ function findTarget(u, def) {
   const r2 = (def.range + S.buff.rng) ** 2;
   let best = null, bv = -Infinity, spare = null, sv = -Infinity;
   for (const e of S.enemies) {
-    if (e.dead || e.burrow || e.y < 2 || (def.noBoss && e.boss)) continue;
+    if (e.dead || e.burrow || e.ally > 0 || e.y < 2 || (def.noBoss && e.boss)) continue;
     if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 > r2) continue;
     const v = (def.byHp ? e.hp : e.y) - AIM_SPREAD * (e.aim || 0);
     if ((e.pend || 0) >= e.hp) { if (v > sv) { sv = v; spare = e; } continue; }   // 곧 죽을 적은 마지막에
@@ -1332,12 +1339,12 @@ function findTarget(u, def) {
   if (t) t.aim = (t.aim || 0) + 1;
   return t;
 }
-const AIM_SPREAD = 35;   // 같은 적을 한 人 더 노릴 때마다 '35px 뒤에 있는 敵'처럼 덜 끌려요
+const AIM_SPREAD = 35;   // 同じ 적을 한 人 더 노릴 때마다 '35px 뒤에 있는 敵'처럼 덜 끌려요
 function findTargetAt(px, py, range, byHp, noBoss) {
   const p = { x: px, y: py }, r2 = range * range;
   let best = null, bv = -Infinity;
   for (const e of S.enemies) {
-    if (e.dead || e.burrow || e.y < 2 || (noBoss && e.boss)) continue;
+    if (e.dead || e.burrow || e.ally > 0 || e.y < 2 || (noBoss && e.boss)) continue;
     const dx = e.x - p.x, dy = e.y - p.y;
     if (dx * dx + dy * dy > r2) continue;
     const v = byHp ? e.hp : e.y;
@@ -1394,13 +1401,25 @@ function attack(u, def, t) {   // def는 ドリルカー·27살일 때 잠깐 �
   if (FZ && Math.random() < FZ.freeze.p) {                       // 🛒 海王魚剣: 성벽에 가까운 敵 20匹 5秒 ストップ
     for (const e of S.enemies.filter((e) => !e.dead && e.y > 0).sort((a, b) => b.y - a.y).slice(0, FZ.freeze.n)) e.stunT = Math.max(e.stunT, FZ.freeze.t);
     if (FZ.im.complete && FZ.im.naturalWidth) fx({ k: 'gimg', im: FZ.im, x: p.x, y: p.y - 40, h: 60, life: 0.7 });
-  }   // 🎯 スキル 2 발동 굴리기
+  }
+  const TE = gearHas(u, 'charm'), CU = gearHas(u, 'cut');
+  if (TE && !t.dead && !t.boss && !(t.ally > 0) && Math.random() < TE.charm.p) {   // 🛒 悪魔の涙: 20秒 の間 내 편
+    t.ally = TE.charm.t; t.allyDmg = dmg; t.allyCd = 0.3;
+    if (TE.im.complete && TE.im.naturalWidth) fx({ k: 'gimg', im: TE.im, x: t.x, y: t.y - 16, h: 34, life: 0.7 });
+  }
+  if (CU && Math.random() < CU.cut.p) {                          // 🛒 青い切断機: 성벽에 가까운 敵 10匹 確定キル (ボス のぞく)
+    for (const e of S.enemies.filter((e) => !e.dead && !e.boss && !e.burrow && !(e.ally > 0) && e.y > 0).sort((a, b) => b.y - a.y).slice(0, CU.cut.n)) {
+      e.sturdyUsed = true; hurt(e, e.hp + 1, def.id); if (!e.dead) { e.hp = 0; e.dead = true; S.kills++; }
+      if (CU.im.complete && CU.im.naturalWidth) fx({ k: 'gimg', im: CU.im, x: e.x, y: e.y - 6, h: 30, life: 0.5 });
+    }
+  }
+  const RP = gearHas(u, 'reps'), reps = RP ? RP.reps[0] + Math.floor(Math.random() * (RP.reps[1] - RP.reps[0] + 1)) : 1;   // 🛒 メタルクロー: 2~4연속   // 🎯 スキル 2 발동 굴리기
   const ang = Math.atan2(t.y - p.y, t.x - p.x);
   u.anim = 0.12;
   if (def.melee) {
     u.lunge = 0.25; u.lx = Math.cos(ang); u.ly = Math.sin(ang);
     const n = def.bites || 1;                              // 빡빡공룡은 셋이 한 번씩 (데미지는 셋이 나눠요)
-    for (let i = 0; i < n; i++) {
+    for (let rr = 0; rr < reps; rr++) for (let i = 0; i < n; i++) {
       let tg = t;
       if (tg.dead) { tg = findTarget(u, def); if (!tg) break; }
       fx({ k: def.melee === 'bite' ? 'bite' : 'slash', x: tg.x + (n > 1 ? (i - 1) * 8 : 0), y: tg.y, a: ang, life: 0.22 });
@@ -1418,8 +1437,8 @@ function attack(u, def, t) {   // def는 ドリルカー·27살일 때 잠깐 �
     targets = S.enemies.filter((e) => !e.dead && e.y >= 2 && !(def.noBoss && e.boss) && (e.x - p.x) ** 2 + (e.y - p.y) ** 2 <= r2)
       .sort((a, b) => b.y - a.y).slice(0, def.multi);
   }
-  for (const tg of targets) {
-    S.projs.push({ k: def.proj, x: p.x, y: p.y - 8, t: tg, lx: tg.x, ly: tg.y, sp: PSPEED[def.proj] || 450, dmg, def, pend: true,
+  for (let rr = 0; rr < reps; rr++) for (const tg of targets) {
+    S.projs.push({ k: def.proj, x: p.x - rr * 6, y: p.y - 8 + rr * 10, t: tg, lx: tg.x, ly: tg.y, sp: PSPEED[def.proj] || 450, dmg, def, pend: true,   // メタルクロー 연속은 조금 뒤에서
                    d0: Math.max(1, Math.hypot(tg.x - p.x, tg.y - p.y)), prog: 0, spin: Math.random() * 6 });
     tg.pend = (tg.pend || 0) + dmg;                               // 날아가는 중인 ダメージ
   }
@@ -1505,7 +1524,7 @@ function update(dt) {
   if (S.tubeT > 0) S.tubeT -= dt; if (S.s2DmgT > 0) S.s2DmgT -= dt; if (S.s2SpdT > 0) S.s2SpdT -= dt;
   if (S.tDmgT > 0) S.tDmgT -= dt;
   if (S.tSpdT > 0) S.tSpdT -= dt;
-  if (S.poolT > 0) {                                       // 🛟 윌리의 プール: 그동안 모든 적이 느려요
+  if (S.poolT > 0) {                                       // 🛟 윌리의 プール: 그동안 모든 敵が 느려요
     S.poolT -= dt;
     for (const e of S.enemies) { e.slowF = Math.max(e.slowT > 0 ? e.slowF : 0, BY.willy.pool.slow); e.slowT = Math.max(e.slowT, 0.2); }
   }
@@ -1517,6 +1536,15 @@ function update(dt) {
 
   for (const e of S.enemies) {
     if (e.dead) continue;
+    if (e.ally > 0) {                                      // 😈 악마가 된 敵: 제자리에서 다른 적을 때려요 (20秒 뒤 다시 적으로)
+      e.ally -= dt; e.allyCd -= dt;
+      if (e.allyCd <= 0) {
+        let tg = null, bd = 140 * 140;
+        for (const o of S.enemies) { if (o === e || o.dead || o.ally > 0 || o.burrow) continue; const d = dist2(o, e); if (d < bd) { bd = d; tg = o; } }
+        if (tg) { hurt(tg, e.allyDmg, null); fx({ k: 'bolt', pts: [{ x: e.x, y: e.y }, { x: tg.x, y: tg.y }], life: 0.18 }); e.allyCd = 1; } else e.allyCd = 0.2;
+      }
+      continue;
+    }
     if (e.flash > 0) e.flash -= dt;
     if (e.jumpT > 0) e.jumpT -= dt; else if (e.jumpCd > 0) e.jumpCd -= dt;
     if (e.msgT > 0) e.msgT -= dt;
@@ -1702,7 +1730,7 @@ function update(dt) {
 
   S.enemies = S.enemies.filter((e) => !e.dead);
   let c = 0;
-  for (const e of S.enemies) c += e.weight;
+  for (const e of S.enemies) if (!(e.ally > 0)) c += e.weight;   // 😈 내 편이 된 악마는 안 세요
   S.count = c;
   if (c >= BAL.maxEnemies && S.mode !== 'dungeon') gameOver();   // 🕳️ 던전은 지는 게 없어요
   if (S.pendingLv > 0 && !S.over && !S.choosing) openLvGift();
@@ -1907,7 +1935,7 @@ function openLvGift() {
   const opts = [];
   for (const d of ITEMS) {
     const it = S.items.find((x) => x.id === d.id);
-    opts.push({ k: 'itemNew', id: d.id });                     // 같은 장비도 もうひとつ もらえます (예준이 결정)
+    opts.push({ k: 'itemNew', id: d.id });                     // 同じ 장비도 もうひとつ もらえます (예준이 결정)
     if (it && !it.awake) opts.push({ k: it.lv < 5 ? 'itemUp' : 'itemAwake', id: d.id });
   }
   opts.sort(() => Math.random() - 0.5);
@@ -1934,7 +1962,7 @@ function pickLv(o) {
   S.pendingLv--; S.offer = null; S.chooseMode = null; S.choosing = false; $('#rewardOv').hidden = true;
   if (o.k === 'lvGold') { const g = 100 + 10 * S.wave; S.gold += g; say('💰 お金 +' + g); return; }
   if (o.k === 'freeUp') { S.freeUp = (S.freeUp || 0) + 1; say('🎟️ 無料強化券！強化するキャラカードを押してね', BLUE); return; }
-  const same = S.items.filter((x) => x.id === o.id);          // 같은 장비는 レベル · 각성을 같이 써요
+  const same = S.items.filter((x) => x.id === o.id);          // 同じ 장비는 レベル · 각성을 같이 써요
   if (o.k === 'itemUp') { same.forEach((x) => x.lv++); say('🎁 ' + d.name + ' Lv.' + it.lv + '!' + (same.length > 1 ? ' (' + same.length + '個いっしょに）' : ''), '#B8860B'); return; }
   if (o.k === 'itemAwake') { same.forEach((x) => { x.awake = true; }); S.banner = { s: d.aname + '!', t: 0, c: '#B8860B' }; return; }
   const ni = { id: o.id, lv: it ? it.lv : 1, awake: it ? it.awake : false, unit: null, kills: 0 };
@@ -2221,7 +2249,7 @@ function turretMuzzle(tu) {
 function drawTurret(tu) {
   const c = ctx, s = tu.born < 0.3 ? Math.max(0.01, easeBack(tu.born / 0.3)) : 1;
   const z = turretSize(tu), im = tu.awake ? AWAKE_IMG.turret : TURRET_IMG, kick = tu.anim > 0 ? -2 : 0;
-  c.save(); c.translate(tu.x, tu.y); c.scale(s * tu.face, s);           // 적이 왼쪽이면 뒤집어서 쏴요
+  c.save(); c.translate(tu.x, tu.y); c.scale(s * tu.face, s);           // 敵が 왼쪽이면 뒤집어서 쏴요
   c.fillStyle = 'rgba(27,34,50,.2)'; c.beginPath(); c.ellipse(0, 0, z.w * 0.45, 3.5, 0, 0, Math.PI * 2); c.fill();
   if (im.complete && im.naturalWidth) c.drawImage(im, -z.w / 2 + kick, -z.h, z.w, z.h);
   else { c.fillStyle = '#A9AEC2'; c.fillRect(-12, -14, 24, 14); }
@@ -2535,7 +2563,10 @@ function render() {
     circle(c, p.x, p.y, r); c.fill(); c.stroke(); c.restore();
   }
   for (const tr of S.traps) drawTrap(tr);
-  for (const e of S.enemies) drawEnemy(e);
+  for (const e of S.enemies) {
+    drawEnemy(e);
+    if (e.ally > 0 && !e.dead) { const im = SHOP_BY.tears.im; if (im.complete && im.naturalWidth) { const h = 16, w = h * im.naturalWidth / im.naturalHeight; ctx.drawImage(im, e.x - w / 2, e.y - e.r - 22 + Math.sin(S.time * 5) * 2, w, h); } }   // 😈 악마 표시
+  }
   for (const tu of S.turrets) drawTurret(tu);
   if (S.cannon) drawCannon(S.cannon);
   for (const al of S.aliens) drawAlien(al);
@@ -2732,7 +2763,7 @@ function toast(msg) {
 }
 function shake(el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
 
-function gearEquip(g, u) {                                    // 🛒 つける (같은 종류는 하나만 · もとは 있던 건 가방으로)
+function gearEquip(g, u) {                                    // 🛒 つける (同じ 종류는 하나만 · もとは 있던 건 가방으로)
   const old = gearOf(u, SHOP_BY[g.id].kind); if (old && old !== g) old.unit = null;
   g.unit = u; const p = slotXY(u.slot), x = SHOP_BY[g.id];
   if (x.im.complete && x.im.naturalWidth) fx({ k: 'gimg', im: x.im, x: p.x, y: p.y - 40, h: 44, life: 0.8 });
@@ -2984,7 +3015,7 @@ const PLOTS = [
   { b: 'mold', i: 0, x: 0.30, y: 0.535, w: 0.12 },
   { b: 'giwa', i: 0, x: 0.50, y: 0.535, w: 0.13 }, { b: 'mole', i: 0, x: 0.70, y: 0.535, w: 0.12 },
 ];
-// 🏘️ 같은 건물을 5개까지 또 지을 수 있어요 (모든 건물, 2026-11-24 예준이 결정) — 자리는 하나, 건물에 ×개수가 붙어요
+// 🏘️ 同じ 건물을 5개까지 또 지을 수 있어요 (모든 건물, 2026-11-24 예준이 결정) — 자리는 하나, 건물에 ×개수가 붙어요
 //    하나하나가 따로 時間 · 출석을 세요 (鋳型工房 3개면 코인도 3倍) · 던전은 하나마다 하루 5回
 const BLD_MAX = 5;
 const bldIdx = (b) => { const o = []; for (let i = 0; i < BLD_MAX; i++) if (town()[b + i]) o.push(i); return o; };
@@ -3133,7 +3164,7 @@ const VILLAGE = new Image(); VILLAGE.src = 'art/village.jpg';
 const YARD = { wall: 0.6, wallAt: 0.42, cv: null, ctx: null, key: '', bg: null, walkers: [], deckKey: '' };
 function yardInit() { YARD.key = ''; }
 /* 🚶 마을 산책 (2026-11-22 예준이 요청): マイデッキ 캐릭터 8명이 건물 주변을 돌아다녀요
-   자리 = 마을 그림 안의 비율 (건물 자리 PLOTS랑 같은 방식) · 건물보다 뒤에 있으면 건물에 가려져요 */
+   자리 = 마을 그림 안의 비율 (건물 자리 PLOTS랑 同じ 방식) · 건물보다 뒤에 있으면 건물에 가려져요 */
 const WALK = { x: [0.17, 0.83], y: [0.40, 0.515], size: 0.062, speed: 0.035, rest: [1, 4] };
 function yardWalkers() {
   const box = $('#walk'); if (!box) return;
@@ -3166,7 +3197,7 @@ function yardWalk(dt) {
     const hop = k.wait <= 0 ? Math.abs(Math.sin(now * 9 + k.ph)) * sz * 0.07 : 0, px = g.dx + k.x * g.dw, py = g.dy + k.y * g.dh;
     const st = k.el.style; st.width = sz + 'px'; st.height = sz + 'px';
     st.transform = 'translate(' + (px - sz / 2).toFixed(1) + 'px,' + (py - sz - hop).toFixed(1) + 'px)';
-    st.zIndex = Math.round(py);                                  // 아래(앞)에 있을수록 위에 보여요 · 건물도 같은 규칙
+    st.zIndex = Math.round(py);                                  // 아래(앞)에 있을수록 위에 보여요 · 건물도 同じ 규칙
   }
 }
 function yardTick(dt) {
@@ -3198,7 +3229,7 @@ window.addEventListener('resize', () => { YARD.key = ''; });
 
 /* ===== 👀 観戦 (2026-11-21 예준이 요청) =====
    게임하는 사람은 0.25秒ごと いま 화면(캐릭터 · 敵 · 武器)을 작게 줄여서 room presence로 보내고,
-   보는 사람은 그걸 받아서 같은 그림으로 그려요. claude.ai에 로그인한 사람끼리만 돼요. */
+   보는 사람은 그걸 받아서 同じ 그림으로 그려요. claude.ai에 로그인한 사람끼리만 돼요. */
 const LIVE = { room: null, ready: null, sent: 0, on: false, peers: [] };
 const ALL_FOES = FOES.concat(BOSSES);
 const b36 = (n, w) => { n = Math.max(0, Math.min(36 ** w - 1, Math.round(n))); return n.toString(36).padStart(w, '0'); };
@@ -3407,7 +3438,7 @@ function startBattle(mode) {
   if (!store.get('yj2ja.coach', false)) { S.paused = true; $('#coach').hidden = false; }
 }
 /* ===== 🏆 ランキング (2026-11-21 예준이 요청) =====
-   claude.ai 게임 페이지에서는 페이지 안의 공유 저장소(db)에, 그 밖(GitHub Pages · 앱)에서는 777과 같은 Firebase 서버에 올려요. */
+   claude.ai 게임 페이지에서는 페이지 안의 공유 저장소(db)에, 그 밖(GitHub Pages · 앱)에서는 777과 同じ Firebase 서버에 올려요. */
 const RANK = { mode: 'none', db: null, uid: null,
   fb: 'https://tower-defense-777-default-rtdb.asia-southeast1.firebasedatabase.app/musung/rank' };
 const NICK_OK = /^[가-힣ぁ-んァ-ヶー一-龯々a-zA-Z0-9_ ]{1,12}$/;
@@ -3605,7 +3636,7 @@ async function showPlays() {
 }
 async function openRank() {
   const ov = $('#rankOv'), list = $('#rankList'), note = $('#rankNote');
-  if (RANK.mode === 'fb' && store.get('yj2ja.nick', '') && S.best && !RANK.sentBest) { RANK.sentBest = true; try { await rankSubmit(); } catch (e) { /* 이미 같은 기록이면 서버가 거절해도 괜찮아요 */ } }
+  if (RANK.mode === 'fb' && store.get('yj2ja.nick', '') && S.best && !RANK.sentBest) { RANK.sentBest = true; try { await rankSubmit(); } catch (e) { /* 이미 同じ 기록이면 서버가 거절해도 괜찮아요 */ } }
   $('#nickIn').value = store.get('yj2ja.nick', '');
   const rt = myRating();
   seasonCheck();

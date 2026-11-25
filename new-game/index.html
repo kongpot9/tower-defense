@@ -701,6 +701,12 @@ const SHOPI = [
   { id: 'gauntlet', name: '푸른자의 건틀렛', kind: '무기', price: 29000, img: 'art/shop-gauntlet.png', d: '공격할 때 20% 확률로 치명타 (데미지 2배)', crit: { p: 0.2, x: 2 } },
   { id: 'demonx',   name: '데몬엑스',       kind: '무기', price: 21000, img: 'art/shop-demonx.png',   d: '공격 속도 +40%, 대신 공격 위력 -30%', spd: 1.4, dmg: 0.7 },
   { id: 'seaking',  name: '해왕어검',       kind: '무기', price: 10000, img: 'art/shop-seaking.png',  d: '공격할 때 20% 확률로 적 20마리 5초 멈춤 · 공격력 +20%', dmg: 1.2, freeze: { p: 0.2, n: 20, t: 5 } },
+  // ↓ 2026-11-25 예준이 추가
+  { id: 'justice',  name: '정의의 비석',    kind: '무기', price: 27000, img: 'art/shop-justice.png',  d: '공격력 +50% · 공격 속도 +50%', dmg: 1.5, spd: 1.5 },
+  { id: 'tears',    name: '악마의 눈물',    kind: '마법', price: 17000, img: 'art/shop-tears.png',    d: '공격할 때 20% 확률로 적이 20초 동안 악마가 되어 내 편으로 싸워요 (같은 데미지 · 보스 제외)', charm: { p: 0.2, t: 20 } },
+  { id: 'metalclaw', name: '메탈클로',      kind: '무기', price: 31000, img: 'art/shop-metalclaw.png', d: '공격이 2~4번 연속으로 맞아요', reps: [2, 4] },
+  { id: 'cutter',   name: '푸른 절단기',    kind: '무기', price: 19000, img: 'art/shop-cutter.png',   d: '공격할 때 5% 확률로 적 10마리 확정킬 (보스 제외)', cut: { p: 0.05, n: 10 } },
+  { id: 'rift',     name: '괴리의 비석',    kind: '무기', price: 30000, img: 'art/shop-rift.png',     d: '공격력 +200%, 대신 공격 간격 2초 늘어남', dmg: 3, addCd: 2 },
 ];
 const SHOP_BY = {}; SHOPI.forEach((x) => { SHOP_BY[x.id] = x; x.im = new Image(); x.im.src = x.img; });
 const gearOf = (u, kind) => u && (S.gear || []).find((g) => g.unit === u && SHOP_BY[g.id].kind === kind);
@@ -996,7 +1002,7 @@ function skill2(u, def, t, dmg) {                              // 발동! (dmg =
   }
   if (K.quake) { for (const e of S.enemies) if (!e.dead) { e.stunT = Math.max(e.stunT, K.quake); if (art && S.fx.length < 450) fxImg(def.id, e.x, e.y - 14, 34, 0.55); } S.shake = 0.5; }   // ⚡ 레일리: 적마다 번개
   if (K.execute) {                                            // 🎩 호스퍼 마법폭발: 확정킬 (보스 제외)
-    const pool = S.enemies.filter((e) => !e.dead && !e.boss && !e.burrow && e.y > 0).sort((a, b) => b.y - a.y).slice(0, K.execute);
+    const pool = S.enemies.filter((e) => !e.dead && !e.boss && !e.burrow && !(e.ally > 0) && e.y > 0).sort((a, b) => b.y - a.y).slice(0, K.execute);
     for (const e of pool) { if (art) fxImg('hosper', e.x, e.y - 6, 30, 0.6); else fx({ k: 'boom', x: e.x, y: e.y, r: 16, c: '#B07CE0', life: 0.35 }); hurt(e, e.hp + 1, def.id); if (!e.dead) { e.hp = 0; e.dead = true; S.kills++; } }
   }
   if (K.boomX && t) { area(t.x, t.y, K.boomR, dmg * K.boomX, def.id); fx({ k: 'boom', x: t.x, y: t.y, r: K.boomR, c: ORANGE, life: 0.45 }); S.shake = 0.3; }
@@ -1107,7 +1113,8 @@ function unitRate(u, def) {
   if (it && it.id === 'glove' && !it.awake) r = 1 / (1 / r + 1);                 // 🥊 대신 1초 느려짐
   if (def.pot) r *= 1 + tenjoHaste(u);                                              // 🔥 텐조 버프
   if (s2On(u) && SKILLS[def.id] && SKILLS[def.id].spd) r *= 1 + SKILLS[def.id].spd;   // 🎯 경지
-  for (const x of gearsOf(u)) if (x.spd) r *= x.spd;                                  // 🛒 데몬엑스
+  for (const x of gearsOf(u)) if (x.spd) r *= x.spd;                                  // 🛒 데몬엑스 · 정의의 비석
+  for (const x of gearsOf(u)) if (x.addCd) r = 1 / (1 / r + x.addCd);               // 🛒 괴리의 비석: 공격 간격 +2초
   return r;
 }
 function itemDmgMul(u, def) {
@@ -1252,7 +1259,7 @@ function makeEnemy(boss) {
 /* ===== 전투 ===== */
 const foeSay = (e, s, c) => { if (e.msgT > 0) return; e.msgT = 0.7; fx({ k: 'text', x: e.x, y: e.y - 16, s, c, life: 0.6, size: 11 }); };
 function hurt(e, a, src) {
-  if (e.dead) return;
+  if (e.dead || e.ally > 0) return;                         // 😈 악마의 눈물로 내 편이 된 적은 안 맞아요
   if (e.burrow) return;                                     // 🦫 바다두더지: 땅속에선 안 맞아요
   const tube = S.tubeT > 0;                                 // 🛟 윌리 튜브: 부가효과 무시
   if (e.shieldT > 0 && !tube) { foeSay(e, '실드!', '#3F8F3A'); return; }        // 🦑 미역스퀴드 실드: 아예 안 맞아요
@@ -1321,7 +1328,7 @@ function findTarget(u, def) {
   const r2 = (def.range + S.buff.rng) ** 2;
   let best = null, bv = -Infinity, spare = null, sv = -Infinity;
   for (const e of S.enemies) {
-    if (e.dead || e.burrow || e.y < 2 || (def.noBoss && e.boss)) continue;
+    if (e.dead || e.burrow || e.ally > 0 || e.y < 2 || (def.noBoss && e.boss)) continue;
     if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 > r2) continue;
     const v = (def.byHp ? e.hp : e.y) - AIM_SPREAD * (e.aim || 0);
     if ((e.pend || 0) >= e.hp) { if (v > sv) { sv = v; spare = e; } continue; }   // 곧 죽을 적은 마지막에
@@ -1336,7 +1343,7 @@ function findTargetAt(px, py, range, byHp, noBoss) {
   const p = { x: px, y: py }, r2 = range * range;
   let best = null, bv = -Infinity;
   for (const e of S.enemies) {
-    if (e.dead || e.burrow || e.y < 2 || (noBoss && e.boss)) continue;
+    if (e.dead || e.burrow || e.ally > 0 || e.y < 2 || (noBoss && e.boss)) continue;
     const dx = e.x - p.x, dy = e.y - p.y;
     if (dx * dx + dy * dy > r2) continue;
     const v = byHp ? e.hp : e.y;
@@ -1393,13 +1400,25 @@ function attack(u, def, t) {   // def는 드릴차·27살일 때 잠깐 바뀌�
   if (FZ && Math.random() < FZ.freeze.p) {                       // 🛒 해왕어검: 성벽에 가까운 적 20마리 5초 멈춤
     for (const e of S.enemies.filter((e) => !e.dead && e.y > 0).sort((a, b) => b.y - a.y).slice(0, FZ.freeze.n)) e.stunT = Math.max(e.stunT, FZ.freeze.t);
     if (FZ.im.complete && FZ.im.naturalWidth) fx({ k: 'gimg', im: FZ.im, x: p.x, y: p.y - 40, h: 60, life: 0.7 });
-  }   // 🎯 스킬 2 발동 굴리기
+  }
+  const TE = gearHas(u, 'charm'), CU = gearHas(u, 'cut');
+  if (TE && !t.dead && !t.boss && !(t.ally > 0) && Math.random() < TE.charm.p) {   // 🛒 악마의 눈물: 20초 동안 내 편
+    t.ally = TE.charm.t; t.allyDmg = dmg; t.allyCd = 0.3;
+    if (TE.im.complete && TE.im.naturalWidth) fx({ k: 'gimg', im: TE.im, x: t.x, y: t.y - 16, h: 34, life: 0.7 });
+  }
+  if (CU && Math.random() < CU.cut.p) {                          // 🛒 푸른 절단기: 성벽에 가까운 적 10마리 확정킬 (보스 제외)
+    for (const e of S.enemies.filter((e) => !e.dead && !e.boss && !e.burrow && !(e.ally > 0) && e.y > 0).sort((a, b) => b.y - a.y).slice(0, CU.cut.n)) {
+      e.sturdyUsed = true; hurt(e, e.hp + 1, def.id); if (!e.dead) { e.hp = 0; e.dead = true; S.kills++; }
+      if (CU.im.complete && CU.im.naturalWidth) fx({ k: 'gimg', im: CU.im, x: e.x, y: e.y - 6, h: 30, life: 0.5 });
+    }
+  }
+  const RP = gearHas(u, 'reps'), reps = RP ? RP.reps[0] + Math.floor(Math.random() * (RP.reps[1] - RP.reps[0] + 1)) : 1;   // 🛒 메탈클로: 2~4연속   // 🎯 스킬 2 발동 굴리기
   const ang = Math.atan2(t.y - p.y, t.x - p.x);
   u.anim = 0.12;
   if (def.melee) {
     u.lunge = 0.25; u.lx = Math.cos(ang); u.ly = Math.sin(ang);
     const n = def.bites || 1;                              // 빡빡공룡은 셋이 한 번씩 (데미지는 셋이 나눠요)
-    for (let i = 0; i < n; i++) {
+    for (let rr = 0; rr < reps; rr++) for (let i = 0; i < n; i++) {
       let tg = t;
       if (tg.dead) { tg = findTarget(u, def); if (!tg) break; }
       fx({ k: def.melee === 'bite' ? 'bite' : 'slash', x: tg.x + (n > 1 ? (i - 1) * 8 : 0), y: tg.y, a: ang, life: 0.22 });
@@ -1417,8 +1436,8 @@ function attack(u, def, t) {   // def는 드릴차·27살일 때 잠깐 바뀌�
     targets = S.enemies.filter((e) => !e.dead && e.y >= 2 && !(def.noBoss && e.boss) && (e.x - p.x) ** 2 + (e.y - p.y) ** 2 <= r2)
       .sort((a, b) => b.y - a.y).slice(0, def.multi);
   }
-  for (const tg of targets) {
-    S.projs.push({ k: def.proj, x: p.x, y: p.y - 8, t: tg, lx: tg.x, ly: tg.y, sp: PSPEED[def.proj] || 450, dmg, def, pend: true,
+  for (let rr = 0; rr < reps; rr++) for (const tg of targets) {
+    S.projs.push({ k: def.proj, x: p.x - rr * 6, y: p.y - 8 + rr * 10, t: tg, lx: tg.x, ly: tg.y, sp: PSPEED[def.proj] || 450, dmg, def, pend: true,   // 메탈클로 연속은 조금 뒤에서
                    d0: Math.max(1, Math.hypot(tg.x - p.x, tg.y - p.y)), prog: 0, spin: Math.random() * 6 });
     tg.pend = (tg.pend || 0) + dmg;                               // 날아가는 중인 데미지
   }
@@ -1516,6 +1535,15 @@ function update(dt) {
 
   for (const e of S.enemies) {
     if (e.dead) continue;
+    if (e.ally > 0) {                                      // 😈 악마가 된 적: 제자리에서 다른 적을 때려요 (20초 뒤 다시 적으로)
+      e.ally -= dt; e.allyCd -= dt;
+      if (e.allyCd <= 0) {
+        let tg = null, bd = 140 * 140;
+        for (const o of S.enemies) { if (o === e || o.dead || o.ally > 0 || o.burrow) continue; const d = dist2(o, e); if (d < bd) { bd = d; tg = o; } }
+        if (tg) { hurt(tg, e.allyDmg, null); fx({ k: 'bolt', pts: [{ x: e.x, y: e.y }, { x: tg.x, y: tg.y }], life: 0.18 }); e.allyCd = 1; } else e.allyCd = 0.2;
+      }
+      continue;
+    }
     if (e.flash > 0) e.flash -= dt;
     if (e.jumpT > 0) e.jumpT -= dt; else if (e.jumpCd > 0) e.jumpCd -= dt;
     if (e.msgT > 0) e.msgT -= dt;
@@ -1701,7 +1729,7 @@ function update(dt) {
 
   S.enemies = S.enemies.filter((e) => !e.dead);
   let c = 0;
-  for (const e of S.enemies) c += e.weight;
+  for (const e of S.enemies) if (!(e.ally > 0)) c += e.weight;   // 😈 내 편이 된 악마는 안 세요
   S.count = c;
   if (c >= BAL.maxEnemies && S.mode !== 'dungeon') gameOver();   // 🕳️ 던전은 지는 게 없어요
   if (S.pendingLv > 0 && !S.over && !S.choosing) openLvGift();
@@ -2534,7 +2562,10 @@ function render() {
     circle(c, p.x, p.y, r); c.fill(); c.stroke(); c.restore();
   }
   for (const tr of S.traps) drawTrap(tr);
-  for (const e of S.enemies) drawEnemy(e);
+  for (const e of S.enemies) {
+    drawEnemy(e);
+    if (e.ally > 0 && !e.dead) { const im = SHOP_BY.tears.im; if (im.complete && im.naturalWidth) { const h = 16, w = h * im.naturalWidth / im.naturalHeight; ctx.drawImage(im, e.x - w / 2, e.y - e.r - 22 + Math.sin(S.time * 5) * 2, w, h); } }   // 😈 악마 표시
+  }
   for (const tu of S.turrets) drawTurret(tu);
   if (S.cannon) drawCannon(S.cannon);
   for (const al of S.aliens) drawAlien(al);
