@@ -153,7 +153,15 @@ h1,h2,p{margin:0}
 .field{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center}
 #cv{display:block;border-radius:14px;box-shadow:0 0 0 3px var(--ink),0 7px 0 3px var(--ink);touch-action:none;background:var(--paper)}
 .tray{display:flex;flex-direction:column;gap:8px;padding-top:4px}
-.row-main{display:grid;grid-template-columns:52px 1fr 52px;gap:8px}
+.row-main{display:grid;grid-template-columns:52px 52px 1fr 52px;gap:8px}
+.shop-list{display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow:auto;margin:8px 0}
+.shop-it{display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:center;text-align:left;background:var(--paper);color:var(--ink);border:2.5px solid var(--ink);border-radius:14px;padding:8px;font:inherit}
+.shop-it .ico{width:54px;height:54px;display:grid;place-items:center;border-radius:12px;background:#F5E6B8;border:2px solid var(--ink)}
+.shop-it .ico img{max-width:48px;max-height:48px}
+.shop-it b{font-size:16px}.shop-it .k{font-size:11px;color:#fff;border-radius:6px;padding:1px 6px;margin-left:4px}
+.shop-it .dd{display:block;font-size:12px;color:#3A4254;margin-top:2px}.shop-it .pr{display:block;font-size:13px;margin-top:3px}
+.shop-it[disabled]{opacity:.5}
+.shop-sec{font-size:13px;color:var(--paper);margin:6px 0 0;text-align:left}
 .row-main .sq{height:56px}
 .next{height:56px;display:flex;flex-direction:column;justify-content:center;gap:7px;padding:0 14px;background:var(--paper);color:var(--ink);
   border:2.5px solid var(--ink);border-radius:14px;box-shadow:0 4px 0 var(--ink)}
@@ -388,6 +396,7 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
     <div class="tray">
       <div class="row-main">
         <button class="btn sq" id="bPause" type="button" aria-label="一時停止">Ⅱ</button>
+        <button class="btn sq" id="bShop" type="button" aria-label="ショップ">🛒</button>
         <div class="next" id="nextBox"><span class="next-lbl"><span class="g"><i class="coin"></i><b id="hGold">0</b></span><span id="nextLbl">まもなく開始</span></span><span class="next-bar"><i id="nextBar"></i></span></div>
         <button class="btn sq" id="bSpeed" type="button" aria-label="倍速">×1</button>
       </div>
@@ -408,6 +417,14 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
       </div>
     </div>
 
+    <div class="ov" id="shopOv" hidden>
+      <div class="ov-card">
+        <h2>🛒 ショップ</h2>
+        <p class="sub" id="shopGold"></p>
+        <div class="shop-list" id="shopList"></div>
+        <div class="ov-btns"><button class="btn" id="bShopClose" type="button">とじる</button></div>
+      </div>
+    </div>
     <div class="ov" id="rewardOv" hidden>
       <div class="rw">
         <div class="rw-head"><b id="rwTitle">ウェーブ1 おわり！</b><span id="rwSub">プレゼントをひとつえらんでね</span></div>
@@ -575,8 +592,8 @@ const BAL = {
   startGold: 50,
   upBase: 25, upMult: 1.3,             // 強化 비용 = 25 × レベル, 強化 1번에 ダメージ ×1.3
   waveLen: 20, spawnWindow: 13,        // ウェーブ 20秒, 처음 13秒 の間 적이 나와요
-  hp0: 150, hpGrow: 1.15,              // 敵 체력 = 150 × 1.15^(ウェーブ-1)  (버프템이 점점 세지니까 적도 빨리 세져요)
-  lateFrom: 50, lateHits: 2, lateStep: 0.1,   // 50웨이브부터 잡몹 체력 ≥ 우리 보통 한 방 × 2 (웨이브마다 +0.1방) → 한 방에 안 죽어요
+  hp0: 150, hpGrow: 1.15,              // 敵 体力 = 150 × 1.15^(ウェーブ-1)  (버프템이 점점 세지니까 적도 빨리 세져요)
+  lateFrom: 50, lateHits: 2, lateStep: 0.1,   // 50웨이브부터 잡몹 体力 ≥ 우리 보통 한 방 × 2 (웨이브마다 +0.1방) → 한 방에 안 죽어요
   count: (w) => Math.round(0.9 * (8 + Math.floor(w * 1.2) + Math.floor(0.06 * Math.max(0, w - 12) ** 2))),   // 12웨이브부터 점점 더 많이 (예준이 요청) · 너무 몰려서 10% 줄임 (2026-11-21, 敵 능력치는 그대로)
   killGold: 1, bossGold: 30,
   waveBonus: (w) => 10 + 2 * w,
@@ -620,7 +637,7 @@ const TRAP_LV = [null, 100, 400, 700, 1200, 1900];
 const AWAKE = {
   turret: { name: '覚醒タレット', img: 'art/turret-awake.png', dmg: 4000, every: 0.15, quarterP: 0.02,   // 2%: ボス 빼고 체력을 4분의 1만 남김
             h: 46, tip: { x: 119 / 121, y: 132 / 200 }, ratio: 121 / 200 },
-  trap:   { name: '覚醒トラップ', img: 'art/trap-awake.png', dmg: 5000, every: 1, halfP: 0.03,          // 3%: ボス 빼고 체력 절반 + 猛毒
+  trap:   { name: '覚醒トラップ', img: 'art/trap-awake.png', dmg: 5000, every: 1, halfP: 0.03,          // 3%: ボス 빼고 体力 절반 + 猛毒
             h: 40, ratio: 167 / 160 },
   cannon: { name: '覚醒キャノン', img: 'art/cannon-awake.png', dmg: 7000, every: 1,                         // 메테오는 예준이가 삭제 (2026-11-20)
             h: 34, ratio: 183 / 120, tip: { x: 181 / 183, y: 59 / 120 } },
@@ -638,7 +655,7 @@ const CANNON_IMG = new Image(); CANNON_IMG.src = CANNON.img;
 // 👽 エイリアン (그림·設定: グ・イェジュン, 2026-11-21) — 城壁の上に 떠 있는 防衛ユニット · 稲妻攻撃
 const ALIEN = {
   yellow: { name: 'イエロー・エイリアン', img: 'art/alien-yellow.png', x: 92,  c: '#F2C440', maxLv: 5 },
-  purple: { name: 'パープル・エイリアン', img: 'art/alien-purple.png', x: 290, c: '#8A4FE0', bonusP: 0.2 },   // ウェーブ 선물을 20% 확률로 2回
+  purple: { name: 'パープル・エイリアン', img: 'art/alien-purple.png', x: 290, c: '#8A4FE0', bonusP: 0.2 },   // ウェーブ 선물을 20% の確率で 2回
   range: 330, h: 32, ratio: 193 / 160, gap: 0.08,
 };
 const ALIEN_LV = [null,
@@ -676,6 +693,20 @@ const ITEMS = [
     d: (a) => a ? '攻撃力+90%（もとの攻撃力が100以下なら+200%）' : '攻撃力+60%・そのかわり攻撃が1秒おそくなる' },
 ];
 const ITEM_BY = {}; ITEMS.forEach((it) => { ITEM_BY[it.id] = it; });
+/* ===== 🛒 전투 ショップ (기획 · 그림 · 가격: グ・イェジュン, 2026-11-25) =====
+   プレイ中 모은 돈으로 🛒 상점에서 武器 · 마법을 사서 캐릭터에게 끼워요 · キャラ1人に武器 1個 + 魔法 1個
+   캐릭터를 팔거나 합성에 쓰면 끼운 건 가방으로 가요 (상점에서 다시 끼울 수 있어요) */
+const SHOPI = [
+  { id: 'execute',  name: '処刑',           kind: '魔法', price: 20000, img: 'art/shop-execute.png',  d: '体力 75% 以下の敵をたたくと 30% の確率で確定死亡', exec: { hp: 0.75, p: 0.3 } },
+  { id: 'greed',    name: '強欲のウソ',  kind: '魔法', price: 30000, img: 'art/shop-greed.png',    d: '攻撃力 2倍, そのかわりスキルが使えません', dmg: 2, noSkill: true },
+  { id: 'gauntlet', name: '青き者のガントレット', kind: '武器', price: 29000, img: 'art/shop-gauntlet.png', d: '攻撃するとき 20% の確率でクリティカル (ダメージ 2倍)', crit: { p: 0.2, x: 2 } },
+  { id: 'demonx',   name: 'デーモンアックス',       kind: '武器', price: 21000, img: 'art/shop-demonx.png',   d: '攻撃速度 +40%, そのかわり攻撃の威力 -30%', spd: 1.4, dmg: 0.7 },
+  { id: 'seaking',  name: '海王魚剣',       kind: '武器', price: 10000, img: 'art/shop-seaking.png',  d: '攻撃するとき 20% の確率で 敵 20匹 5秒 ストップ · 攻撃力 +20%', dmg: 1.2, freeze: { p: 0.2, n: 20, t: 5 } },
+];
+const SHOP_BY = {}; SHOPI.forEach((x) => { SHOP_BY[x.id] = x; x.im = new Image(); x.im.src = x.img; });
+const gearOf = (u, kind) => u && (S.gear || []).find((g) => g.unit === u && SHOP_BY[g.id].kind === kind);
+const gearsOf = (u) => (u ? (S.gear || []).filter((g) => g.unit === u).map((g) => SHOP_BY[g.id]) : []);
+const gearHas = (u, k) => gearsOf(u).find((x) => x[k]);
 const ITEM_IMG = {};
 ITEMS.forEach((it) => { ITEM_IMG[it.id] = new Image(); ITEM_IMG[it.id].src = it.img; ITEM_IMG[it.id + ':a'] = new Image(); ITEM_IMG[it.id + ':a'].src = it.aimg; });
 const SKILL_IMG = { jaws: new Image(), kunai: new Image(), wave: new Image() };
@@ -793,20 +824,20 @@ const BY = {}; CHARS.forEach((c) => { BY[c.id] = c; });
 
 /* ===== 敵 (그림·設定: グ・イェジュン) =====
    이속: 보통 잡몹 = 8, ガイコツ将軍 = 10 (빠른 편)
-   체력: hp = 그 ウェーブ 잡몹 평균 체력의 몇 배인지 */
+   体力: hp = 그 ウェーブ 잡몹 평균 체력의 몇 배인지 */
 const SPEED_UNIT = (w) => (32 + Math.min(w, 40) * 0.45) / 8;    // 이속 1が 화면에서 몇 칸인지
 const FOES = [
-  { id: 'zolla', name: 'ゾラ剣客', img: 'art/enemy-zolla.png', hp: 0.7, speed: 8, r: 9,   w: 4 },               // 체력 약한 쩌리
+  { id: 'zolla', name: 'ゾラ剣客', img: 'art/enemy-zolla.png', hp: 0.7, speed: 8, r: 9,   w: 4 },               // 体力 약한 쩌리
   { id: 'skull', name: 'ガイコツ兵', img: 'art/enemy-skull.png', hp: 0.9, speed: 8, r: 9,   w: 4 },               // 쩌리
   { id: 'slime', name: 'スライム',   img: 'art/enemy-slime.png', hp: 1.0, speed: 8, r: 9.5, w: 2, dodge: 0.15 },  // 가끔 점프로 공격을 피함
   // 신규 敵 (그림·設定: グ・イェジュン, 2026-11-21)
   { id: 'squid', name: 'ワカメイカ', img: 'art/enemy-squid.png', hp: 0.5, speed: 8, r: 9, w: 2, from: 11, shield: { time: 2, every: 6 } },   // 체력은 낮지만 2秒 の間 공격을 아예 안 맞는 실드
-  { id: 'doomi', name: 'ドォドミ',   img: 'art/enemy-doomi.png', hp: 1.6, speed: 15, r: 10, w: 1, from: 11, hop: true, sturdy: true },     // 팔딱팔딱 · 체력 높음 · 무조건 한 번은 1 남기고 버팀 · 매우 빠름 (그림·設定: グ・イェジュン, 2026-11-21)
-  { id: 'seamole', name: 'ウミモグラ', img: 'art/enemy-seamole.png', hp: 1.3, speed: 8, r: 10, w: 1, from: 21, burrow: true },     // 땅속으로 성 앞까지 와서 튀어나오며 아군 攻撃力 10秒間 ½ · 체력 은근 높음 (그림·設定: グ・イェジュン, 2026-11-21)
-  { id: 'pink',  name: 'ピンクスライム', img: 'art/enemy-pinkslime.png', fixedHp: 1, speed: 8, r: 9.5, w: 1, from: 11, hitP: 0.4 },  // 체력 1 · 공격이 맞을 확률 40% (1% → 40%, 예준이 조정)
+  { id: 'doomi', name: 'ドォドミ',   img: 'art/enemy-doomi.png', hp: 1.6, speed: 15, r: 10, w: 1, from: 11, hop: true, sturdy: true },     // 팔딱팔딱 · 体力 높음 · 무조건 한 번은 1 남기고 버팀 · 매우 빠름 (그림·設定: グ・イェジュン, 2026-11-21)
+  { id: 'seamole', name: 'ウミモグラ', img: 'art/enemy-seamole.png', hp: 1.3, speed: 8, r: 10, w: 1, from: 21, burrow: true },     // 땅속으로 성 앞까지 와서 튀어나오며 아군 攻撃力 10秒間 ½ · 体力 은근 높음 (그림·設定: グ・イェジュン, 2026-11-21)
+  { id: 'pink',  name: 'ピンクスライム', img: 'art/enemy-pinkslime.png', fixedHp: 1, speed: 8, r: 9.5, w: 1, from: 11, hitP: 0.4 },  // 体力 1 · 공격이 맞을 확률 40% (1% → 40%, 예준이 조정)
 ];
 const BOSSES = [
-  { id: 'skullgen', name: 'ガイコツ将軍', img: 'art/boss-skullgen.png', skillImg: 'art/boss-skullgen-gumgi.png', hp: 270, dpsMul: 186, speed: 10, r: 28, skill: 'gumgi' },   // 체력: 플레이어 평균 딜량(1秒 ダメージ)의 186倍 (4倍 → 30倍 → 450倍 → 딜량 310倍 → 40% 내려서 186倍, 예준이 결정) · hp는 딜량을 아직 모를 때만 · 보스는 1.5倍 크게
+  { id: 'skullgen', name: 'ガイコツ将軍', img: 'art/boss-skullgen.png', skillImg: 'art/boss-skullgen-gumgi.png', hp: 270, dpsMul: 186, speed: 10, r: 28, skill: 'gumgi' },   // 体力: 플레이어 평균 딜량(1秒 ダメージ)의 186倍 (4倍 → 30倍 → 450倍 → 딜량 310倍 → 40% 내려서 186倍, 예준이 결정) · hp는 딜량을 아직 모를 때만 · 보스는 1.5倍 크게
   // ↑ 검기: 아군 攻撃力 10秒間 ½ · 검기를 쓸 때만 보라색 검기가 있는 그림으로 바뀌어요
 ];
 const FOE_IMG = {};
@@ -868,7 +899,7 @@ function newBattle() {
     wave: 0, waveT: BAL.waveLen - 3, queue: [], spawnT: 0, spawnGap: 1,
     gold: BAL.startGold, picks: 0, upN: 0, kills: 0, time: 0,
     units: new Array(SLOTS).fill(null), enemies: [], projs: [], fx: [], pools: [],
-    levels: {}, count: 0, weakT: 0, shake: 0, items: [], pendingLv: 0, balls: [], runCoin: 0, tubeT: 0, s2DmgT: 0, s2DmgV: 0, s2SpdT: 0, s2SpdV: 0, chooseMode: null, equipping: null, party: false, candy: false, poolT: 0, tDmgT: 0, tDmgV: 0, tSpdT: 0, tSpdV: 0, drag: null, merges: 0, paused: false, over: false, choosing: false, offer: null, sel: -1, banner: null,
+    levels: {}, count: 0, weakT: 0, shake: 0, items: [], gear: [], shopOpen: false, pendingLv: 0, balls: [], runCoin: 0, tubeT: 0, s2DmgT: 0, s2DmgV: 0, s2SpdT: 0, s2SpdV: 0, chooseMode: null, equipping: null, party: false, candy: false, poolT: 0, tDmgT: 0, tDmgV: 0, tSpdT: 0, tSpdV: 0, drag: null, merges: 0, paused: false, over: false, choosing: false, offer: null, sel: -1, banner: null,
     buff: { dmg: 0, spd: 0, rng: 0, gold: 0, thorn: 0 }, stacks: {}, turrets: [], turretLv: 1, traps: [], trapLv: 1, aliens: [], xw: {}, bonusPick: false, lv: 1, xp: 0,
   });
   S.deck.forEach((id) => { S.levels[id] = 1; });
@@ -909,7 +940,7 @@ function waveHooks() {
   }
 }
 /* ===== 🎯 캐릭터 スキル 2 (기획: グ・イェジュン, 2026-11-23) =====
-   ヒーロー ~ 전설만 (부리사우르스는 もとは スキル) · 공격할 때마다 p 확률로 발동 · 호치는 안 싸워서 1秒ごと 굴려요
+   ヒーロー ~ 전설만 (부리사우르스는 もとは スキル) · 공격할 때마다 p の確率で 발동 · 호치는 안 싸워서 1秒ごと 굴려요
    빈칸 数字(はね返り 5回 · 遅く 50% 3秒 · 10秒 · 반경 · オーバークロック ×10 · 大地震 3秒 등)는 Claude 초안을 예준이가 "그렇게 해" (2026-11-23) */
 const SKILLS = {
   stein:      { n: '稲妻攻撃',   p: 0.07, bounce: 5, d: '壁でポンポンはねる稲妻がビリヤードのように敵を連続攻撃 · はね返り 5回' },
@@ -1040,8 +1071,8 @@ function unitTimers(u, def, dt) {                          // 시간마다 하�
   if (u.s2T > 0) u.s2T -= dt;                                // 🎯 スキル 2 지속시간
   if (u.icoT > 0) u.icoT -= dt;
   const K2 = SKILLS[def.id];
-  if (K2 && K2.every) { u.s2R = (u.s2R || 0) + dt; if (u.s2R >= K2.every) { u.s2R = 0; if (Math.random() < K2.p) skill2(u, def, null, 0); } }   // ⛏️ ホチ: 1秒ごと
-  if (def.skill) {
+  if (K2 && K2.every && !gearHas(u, 'noSkill')) { u.s2R = (u.s2R || 0) + dt; if (u.s2R >= K2.every) { u.s2R = 0; if (Math.random() < K2.p) skill2(u, def, null, 0); } }   // ⛏️ ホチ: 1秒ごと
+  if (def.skill && !gearHas(u, 'noSkill')) {                // 🛒 強欲のウソ: スキル 못 씀
     u.skillT = (u.skillT || 0) + dt;
     if (u.skillT >= def.skill.every * (1 - cdCut(u)) && castSkill(u, def)) u.skillT = 0;
   }
@@ -1077,9 +1108,14 @@ function unitRate(u, def) {
   if (it && it.id === 'glove' && !it.awake) r = 1 / (1 / r + 1);                 // 🥊 대신 1秒 느려짐
   if (def.pot) r *= 1 + tenjoHaste(u);                                              // 🔥 テンゾー 버프
   if (s2On(u) && SKILLS[def.id] && SKILLS[def.id].spd) r *= 1 + SKILLS[def.id].spd;   // 🎯 境地
+  for (const x of gearsOf(u)) if (x.spd) r *= x.spd;                                  // 🛒 デーモンアックス
   return r;
 }
 function itemDmgMul(u, def) {
+  let gm = 1; for (const x of gearsOf(u)) if (x.dmg) gm *= x.dmg;   // 🛒 ショップ 武器 · 魔法
+  return gm * itemDmgMul0(u, def);
+}
+function itemDmgMul0(u, def) {
   const it = itemOf(u);
   if (!it) return 1;
   if (it.id === 'glove') return it.awake ? (BY[u.type].dmg <= 100 ? 3 : 1.9) : 1.6;  // 🥊
@@ -1199,7 +1235,7 @@ function makeEnemy(boss) {
   }
   let hp = f.fixedHp || BAL.hp0 * Math.pow(BAL.hpGrow, w - 1) * f.hp;
   if (boss && S.mode === 'dungeon') hp = BAL.hp0 * Math.pow(BAL.hpGrow, w - 1) * DUNGEON.bossHp;   // 🕳️ ダンジョン ボス
-  else if (boss && f.dpsMul) { const dps = avgDps(); if (dps > 0) hp = dps * f.dpsMul; }   // 👹 ボス 체력 = 평균 딜량 × 310
+  else if (boss && f.dpsMul) { const dps = avgDps(); if (dps > 0) hp = dps * f.dpsMul; }   // 👹 ボス 体力 = 평균 딜량 × 310
   else if (!f.fixedHp && w >= BAL.lateFrom) {              // 💪 50웨이브부터: 돈이 많아 너무 세지면 적도 같이 세져요 (입구컷 방지)
     const hit = avgHit(), n = BAL.lateHits + (w - BAL.lateFrom) * BAL.lateStep;
     if (hit > 0) hp = Math.max(hp, hit * n * f.hp);
@@ -1347,8 +1383,18 @@ function attack(u, def, t) {   // def는 ドリルカー·27살일 때 잠깐 �
     if (!(S.tDmgT > 0)) fx({ k: 'text', x: p.x, y: p.y - 50, s: '🐺 急所発見！味方 +30%', c: '#8B5A2B', life: 1.3, size: 14 });
     S.tDmgT = Math.max(S.tDmgT, def.weakSpot.time); S.tDmgV = Math.max(S.tDmgV, def.weakSpot.team);
   }                                                         // 👊 ガイル: 누구를 노렸는지 기억
+  const CR = gearHas(u, 'crit'); if (CR && Math.random() < CR.crit.p) own *= CR.crit.x;   // 🛒 青き者のガントレット 치명타
   const dmg = base * lvMult(def.id) * BAL.dmgMul * (1 + S.buff.dmg) * weakF() * own * teamMul() * itemDmgMul(u, def);
-  if (K2 && !K2.every && (!K2.young || u.young) && Math.random() < K2.p) skill2(u, def, t, dmg);   // 🎯 スキル 2 발동 굴리기
+  if (K2 && !K2.every && (!K2.young || u.young) && !gearHas(u, 'noSkill') && Math.random() < K2.p) skill2(u, def, t, dmg);
+  const EX = gearHas(u, 'exec'), FZ = gearHas(u, 'freeze');
+  if (EX && !t.dead && t.hp <= t.maxHp * EX.exec.hp && Math.random() < EX.exec.p) {   // 🛒 処刑: 확정 사망
+    t.sturdyUsed = true; hurt(t, t.hp + 1, def.id); if (!t.dead) { t.hp = 0; t.dead = true; S.kills++; }
+    if (EX.im.complete && EX.im.naturalWidth) fx({ k: 'gimg', im: EX.im, x: t.x, y: t.y - 8, h: 40, life: 0.6 });
+  }
+  if (FZ && Math.random() < FZ.freeze.p) {                       // 🛒 海王魚剣: 성벽에 가까운 敵 20匹 5秒 ストップ
+    for (const e of S.enemies.filter((e) => !e.dead && e.y > 0).sort((a, b) => b.y - a.y).slice(0, FZ.freeze.n)) e.stunT = Math.max(e.stunT, FZ.freeze.t);
+    if (FZ.im.complete && FZ.im.naturalWidth) fx({ k: 'gimg', im: FZ.im, x: p.x, y: p.y - 40, h: 60, life: 0.7 });
+  }   // 🎯 スキル 2 발동 굴리기
   const ang = Math.atan2(t.y - p.y, t.x - p.x);
   u.anim = 0.12;
   if (def.melee) {
@@ -2007,6 +2053,7 @@ function sell() {
   sellArm = null;
   const g = SELL[BY[u.type].grade] || 20, p = slotXY(u.slot);
   const it0 = itemOf(u); if (it0) it0.unit = null;          // 장비는 가방으로
+  for (const g of S.gear || []) if (g.unit === u) g.unit = null;   // 🛒 ショップ 템도 가방으로
   S.gold += g; S.units[S.sel] = null;
   fx({ k: 'text', x: p.x, y: p.y - 30, s: '+' + g, c: YEL, life: 1.1, size: 15 });
   fx({ k: 'pop', x: p.x, y: p.y, life: 0.4 });
@@ -2021,11 +2068,12 @@ function tryMerge(from, to) {                                // 同じキャラ 
   if (!pool.length && up === 2) { up = 1; pool = inDeck(gi + 1); }
   if (!pool.length) { toast('デッキに ' + GRADES[gi + 1] + ' キャラがいないので合成できません'); return false; }
   const id = pool[Math.floor(Math.random() * pool.length)], p = slotXY(to);
-  const itTo = itemOf(S.units[to]), itFrom = itemOf(S.units[from]);
+  const itTo = itemOf(S.units[to]), itFrom = itemOf(S.units[from]), uTo = S.units[to], uFrom = S.units[from];
   S.units[from] = null;
   S.units[to] = { type: id, slot: to, cd: 0, born: 0, anim: 0, lunge: 0, lx: 0, ly: 0 };
   if (itTo) itTo.unit = S.units[to];                         // 장비는 합성된 캐릭터가 이어받고
   if (itFrom) itFrom.unit = null;                            // のこり 장비는 가방으로
+  for (const g of S.gear || []) { if (g.unit === uTo) g.unit = S.units[to]; else if (g.unit === uFrom) g.unit = null; }   // 🛒 ショップ 템도 똑같이
   S.merges++;
   fx({ k: 'pop', x: p.x, y: p.y, life: 0.5 });
   fx({ k: 'text', x: p.x, y: p.y - 44, s: (up === 2 ? '大当たり！ ' : '合成！ ') + BY[id].name, c: up === 2 ? RED : BLUE, life: 1.3, size: up === 2 ? 17 : 14 });
@@ -2044,6 +2092,7 @@ function onTap(x, y) {
   if (S.over || S.watching) return;
   const i = pickSlot(x, y);
   if (S.equipping) {
+    if (i >= 0 && S.units[i] && S.equipping.gear) { gearEquip(S.equipping.gear, S.units[i]); S.equipping = null; equipBar().hidden = true; return; }   // 🛒
     if (i >= 0 && S.units[i]) { equip(S.equipping, S.units[i]); S.equipping = null; equipBar().hidden = true; }
     else toast('装備をつけるキャラを押してね');
     return;
@@ -2217,6 +2266,13 @@ function drawTrap(tr) {                                    // 한 줄로 쭉: �
   c.fillStyle = tr.awake ? '#7A3FC4' : INK; circle(c, 14, tr.y - 2, tr.awake ? 11 : 8); c.fill();
   c.fillStyle = PAPER; c.font = (tr.awake ? 8 : 10) + 'px ' + UIF; c.textAlign = 'center'; c.textBaseline = 'middle';
   c.fillText(tr.awake ? '覚醒' : String(S.trapLv), 14, tr.y - 1.5);
+}
+function drawGearBadge(u) {                                   // 🛒 ショップ 武器 · 마법을 발밑 오른쪽에 작게
+  const gs = gearsOf(u); if (!gs.length) return;
+  const p = slotXY(u.slot);
+  gs.forEach((x, i) => { const im = x.im; if (!im.complete || !im.naturalWidth) return;
+    const h = 15, w = Math.min(22, h * im.naturalWidth / im.naturalHeight), hh = w * im.naturalHeight / im.naturalWidth;
+    ctx.drawImage(im, p.x + 12 + i * 12 - w / 2, p.y + 19 - hh / 2, w, hh); });
 }
 function drawItemBadge(u) {                                   // 🎁 끼운 장비를 발밑에 작게
   const it = itemOf(u); if (!it) return;
@@ -2397,6 +2453,10 @@ function drawFx(f) {
       c.lineWidth = 2; circle(c, f.x2, f.y2, 9 + k * 6); c.stroke();
       c.beginPath(); c.moveTo(f.x2 - 15, f.y2); c.lineTo(f.x2 + 15, f.y2); c.moveTo(f.x2, f.y2 - 15); c.lineTo(f.x2, f.y2 + 15); c.stroke();
       break;
+    case 'gimg': {                                         // 🛒 ショップ 템 그림
+      const im = f.im, sc = k < 0.2 ? 0.6 + 2 * k : 1, h = f.h * sc, w = h * im.naturalWidth / im.naturalHeight;
+      c.drawImage(im, f.x - w / 2, f.y - h / 2, w, h); break;
+    }
     case 'img': {                                          // 🎨 スキル 그림 (팡! 커졌다가 사라져요)
       const im = sk2Img(f.id); if (!im) break;
       const sc = k < 0.2 ? 0.6 + 2 * k : 1, h = f.h * sc, w = h * im.naturalWidth / im.naturalHeight;
@@ -2486,7 +2546,7 @@ function render() {
     for (const u of S.units) if (u && u !== holding && u.type === holding.type) { const q = slotXY(u.slot); c.beginPath(); c.ellipse(q.x, q.y + 27, 22, 7, 0, 0, Math.PI * 2); c.stroke(); }
     c.restore();
   }
-  for (const u of S.units) if (u && !(S.drag && u.slot === S.drag.from)) { drawUnit(u); drawItemBadge(u); }
+  for (const u of S.units) if (u && !(S.drag && u.slot === S.drag.from)) { drawUnit(u); drawItemBadge(u); drawGearBadge(u); }
   if (S.drag && S.units[S.drag.from]) {
     const t = pickSlot(S.drag.x, S.drag.y, S.drag.from);
     if (t >= 0) { const q = slotXY(t); c.save(); c.strokeStyle = BLUE; c.lineWidth = 3; c.strokeRect(q.x - 27, q.y - 27, 54, 56); c.restore(); }
@@ -2651,6 +2711,7 @@ function showPop() {
     d.stack ? '短剣 <span class="plus">+' + Math.round((u.stack || 0) * 100) + '%</span>' : '',
     d.skill ? '⚔️ スキルまで ' + Math.max(0, Math.ceil(d.skill.every * (1 - cdCut(u)) - (u.skillT || 0))) + '秒' : '',
     itemOf(u) ? '🎁 ' + itemName(itemOf(u)) + ': ' + ITEM_BY[itemOf(u).id].d(itemOf(u).awake) : '',
+    ...gearsOf(u).map((x) => '🛒 ' + x.name + ' (' + x.kind + '): ' + x.d),
     u.drillT > 0 ? '🔩 ドリルカー ' + Math.ceil(u.drillT) + '秒のこり' : '', u.young ? '🌱 27歳！' : '',
     d.doctor ? (doctorOn(u) ? '⚡ ドクター大頭 出動中！ ' + (u.drUntil - S.wave) + 'ウェーブのこり' : 'ドクター大頭まで ' + (u.dHits || 0) + '/' + d.doctor.hits + '回') : '',
     d.bitePassive ? 'かみつき ' + ((u.hits || 0) % d.bitePassive.every) + '/' + d.bitePassive.every + '回 <span class="plus">+' + Math.round((u.bonus || 0) * 100) + '%</span>' : '',
@@ -2671,6 +2732,41 @@ function toast(msg) {
 }
 function shake(el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
 
+function gearEquip(g, u) {                                    // 🛒 つける (같은 종류는 하나만 · もとは 있던 건 가방으로)
+  const old = gearOf(u, SHOP_BY[g.id].kind); if (old && old !== g) old.unit = null;
+  g.unit = u; const p = slotXY(u.slot), x = SHOP_BY[g.id];
+  if (x.im.complete && x.im.naturalWidth) fx({ k: 'gimg', im: x.im, x: p.x, y: p.y - 40, h: 44, life: 0.8 });
+}
+function openShop() {
+  if (S.over || S.watching || S.choosing || S.equipping) return;
+  S.shopOpen = true; renderShop(); $('#shopOv').hidden = false;
+}
+function closeShop() { S.shopOpen = false; $('#shopOv').hidden = true; }
+function renderShop() {
+  $('#shopGold').innerHTML = '<i class="coin"></i> ' + Math.floor(S.gold).toLocaleString() + ' · キャラ1人に武器 1個 + 魔法 1個';
+  const box = $('#shopList'); box.innerHTML = '';
+  const card = (x, sub, dis, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'shop-it'; b.disabled = dis;
+    b.innerHTML = '<span class="ico"><img src="' + x.img + '" alt=""></span><span><b>' + x.name + '</b><span class="k" style="background:' + (x.kind === '魔法' ? '#8E4CC4' : '#2F6BD8') + '">' + x.kind + '</span><span class="dd">' + x.d + '</span><span class="pr">' + sub + '</span></span>';
+    b.addEventListener('click', fn); box.appendChild(b); };
+  const bag = (S.gear || []).filter((g) => !g.unit);
+  if (bag.length) {
+    const h = document.createElement('p'); h.className = 'shop-sec'; h.textContent = '🎒 バッグ (おして、もう一度 つける)'; box.appendChild(h);
+    for (const g of bag) card(SHOP_BY[g.id], '装備するキャラをえらびます', false, () => { closeShop(); startGearEquip(g); });
+    const h2 = document.createElement('p'); h2.className = 'shop-sec'; h2.textContent = '🛒 買う'; box.appendChild(h2);
+  }
+  for (const x of SHOPI) {
+    const can = S.gold >= x.price;
+    card(x, '<i class="coin"></i> ' + x.price.toLocaleString() + (can ? '' : ' · お金が足りません'), !can, () => {
+      if (S.gold < x.price) return;
+      if (!S.units.some(Boolean)) { toast('まずキャラがいないと装備できません'); return; }
+      S.gold -= x.price; const g = { id: x.id, unit: null }; S.gear.push(g);
+      closeShop(); startGearEquip(g);
+    });
+  }
+}
+function startGearEquip(g) {
+  S.equipping = { gear: g }; equipBar().textContent = '🛒 ' + SHOP_BY[g.id].name + ' — つけるキャラを押してね'; equipBar().hidden = false;
+}
 function setPaused(p) {
   if (S.over) return;
   S.paused = p; $('#pauseOv').hidden = !p;
@@ -2760,7 +2856,7 @@ function awakeCount() {
 }
 function noteAwake() { const n = awakeCount(); if (n > (META.awakeMax || 0)) { META.awakeMax = n; metaSave(); checkAch(true); } }
 let buyArm = '';
-function buyChar(id) {                                        // 💎 바로 사기 (두 回 눌러야 사요)
+function buyChar(id) {                                        // 💎 바로 買う (두 回 눌러야 사요)
   const price = CRYS_PRICE[BY[id].grade];
   if (META.crystal < price) { toast('クリスタルが足りません (💎' + price.toLocaleString() + ')'); return; }
   if (buyArm !== id) { buyArm = id; toast('もう一度押すと 💎' + price.toLocaleString() + 'で解放します'); setTimeout(() => { if (buyArm === id) buyArm = ''; }, 2500); return; }
@@ -2866,7 +2962,7 @@ $('#bBoxClose').addEventListener('click', () => { $('#boxOv').hidden = true; });
    '출석' = 그날 처음 들어왔을 때 (하루에 한 回) */
 const DUNGEON = { time: 600, bossHp: 450, reward: 333, coin: 6667,   // 💰 보상 3분의 1로 (💎1000 → 333 · 🪙20000 → 6667, 2026-11-24 예준이 결정 — 던전이 너무 날먹)
   gap: [3, 0.8], cap: 150, gift: 4, perDay: 5 };   // perDay: 하루에 5번만 들어갈 수 있어요 (2026-11-22 예준이 결정)   // 10分 · たおしたボス 하나마다 💎1000 + 🪙20000 (5마리면 🪙10만, 2026-11-21 예준이 결정)
-// 2026-11-22 예준이 결정: ボス 체력 25倍 (18 → 450) · 보스가 끝없이 몰려와요 (3秒ごと → 10分 끝엔 0.8秒ごと） · 던전은 지는 게 없어요 (100匹 패배 없음)
+// 2026-11-22 예준이 결정: ボス 体力 25倍 (18 → 450) · 보스가 끝없이 몰려와요 (3秒ごと → 10分 끝엔 0.8秒ごと） · 던전은 지는 게 없어요 (100匹 패배 없음)
 // cap = 화면에 보스가 너무 많으면 (150匹) 잠깐 안 나와요 (폰이 버벅이지 않게)
 const BLD = {
   mold:    { name: '鋳型工房',     img: 'art/bld-mold.png',    cost: [400, 100],        needGames: 10,
@@ -3101,7 +3197,7 @@ function yardTick(dt) {
 window.addEventListener('resize', () => { YARD.key = ''; });
 
 /* ===== 👀 観戦 (2026-11-21 예준이 요청) =====
-   게임하는 사람은 0.25秒ごと いま 화면(캐릭터 · 敵 · 무기)을 작게 줄여서 room presence로 보내고,
+   게임하는 사람은 0.25秒ごと いま 화면(캐릭터 · 敵 · 武器)을 작게 줄여서 room presence로 보내고,
    보는 사람은 그걸 받아서 같은 그림으로 그려요. claude.ai에 로그인한 사람끼리만 돼요. */
 const LIVE = { room: null, ready: null, sent: 0, on: false, peers: [] };
 const ALL_FOES = FOES.concat(BOSSES);
@@ -3274,6 +3370,8 @@ function resumeBattle() {
     S.enemies = (D.enemies || []).map((e) => Object.assign(e, { foe: (e.foe && e.foe.b >= 0 ? BOSSES[e.foe.b] : FOES[e.foe && e.foe.f]) || FOES[0] }));
     S.units = (D.units || []).map((u) => (u && BY[u.type] ? u : null));
     S.items = (D.items || []).map((it) => Object.assign(it, { unit: typeof it.unit === 'number' ? S.units[it.unit] || null : null }));
+    S.gear = (D.gear || []).filter((g) => SHOP_BY[g.id]).map((g) => Object.assign(g, { unit: typeof g.unit === 'number' ? S.units[g.unit] || null : null }));
+    S.shopOpen = false;
   } catch (e) { clearSave(); startBattle(); return; }
   for (const k in ui) delete ui[k];
   buildDeckBar();
@@ -3623,6 +3721,8 @@ $('#bGiveUp').addEventListener('click', () => { S.paused = false; $('#pauseOv').
 // ⏩ 倍速: ×1 → ×2 → ×3 (3倍速 2026-11-21) · 🧪 앱스토어 출시 전(PRE_RELEASE)에는 ×50도 있어요 (테스트용, 2026-11-22 예준이 결정)
 const PRE_RELEASE = false;                                   // 2026-11-23 예준이 결정: 출시 준비 → 50倍速 뺌
 const SPEEDS = PRE_RELEASE ? [1, 2, 3, 50] : [1, 2, 3];
+$('#bShop').addEventListener('click', openShop);
+$('#bShopClose').addEventListener('click', closeShop);
 $('#bSpeed').addEventListener('click', () => { S.speed = SPEEDS[(SPEEDS.indexOf(S.speed) + 1) % SPEEDS.length] || 1; $('#bSpeed').textContent = '×' + S.speed; });
 $('#bCoachGo').addEventListener('click', () => { store.set('yj2ja.coach', true); $('#coach').hidden = true; S.paused = false; });
 const toField = (e) => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
@@ -3658,7 +3758,7 @@ function frame(t) {
   const dt = Math.min(0.05, (t - last) / 1000 || 0); last = t;
   if (S.screen === 'battle') {
     if (S.watching) watchTick(dt);
-    else if (!S.paused && !S.over && !S.choosing && !S.equipping) for (let i = 0; i < S.speed && !S.over && !S.choosing; i++) update(dt);
+    else if (!S.paused && !S.over && !S.choosing && !S.equipping && !S.shopOpen) for (let i = 0; i < S.speed && !S.over && !S.choosing; i++) update(dt);
     render(); syncHUD();
   }
   if (S.screen === 'home') yardTick(dt);
