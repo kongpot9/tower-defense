@@ -3581,7 +3581,10 @@ function setLogin(id, k) { CLOUD.id = id; CLOUD.key = k; store.set('yj.id', id);
 async function loginBoot() {                                    // ゲームを 켤 때: ログイン 안 했으면 ログイン 화면 · 했으면 서버 기록이 더 새것인지 확인
   await rankInit();
   if (RANK.mode !== 'fb') { CLOUD.synced = true; return; }      // claude.ai 버전은 ログイン 없음
-  if (!CLOUD.key) { openLogin(); return; }
+  if (!CLOUD.key || !CLOUD.id) {                             // 예전 'クラウド 연결'(ニックネーム+パスワード)만 해 둔 사람은 아이디가 없어서 → 새로 ログイン
+    CLOUD.key = null; ['yj.cloud', 'yj.id'].forEach((k) => { try { localStorage.removeItem(k); } catch (e) { /* 괜찮아요 */ } });
+    openLogin(); return;
+  }
   if (store.get('yj2ja.nick', '') !== CLOUD.id) store.set('yj2ja.nick', CLOUD.id);   // ランキング ニックネーム = ID
   if (store.get('yj.resetUp', false)) {                       // 🗑️ アカウントリセット 직후: 처음 기록을 서버에도 바로 保存 (서버 기록도 초기화)
     try { await cloudPut(CLOUD.key); localStorage.removeItem('yj.resetUp'); } catch (e) { /* 다음에 다시 */ }

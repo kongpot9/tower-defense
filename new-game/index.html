@@ -3580,7 +3580,10 @@ function setLogin(id, k) { CLOUD.id = id; CLOUD.key = k; store.set('yj.id', id);
 async function loginBoot() {                                    // 게임을 켤 때: 로그인 안 했으면 로그인 화면 · 했으면 서버 기록이 더 새것인지 확인
   await rankInit();
   if (RANK.mode !== 'fb') { CLOUD.synced = true; return; }      // claude.ai 버전은 로그인 없음
-  if (!CLOUD.key) { openLogin(); return; }
+  if (!CLOUD.key || !CLOUD.id) {                             // 예전 '클라우드 연결'(닉네임+비밀번호)만 해 둔 사람은 아이디가 없어서 → 새로 로그인
+    CLOUD.key = null; ['yj.cloud', 'yj.id'].forEach((k) => { try { localStorage.removeItem(k); } catch (e) { /* 괜찮아요 */ } });
+    openLogin(); return;
+  }
   if (store.get('yj2.nick', '') !== CLOUD.id) store.set('yj2.nick', CLOUD.id);   // 랭킹 닉네임 = 아이디
   if (store.get('yj.resetUp', false)) {                       // 🗑️ 계정 초기화 직후: 처음 기록을 서버에도 바로 저장 (서버 기록도 초기화)
     try { await cloudPut(CLOUD.key); localStorage.removeItem('yj.resetUp'); } catch (e) { /* 다음에 다시 */ }
