@@ -3614,7 +3614,7 @@ $('#bLoginGo').addEventListener('click', async () => {
     const user = await ur.json();
     if (join) {
       if (user) { note.textContent = '이미 있는 아이디예요. 다른 아이디를 써 주세요'; CLOUD.busy = false; return; }
-      const w = await fetch(userUrl(idk), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: id, t: Date.now() }) });
+      const w = await fetch(userUrl(idk), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: id, t: Date.now(), h: k.slice(0, 32) }) });   // h = 열쇠 앞 절반 (계정 삭제할 때 주인인지 확인용 · 뒤 절반은 비밀)
       if (!w.ok) { note.textContent = '이미 있는 아이디예요. 다른 아이디를 써 주세요'; CLOUD.busy = false; return; }   // 동시에 누가 먼저 가져간 경우
       setLogin(id, k); await cloudPut(k);                          // 이 기기 기록(지금까지 한 것)을 그대로 내 계정에 저장
       CLOUD.synced = true; $('#loginOv').hidden = true; toast('🎉 ' + id + ' 가입 완료!');
@@ -3641,6 +3641,30 @@ function cloudUI(msg) {
     wipeLocal(); ['yj.cloud', 'yj.id', 'yj.cloudT'].forEach((k) => { try { localStorage.removeItem(k); } catch (e) { /* 괜찮아요 */ } });
     CLOUD.leaving = true; location.reload();                                            // 내 기록은 서버에 있어요 · 이 기기에서는 지워요 (다른 사람이 써도 섞이지 않게)
   }));
+  btns.appendChild(bldBtn('🗑️ 계정 삭제', async (ev) => {                              // 🗑️ 앱스토어 · 구글 플레이 규칙: 앱 안에서 계정을 지울 수 있어야 해요 (2026-11-26)
+    const b = ev.currentTarget;
+    if (Date.now() - delArm > 5000) { delArm = Date.now(); b.textContent = '정말요? 서버 · 랭킹 · 이 기기 기록이 전부 지워져요. 한 번 더!'; return; }
+    b.disabled = true; cloudUI('계정을 지우는 중…');
+    const r = await accountDelete();
+    if (r !== 'ok') { cloudUI('⚠️ 계정을 다 못 지웠어요 (' + r + ') · 인터넷을 확인하고 다시 눌러요'); return; }
+    wipeLocal(); ['yj.cloud', 'yj.id', 'yj.cloudT', 'yj.meta'].forEach((k) => { try { localStorage.removeItem(k); } catch (e) { /* 괜찮아요 */ } });
+    CLOUD.leaving = true; alert('계정을 지웠어요. 그동안 고마웠어요!'); location.reload();
+  }, false, 'btn-red'));
+}
+let delArm = 0;
+async function accountDelete() {                               // 🗑️ 서버에서 지우기: ① 삭제 표시 → ② 랭킹 → ③ 아이디 → ④ 저장 기록
+  const K = CLOUD.key, idk = idKey(CLOUD.id), nick = CLOUD.id, base = FB_BASE();
+  const req = (path, method, body) => fetch(base + path + '.json', { method, headers: { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+  try {
+    await cloudPut(K).catch(() => {});                          // 저장 기록이 있어야 '내 계정'이라는 걸 증명할 수 있어요
+    const d = await req('/del/' + encodeURIComponent(idk) + '/' + K.slice(0, 32) + '/' + K.slice(32), 'PUT', true);
+    if (!d.ok) return 'http ' + d.status;
+    await req('/rank/' + encodeURIComponent(nick), 'DELETE').catch(() => {});
+    const u = await req('/users/' + encodeURIComponent(idk), 'DELETE'); if (!u.ok) return 'http ' + u.status;
+    const s = await req('/save/' + K, 'DELETE'); if (!s.ok) return 'http ' + s.status;
+    await req('/del/' + encodeURIComponent(idk) + '/' + K.slice(0, 32) + '/' + K.slice(32), 'DELETE').catch(() => {});   // 삭제 표시도 치워요 (같은 아이디로 다시 가입해도 안전하게)
+    return 'ok';
+  } catch (e) { return e.message; }
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden && !CLOUD.leaving && CLOUD.key && CLOUD.synced && RANK.mode === 'fb' && Date.now() - CLOUD.last > 3000) { clearTimeout(CLOUD.timer); cloudPut(CLOUD.key).catch(() => {}); } });
 /* ===== 🏅 레이팅 (2026-11-21 예준이 요청 · 재는 법은 Claude가 정함) =====
