@@ -297,7 +297,11 @@ img.ic{width:22px;height:22px;object-fit:contain;vertical-align:-5px;margin:0 2p
 .nick-row{display:grid;grid-template-columns:auto 1fr auto;gap:6px;align-items:center;font-size:13px;text-align:left}
 .cloud-box{border-top:2px dashed #C9D1DF;border-bottom:2px dashed #C9D1DF;margin:10px 0;padding:6px 0}
 .cloud-box h3{margin:4px 0;font:18px var(--f-display);font-weight:400}
-.cloud-row{grid-template-columns:1fr 1fr}
+.login-ov{z-index:90!important;background:var(--ink)!important}
+.login-tabs{display:flex;gap:6px;justify-content:center;margin:6px 0}
+.login-tabs .btn.on{background:var(--ink);color:var(--paper)}
+.login-form{display:grid;gap:8px;margin:8px 0}
+.login-form input{font:inherit;font-size:16px;padding:9px 12px;border:2.5px solid var(--ink);border-radius:10px;background:var(--paper);color:var(--ink);min-width:0}
 .nick-row input{min-width:0;font:inherit;font-size:15px;padding:7px 10px;border:2.5px solid var(--ink);border-radius:10px;background:var(--paper);color:var(--ink)}
 .rank-note{font-size:12px;color:var(--muted);line-height:1.4}
 .go-rank{font-size:14px;color:var(--muted)}
@@ -489,19 +493,30 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
   <div class="ov ov-fixed" id="setOv" hidden>
     <div class="ov-card">
       <h2>⚙️ 設定</h2>
-      <div class="cloud-box">
-        <h3>☁️ クラウド 保存</h3>
-        <p class="bld-note" id="cloudState">ニックネーム + パスワードでサーバーに保存します. 機種変更やアプリを消しても、そのまま読み込めます</p>
-        <div id="cloudForm">
-          <div class="nick-row cloud-row"><input id="cloudNick" maxlength="12" placeholder="ニックネーム" autocomplete="username"><input id="cloudPw" type="password" maxlength="32" placeholder="パスワード (4文字以上)" autocomplete="current-password"></div>
-          <div class="ov-btns"><button class="btn btn-blue" id="bCloudGo" type="button">☁️ 接続する</button></div>
-        </div>
-        <div class="ov-btns" id="cloudBtns" hidden></div>
+      <div class="cloud-box" id="acctBox">
+        <h3>👤 マイアカウント</h3>
+        <p class="bld-note" id="cloudState"></p>
+        <div class="ov-btns" id="cloudBtns"></div>
         <p class="bld-note" id="cloudNote"></p>
       </div>
       <p class="sub">アカウントをリセットすると、この端末の <b>コイン・クリスタル・解放したキャラ・⭐レベル・村・レーティング・デッキ・つづき</b>が全部最初にもどります</p>
-      <p class="bld-note">ランキングサーバーの記録はそのままのこります（歴代記録は消えません）</p>
+      <p class="bld-note">ログインしていればサーバーの記録も最初にもどります · ランキングサーバーの記録はそのままのこります（歴代記録は消えません）</p>
       <div class="ov-btns"><button class="btn btn-red big" id="bReset" type="button">🗑️ アカウントリセット</button><button class="btn" id="bSetClose" type="button">とじる</button></div>
+    </div>
+  </div>
+  <div class="ov ov-fixed login-ov" id="loginOv" hidden>
+    <div class="ov-card">
+      <h2 id="loginTitle">👤 ログイン</h2>
+      <p class="sub" id="loginSub">IDでログインすると記録がサーバーに保存されます. 機種変更してもそのまま!</p>
+      <div class="login-tabs"><button class="btn btn-sm" id="tabLogin" type="button">ログイン</button><button class="btn btn-sm" id="tabJoin" type="button">新規登録</button></div>
+      <div class="login-form">
+        <input id="loginId" maxlength="12" placeholder="ID (= ランキング ニックネーム, 12文字まで)" autocomplete="username">
+        <input id="loginPw" type="password" maxlength="32" placeholder="パスワード (4文字以上)" autocomplete="current-password">
+        <input id="loginPw2" type="password" maxlength="32" placeholder="パスワード もう一回" autocomplete="new-password" hidden>
+      </div>
+      <p class="bld-note" id="loginNote"></p>
+      <div class="ov-btns"><button class="btn btn-blue big" id="bLoginGo" type="button">ログイン</button></div>
+      <p class="bld-note">IDは1人しか使えません · パスワードは サーバーに送られません (忘れると見つけられないので必ずおぼえてね!)</p>
     </div>
   </div>
   <div class="ov ov-fixed" id="starterOv" hidden>
@@ -3036,10 +3051,11 @@ $('#bReset').addEventListener('click', () => {
   const b = $('#bReset');
   if (Date.now() - resetArm > 4000) { resetArm = Date.now(); b.textContent = '本当に？もう一回押すと全部消えます'; return; }
   try {
-    const ks = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && (k.startsWith('yj2') || k === 'yj.meta' || k === 'yj.cloud')) ks.push(k); }   // 초기화하면 クラウド 연결도 끊어요 (빈 기록으로 덮어쓰지 않게)
+    const ks = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && (k.startsWith('yj2') || k === 'yj.meta')) ks.push(k); }   // 로그인은 그대로 · 다시 시작하면 처음 기록이 서버에도 저장돼요 (서버 기록도 초기화)
     ks.forEach((k) => localStorage.removeItem(k));
+    if (CLOUD.key) localStorage.setItem('yj.resetUp', 'true');   // 다시 켜지면 처음 기록을 서버에 올려요
   } catch (e) { /* 괜찮아요 */ }
-  location.reload();
+  CLOUD.leaving = true; location.reload();
 });
 $('#bStarter').addEventListener('click', openStarter);
 $('#bStarterClose').addEventListener('click', () => { $('#starterOv').hidden = true; });
@@ -3518,13 +3534,19 @@ function rankInit() {
   })();
   return rankReady;
 }
-/* ===== ☁️ クラウド 保存 (2026-11-23 예준이 요청 — 앱스토어 출시 준비) =====
-   ニックネーム + パスワード → 둘을 섞어 만든 열쇠(SHA-256) 자리에 が 기기의 기록(yj.meta · yj2…)을 통째로 올려요.
-   열쇠를 모르면 읽을 수도 쓸 수도 없어요 (パスワードは サーバーに送られません). 연결하면 그다음부터는 저절로 저장돼요. */
-const CLOUD = { key: store.get('yj.cloud', null), timer: 0, busy: false, last: 0 };
-const cloudUrl = (k) => RANK.fb.replace(/\/rank$/, '/save/') + k + '.json';
-async function cloudKey(nick, pw) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('musung:' + nick + ':' + pw));
+/* ===== 👤 ログイン + ☁️ クラウド 保存 (2026-11-23 예준이 요청 — 앱스토어 출시 준비) =====
+   웹사이트 · 앱에서는 로그인해야 ゲームを 할 수 있어요 (claude.ai 버전은 claude 계정이 있어서 ログイン 화면 없음).
+   · ID = ランキング ニックネーム · 한 사람만 쓸 수 있어요 (서버 musung/users/{ID} 를 먼저 차지한 사람 것)
+   · ID + 비밀번호를 섞어 만든 열쇠(SHA-256) 자리 musung/save/{열쇠} 에 が 기기의 기록(yj.meta · yj2…)을 통째로 保存
+     → パスワードは サーバーに送られません · 열쇠를 모르면 읽을 수도 쓸 수도 없어요
+   · 로그인하면 기록이 바뀔 때마다 저절로 保存 · あとで 구글 · 애플 로그인도 넣기로 함 (예준이 결정) */
+const CLOUD = { key: store.get('yj.cloud', null), id: store.get('yj.id', ''), timer: 0, busy: false, last: store.get('yj.cloudT', 0) || 0, synced: false, leaving: false };
+const FB_BASE = () => RANK.fb.replace(/\/rank$/, '');
+const cloudUrl = (k) => FB_BASE() + '/save/' + k + '.json';
+const userUrl = (idk) => FB_BASE() + '/users/' + encodeURIComponent(idk) + '.json';
+const idKey = (id) => id.trim().toLowerCase();
+async function cloudKey(id, pw) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('musung:' + id + ':' + pw));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 const cloudMine = (k) => k && (k.startsWith('yj2') || k === 'yj.meta');
@@ -3533,9 +3555,10 @@ function cloudPack() {
   return o;
 }
 async function cloudPut(k) {
-  const r = await fetch(cloudUrl(k), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ d: JSON.stringify(cloudPack()), t: Date.now(), nick: store.get('yj2ja.nick', '') || '' }) });
+  const t = Date.now();
+  const r = await fetch(cloudUrl(k), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ d: JSON.stringify(cloudPack()), t, nick: CLOUD.id || '' }) });
   if (!r.ok) throw new Error('http ' + r.status);
-  CLOUD.last = Date.now();
+  CLOUD.last = t; store.set('yj.cloudT', t);
 }
 async function cloudGet(k) {
   const r = await fetch(cloudUrl(k)); if (!r.ok) throw new Error('http ' + r.status);
@@ -3543,52 +3566,111 @@ async function cloudGet(k) {
   try { return { keys: JSON.parse(v.d), t: v.t || 0 }; } catch (e) { return null; }
 }
 function cloudSoon() {                                          // 기록이 바뀌면 5秒 뒤에 한 回 올려요 (너무 자주 안 보내게)
-  if (!CLOUD.key || RANK.mode !== 'fb') return;
+  if (!CLOUD.key || !CLOUD.synced || RANK.mode !== 'fb') return;
   clearTimeout(CLOUD.timer);
   CLOUD.timer = setTimeout(() => { cloudPut(CLOUD.key).catch(() => {}); }, 5000);
 }
-function cloudApply(keys) {                                     // クラウド 기록으로 が 기기를 바꾸고 다시 スタート
-  try {
-    const ks = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (cloudMine(k)) ks.push(k); }
-    ks.forEach((k) => localStorage.removeItem(k));
-    for (const k in keys) if (cloudMine(k) && typeof keys[k] === 'string') localStorage.setItem(k, keys[k]);
-  } catch (e) { /* 괜찮아요 */ }
-  location.reload();
+const wipeLocal = () => { try { const ks = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (cloudMine(k)) ks.push(k); } ks.forEach((k) => localStorage.removeItem(k)); } catch (e) { /* 괜찮아요 */ } };
+function cloudApply(keys, t) {                                  // 서버 기록으로 が 기기를 바꾸고 다시 スタート
+  wipeLocal();
+  try { for (const k in keys) if (cloudMine(k) && typeof keys[k] === 'string') localStorage.setItem(k, keys[k]); } catch (e) { /* 괜찮아요 */ }
+  store.set('yj.cloudT', t || Date.now());
+  CLOUD.leaving = true; location.reload();
 }
-const cloudSummary = (keys) => { let m = {}; try { m = JSON.parse(keys['yj.meta'] || '{}') || {}; } catch (e) { /* 비어 있어요 */ }
-  return '最高 WAVE ' + (m.bestWave || 0) + ' · 🪙' + fmtNum(m.coin || 0) + ' · 💎' + fmtNum(m.crystal || 0); };
-let cloudArm = 0;
-function cloudUI(msg) {
-  const on = !!CLOUD.key, btns = $('#cloudBtns');
-  $('#cloudForm').hidden = on; btns.hidden = !on; btns.innerHTML = ''; $('#cloudNote').textContent = msg || '';
-  if (RANK.mode !== 'fb') { $('#cloudState').textContent = 'クラウド保存はウェブサイト · アプリでのみ使えます'; $('#cloudForm').hidden = true; btns.hidden = true; return; }
-  if (!on) { $('#cloudState').textContent = 'ニックネーム + パスワードでサーバーに保存します. 機種変更やアプリを消しても、そのまま読み込めます'; if (!$('#cloudNick').value) $('#cloudNick').value = store.get('yj2ja.nick', '') || ''; return; }
-  $('#cloudState').textContent = '✅ 接続中 · 記録が変わると自動で保存されます' + (CLOUD.last ? ' (最後の 保存 ' + new Date(CLOUD.last).toLocaleTimeString() + ')' : '');
-  btns.appendChild(bldBtn('☁️ いま 保存', async () => { try { await cloudPut(CLOUD.key); cloudUI('保存しました!'); } catch (e) { cloudUI('⚠️ 保存失敗 (' + e.message + ')'); } }, false, 'btn-blue'));
-  btns.appendChild(bldBtn('🔌 接続を切る', () => { CLOUD.key = null; try { localStorage.removeItem('yj.cloud'); } catch (e) { /* 괜찮아요 */ } cloudUI('接続を切りました (サーバーの記録はそのまま残ります)'); }));
+function setLogin(id, k) { CLOUD.id = id; CLOUD.key = k; store.set('yj.id', id); store.set('yj.cloud', k); store.set('yj2ja.nick', id); }
+async function loginBoot() {                                    // ゲームを 켤 때: ログイン 안 했으면 ログイン 화면 · 했으면 서버 기록이 더 새것인지 확인
+  await rankInit();
+  if (RANK.mode !== 'fb') { CLOUD.synced = true; return; }      // claude.ai 버전은 ログイン 없음
+  if (!CLOUD.key || !CLOUD.id) {                             // 예전 'クラウド 연결'(ニックネーム+パスワード)만 해 둔 사람은 아이디가 없어서 → 새로 ログイン
+    CLOUD.key = null; ['yj.cloud', 'yj.id'].forEach((k) => { try { localStorage.removeItem(k); } catch (e) { /* 괜찮아요 */ } });
+    openLogin(); return;
+  }
+  if (store.get('yj2ja.nick', '') !== CLOUD.id) store.set('yj2ja.nick', CLOUD.id);   // ランキング ニックネーム = ID
+  if (store.get('yj.resetUp', false)) {                       // 🗑️ アカウントリセット 직후: 처음 기록을 서버에도 바로 保存 (서버 기록도 초기화)
+    try { await cloudPut(CLOUD.key); localStorage.removeItem('yj.resetUp'); } catch (e) { /* 다음에 다시 */ }
+    CLOUD.synced = true; return;
+  }
+  try { const got = await cloudGet(CLOUD.key); if (got && got.t > CLOUD.last + 1000) { cloudApply(got.keys, got.t); return; } } catch (e) { /* 인터넷이 없으면 この端末 기록으로 계속 */ }
+  CLOUD.synced = true; cloudSoon();
 }
-$('#bCloudGo').addEventListener('click', async () => {
-  const nick = $('#cloudNick').value.trim(), pw = $('#cloudPw').value;
-  if (!NICK_OK.test(nick)) { cloudUI('ニックネームは 1~12文字 (ハングル · 英字 · 数字)'); return; }
-  if (pw.length < 4) { cloudUI('パスワードは 4文字以上'); return; }
-  if (CLOUD.busy) return; CLOUD.busy = true; $('#cloudNote').textContent = 'サーバーに確認中…';
+let loginMode = 'login';
+function openLogin(mode) {
+  loginMode = mode || loginMode;
+  const join = loginMode === 'join';
+  $('#tabLogin').classList.toggle('on', !join); $('#tabJoin').classList.toggle('on', join);
+  $('#loginTitle').textContent = join ? '👤 新規登録' : '👤 ログイン';
+  $('#loginPw2').hidden = !join; $('#bLoginGo').textContent = join ? '新規登録' : 'ログイン';
+  $('#loginPw').autocomplete = join ? 'new-password' : 'current-password';
+  $('#loginNote').textContent = '';
+  $('#loginOv').hidden = false;
+}
+$('#tabLogin').addEventListener('click', () => openLogin('login'));
+$('#tabJoin').addEventListener('click', () => openLogin('join'));
+$('#bLoginGo').addEventListener('click', async () => {
+  const id = $('#loginId').value.trim(), pw = $('#loginPw').value, note = $('#loginNote'), join = loginMode === 'join';
+  if (!NICK_OK.test(id)) { note.textContent = 'IDは 1~12文字 (ハングル · 英字 · 数字)'; return; }
+  if (pw.length < 4) { note.textContent = 'パスワードは 4文字以上'; return; }
+  if (join && pw !== $('#loginPw2').value) { note.textContent = 'パスワード 2つがちがいます'; return; }
+  if (CLOUD.busy) return; CLOUD.busy = true; note.textContent = 'サーバーに確認中…';
   try {
-    const k = await cloudKey(nick, pw), got = await cloudGet(k), btns = $('#cloudBtns');
-    if (!got) {                                                  // 처음 → この端末 기록을 올리고 연결
-      await cloudPut(k); CLOUD.key = k; store.set('yj.cloud', k); cloudUI('☁️ 新しく作って接続しました! この端末の記録を保存しました (前の記録があったなら、ニックネーム · パスワードをもう一度確かめてね)');
-    } else {                                                     // もう 저장된 기록이 있으면 → 불러올지, この端末 기록으로 덮어쓸지 골라요
-      $('#cloudForm').hidden = true; btns.hidden = false; btns.innerHTML = '';
-      $('#cloudNote').textContent = 'サーバーの記録: ' + cloudSummary(got.keys) + ' / この端末: ' + cloudSummary(cloudPack());
-      btns.appendChild(bldBtn('📥 サーバーの記録を読み込む', () => { store.set('yj.cloud', k); cloudApply(got.keys); }, false, 'btn-blue'));
-      btns.appendChild(bldBtn('⬆️ この端末の記録で上書き', async (ev) => {
-        if (Date.now() - cloudArm > 4000) { cloudArm = Date.now(); ev.currentTarget.textContent = '本当に？? サーバーの記録が消えます'; return; }
-        try { await cloudPut(k); CLOUD.key = k; store.set('yj.cloud', k); cloudUI('上書きしました! これから自動で保存されます'); } catch (e) { cloudUI('⚠️ 保存失敗 (' + e.message + ')'); }
-      }));
+    const idk = idKey(id), k = await cloudKey(idk, pw);
+    const ur = await fetch(userUrl(idk)); if (!ur.ok) throw new Error('http ' + ur.status);
+    const user = await ur.json();
+    if (join) {
+      if (user) { note.textContent = 'そのIDはもう使われています. 別のIDにしてください'; CLOUD.busy = false; return; }
+      const w = await fetch(userUrl(idk), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: id, t: Date.now(), h: k.slice(0, 32) }) });   // h = 열쇠 앞 절반 (계정 삭제할 때 주인인지 확인용 · 뒤 절반은 비밀)
+      if (!w.ok) { note.textContent = 'そのIDはもう使われています. 別のIDにしてください'; CLOUD.busy = false; return; }   // 동시에 누가 먼저 가져간 경우
+      setLogin(id, k); await cloudPut(k);                          // この端末 기록(これまで 한 것)을 그대로 내 계정에 保存
+      CLOUD.synced = true; $('#loginOv').hidden = true; toast('🎉 ' + id + ' 登録完了!');
+    } else {
+      if (!user) { note.textContent = 'そのIDはありません. はじめてなら新規登録をおしてね'; CLOUD.busy = false; return; }
+      const got = await cloudGet(k);
+      if (!got) { note.textContent = 'パスワードがちがいます'; CLOUD.busy = false; return; }
+      setLogin(user.name || id, k); cloudApply(got.keys, got.t);  // マイアカウント 기록을 불러와서 다시 スタート
     }
-  } catch (e) { cloudUI('⚠️ サーバーに接続できませんでした (' + e.message + ')'); }
+  } catch (e) { note.textContent = '⚠️ サーバーに接続できませんでした. インターネットを確認してね (' + e.message + ')'; }
   CLOUD.busy = false;
 });
-document.addEventListener('visibilitychange', () => { if (document.hidden && CLOUD.key && RANK.mode === 'fb' && Date.now() - CLOUD.last > 3000) { clearTimeout(CLOUD.timer); cloudPut(CLOUD.key).catch(() => {}); } });
+let logoutArm = 0;
+function cloudUI(msg) {
+  const btns = $('#cloudBtns'); btns.innerHTML = ''; $('#cloudNote').textContent = msg || '';
+  if (RANK.mode !== 'fb') { $('#acctBox').hidden = true; return; }
+  $('#acctBox').hidden = false;
+  if (!CLOUD.key) { $('#cloudState').textContent = 'ログインしていません'; return; }
+  $('#cloudState').textContent = '✅ ' + CLOUD.id + ' ログイン中 · 記録が変わると自動で保存されます' + (CLOUD.last ? ' (最後の 保存 ' + new Date(CLOUD.last).toLocaleTimeString() + ')' : '');
+  btns.appendChild(bldBtn('☁️ いま 保存', async () => { try { await cloudPut(CLOUD.key); cloudUI('保存しました!'); } catch (e) { cloudUI('⚠️ 保存失敗 (' + e.message + ')'); } }, false, 'btn-blue'));
+  btns.appendChild(bldBtn('🚪 ログアウト', async (ev) => {
+    if (Date.now() - logoutArm > 4000) { logoutArm = Date.now(); ev.currentTarget.textContent = 'もう一度押すと ログアウト'; return; }
+    try { await cloudPut(CLOUD.key); } catch (e) { cloudUI('⚠️ サーバーに保存できなかったのでログアウトを止めました (記録が消えないように) · インターネットを確認してね'); return; }
+    wipeLocal(); ['yj.cloud', 'yj.id', 'yj.cloudT'].forEach((k) => { try { localStorage.removeItem(k); } catch (e) { /* 괜찮아요 */ } });
+    CLOUD.leaving = true; location.reload();                                            // 내 기록은 서버에 있어요 · が 기기에서는 지워요 (다른 사람이 써도 섞이지 않게)
+  }));
+  btns.appendChild(bldBtn('🗑️ アカウント削除', async (ev) => {                              // 🗑️ 앱스토어 · 구글 플레이 규칙: 앱 안에서 계정을 지울 수 있어야 해요 (2026-11-26)
+    const b = ev.currentTarget;
+    if (Date.now() - delArm > 5000) { delArm = Date.now(); b.textContent = '本当に？サーバー · ランキング · この端末の記録が全部消えます。もう一回！'; return; }
+    b.disabled = true; cloudUI('アカウントを削除中…');
+    const r = await accountDelete();
+    if (r !== 'ok') { cloudUI('⚠️ アカウントを全部消せませんでした (' + r + ') · インターネットを確認してもう一度おしてね'); return; }
+    wipeLocal(); ['yj.cloud', 'yj.id', 'yj.cloudT', 'yj.meta'].forEach((k) => { try { localStorage.removeItem(k); } catch (e) { /* 괜찮아요 */ } });
+    CLOUD.leaving = true; alert('アカウントを削除しました。今までありがとう！'); location.reload();
+  }, false, 'btn-red'));
+}
+let delArm = 0;
+async function accountDelete() {                               // 🗑️ 서버에서 지우기: ① 삭제 표시 → ② ランキング → ③ ID → ④ 保存 기록
+  const K = CLOUD.key, idk = idKey(CLOUD.id), nick = CLOUD.id, base = FB_BASE();
+  const req = (path, method, body) => fetch(base + path + '.json', { method, headers: { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+  try {
+    await cloudPut(K).catch(() => {});                          // 保存 기록이 있어야 'マイアカウント'이라는 걸 증명할 수 있어요
+    const d = await req('/del/' + encodeURIComponent(idk) + '/' + K.slice(0, 32) + '/' + K.slice(32), 'PUT', true);
+    if (!d.ok) return 'http ' + d.status;
+    await req('/rank/' + encodeURIComponent(nick), 'DELETE').catch(() => {});
+    const u = await req('/users/' + encodeURIComponent(idk), 'DELETE'); if (!u.ok) return 'http ' + u.status;
+    const s = await req('/save/' + K, 'DELETE'); if (!s.ok) return 'http ' + s.status;
+    await req('/del/' + encodeURIComponent(idk) + '/' + K.slice(0, 32) + '/' + K.slice(32), 'DELETE').catch(() => {});   // 삭제 표시도 치워요 (同じ 아이디로 다시 가입해도 안전하게)
+    return 'ok';
+  } catch (e) { return e.message; }
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden && !CLOUD.leaving && CLOUD.key && CLOUD.synced && RANK.mode === 'fb' && Date.now() - CLOUD.last > 3000) { clearTimeout(CLOUD.timer); cloudPut(CLOUD.key).catch(() => {}); } });
 /* ===== 🏅 レーティング (2026-11-21 예준이 요청 · 재는 법은 Claude가 정함) =====
    レーティング = 最近 10回(ノーマル 모드) 도달 ウェーブ 평균 × 20 · 티어마다 비슷한 실력끼리 따로 ランキング */
 const TIERS_R = [{ min: 1400, n: 'マスター', e: '👑' }, { min: 1000, n: 'ダイヤ', e: '💎' }, { min: 700, n: 'ゴールド', e: '🥇' }, { min: 400, n: 'シルバー', e: '🥈' }, { min: 0, n: 'ブロンズ', e: '🥉' }];
@@ -3698,6 +3780,7 @@ async function openRank() {
   const ov = $('#rankOv'), list = $('#rankList'), note = $('#rankNote');
   if (RANK.mode === 'fb' && store.get('yj2ja.nick', '') && S.best && !RANK.sentBest) { RANK.sentBest = true; try { await rankSubmit(); } catch (e) { /* もう 同じ 기록이면 서버가 거절해도 괜찮아요 */ } }
   $('#nickIn').value = store.get('yj2ja.nick', '');
+  const locked = RANK.mode === 'fb' && !!CLOUD.key; $('#nickIn').readOnly = locked; $('#bNick').hidden = locked;   // 👤 로그인하면 ニックネーム = ID (못 바꿔요)
   const rt = myRating();
   seasonCheck();
   $('#myRating').innerHTML = !(META.recent || []).length ? seasonName(curSeason()) + ' · 1回プレイするとレーティングがつきます'
@@ -3866,7 +3949,7 @@ function start(data) {
     const bl = $('#bLang'); bl.hidden = false;
     bl.addEventListener('click', () => { try { localStorage.setItem('yj.lang', BUILD_LANG === 'ko' ? 'ja' : 'ko'); } catch (e) { /* 괜찮아요 */ } location.reload(); });
   }
-  rankInit(); liveInit();
+  rankInit(); liveInit(); loginBoot();
   if (!META.born) { META.born = midnight(Date.now()); metaSave(); }   // 🐣 계정 만든 날 (ボックス 뉴비 할인용) · もう 하던 사람은 오늘이 1일차
   S.deck = validDeck(data && data.deck) || validDeck(store.get('yj2ja.deck', null)) || CHARS.filter((c) => unlocked(c.id) && !c.support).slice(0, 8).map((c) => c.id);   // 처음 덱엔 싸우는 캐릭터만 (텐조는 리워크로 공격 안 함)
   S.best = store.get('yj2ja.best', 0) || 0;

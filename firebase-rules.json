@@ -60,7 +60,7 @@
       "rank": {
         ".read": true,
         "$nick": {
-          ".write": "$nick.length <= 12 && newData.exists() && newData.hasChildren(['wave','t']) && newData.child('wave').isNumber() && newData.child('wave').val() >= 1 && newData.child('wave').val() <= 500 && (!data.exists() || newData.child('wave').val() > data.child('wave').val()) && newData.child('t').isNumber() && newData.child('t').val() <= now + 60000",
+          ".write": "($nick.length <= 12 && newData.exists() && newData.hasChildren(['wave','t']) && newData.child('wave').isNumber() && newData.child('wave').val() >= 1 && newData.child('wave').val() <= 500 && (!data.exists() || newData.child('wave').val() > data.child('wave').val()) && newData.child('t').isNumber() && newData.child('t').val() <= now + 60000) || (!newData.exists() && data.exists() && root.child('musung/del/' + $nick.toLowerCase() + '/' + root.child('musung/users/' + $nick.toLowerCase() + '/h').val()).exists())",
           "wave": {
             ".validate": "newData.isNumber()"
           },
@@ -75,7 +75,7 @@
       "save": {
         "$key": {
           ".read": "$key.length === 64",
-          ".write": "$key.length === 64 && newData.hasChildren(['d','t']) && newData.child('d').isString() && newData.child('d').val().length < 500000 && newData.child('t').isNumber() && newData.child('t').val() <= now + 60000",
+          ".write": "$key.length === 64 && (!newData.exists() || (newData.hasChildren(['d','t']) && newData.child('d').isString() && newData.child('d').val().length < 500000 && newData.child('t').isNumber() && newData.child('t').val() <= now + 60000))",
           "d": {
             ".validate": "newData.isString()"
           },
@@ -87,6 +87,33 @@
           },
           "$other": {
             ".validate": false
+          }
+        }
+      },
+      "users": {
+        "$id": {
+          ".read": true,
+          ".write": "(!data.exists() && $id.length <= 12 && newData.hasChildren(['name','t']) && newData.child('name').isString() && newData.child('name').val().length <= 12 && newData.child('t').isNumber() && newData.child('t').val() <= now + 60000) || (!newData.exists() && data.exists() && root.child('musung/del/' + $id + '/' + data.child('h').val()).exists())",
+          "name": {
+            ".validate": "newData.isString()"
+          },
+          "t": {
+            ".validate": "newData.isNumber()"
+          },
+          "$other": {
+            ".validate": false
+          },
+          "h": {
+            ".validate": "newData.isString() && newData.val().length === 32"
+          }
+        }
+      },
+      "del": {
+        "$id": {
+          "$h": {
+            "$rest": {
+              ".write": "(!data.exists() && newData.val() === true && $h.length === 32 && $rest.length === 32 && root.child('musung/users/' + $id + '/h').val() === $h && root.child('musung/save/' + $h + $rest).exists()) || (!newData.exists() && !root.child('musung/users/' + $id).exists())"
+            }
           }
         }
       }
