@@ -159,6 +159,8 @@ h1,h2,p{margin:0}
 .inv .sl:empty{background:var(--paper-2);border-style:dashed;box-shadow:none}
 .inv .sl:active{transform:translateY(2px);box-shadow:none}
 .inv .sl img{width:84%;height:84%;object-fit:contain;display:block}
+.shop-q{width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:8px 12px;border:2.5px solid var(--ink);border-radius:12px;background:var(--paper);color:var(--ink);margin-top:4px}
+.shop-none{font-size:14px;color:var(--muted);padding:12px 0}
 .shop-list{display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow:auto;margin:8px 0}
 .shop-it{display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:center;text-align:left;background:var(--paper);color:var(--ink);border:2.5px solid var(--ink);border-radius:14px;padding:8px;font:inherit}
 .shop-it .ico{width:54px;height:54px;display:grid;place-items:center;border-radius:12px;background:#F5E6B8;border:2px solid var(--ink)}
@@ -427,6 +429,7 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
       <div class="ov-card">
         <h2>🛒 ショップ</h2>
         <p class="sub" id="shopGold"></p>
+        <input class="shop-q" id="shopQ" type="search" placeholder="🔍 アイテム検索 (名前 · 効果)" autocomplete="off">
         <div class="shop-list" id="shopList"></div>
         <div class="ov-btns"><button class="btn" id="bShopClose" type="button">とじる</button></div>
       </div>
@@ -651,7 +654,7 @@ function invBag() {                                            // 아직 아무�
     S.items.filter((it) => !it.unit).map((it) => ({ key: it.id, o: it, name: itemName(it) })),
     (S.gear || []).filter((g) => !g.unit).map((g) => ({ key: g.id, o: g, name: SHOP_BY[g.id].name })));
 }
-function invInfo(e) {                                          // マス 그림 · 이름 · 설명
+function invInfo(e) {                                          // マス 그림 · 名前 · 설명
   if (e.kind === 'buff') { const b = BUFF_BY[e.o.id]; return { im: b.im, name: b.name, d: b.d(e.o.v) }; }
   if (e.kind === 'item') { const d = ITEM_BY[e.o.id]; return { im: ITEM_IMG[e.o.id + (e.o.awake ? ':a' : '')], name: itemName(e.o), d: d.d(e.o.awake) }; }
   const x = SHOP_BY[e.o.id]; return { im: x.im, name: x.name, d: x.d };
@@ -764,7 +767,7 @@ AWAKE_IMG.turret.src = AWAKE.turret.img; AWAKE_IMG.trap.src = AWAKE.trap.img;
 AWAKE_IMG.cannon = new Image(); AWAKE_IMG.cannon.src = AWAKE.cannon.img;
 const TURRET_H = 30;           // 성가퀴 위에서 보이는 높이
 
-/* ===== 캐릭터 (임시 — 예준이 그림이 오면 이름·그림·능력을 바꿔요) ===== */
+/* ===== 캐릭터 (임시 — 예준이 그림이 오면 名前·그림·능력을 바꿔요) ===== */
 const CHARS = [
   // 전원 예준이 그림 · 전사는 777 검사의 성형 버전 · 나머지는 777 근본라인에서 입국 (2026-11-19)
   { id: 'sword',    name: '戦士',         img: 'art/warrior.png',  grade: 'ノーマル', color: '#F0B95A', role: '近距離', pref: 'front',
@@ -1422,7 +1425,7 @@ function attack(u, def, t) {   // def는 ドリルカー·27살일 때 잠깐 �
   }
   if (def.steal) u.lastT = t;
   const K2 = SKILLS[def.id];
-  if (K2 && s2On(u)) {                                       // 🎯 スキル 2 지속 효과
+  if (K2 && s2On(u)) {                                       // 🎯 スキル 2 지속 効果
     if (K2.self) own *= K2.self;                             // 切断 ×3 · エラー ×2 · 境地 +50%
     if (K2.splash) def = Object.assign({}, def, { splash: Math.max(def.splash || 0, K2.splash) });   // 粉砕: 범위 공격
     if (K2.bite) S.runCoin = (S.runCoin || 0) + K2.bite;     // 빡빡공룡: 때릴 때마다 コイン
@@ -2822,22 +2825,26 @@ function gearEquip(g, u) {                                    // 🛒 つける 
 }
 function openShop() {
   if (S.over || S.watching || S.choosing || S.equipping) return;
-  S.shopOpen = true; renderShop(); $('#shopOv').hidden = false;
+  S.shopOpen = true; $('#shopQ').value = ''; renderShop(); $('#shopOv').hidden = false;
 }
 function closeShop() { S.shopOpen = false; $('#shopOv').hidden = true; }
 function renderShop() {
   $('#shopGold').innerHTML = '<i class="coin"></i> ' + Math.floor(S.gold).toLocaleString() + ' · キャラ1人に 🎒 ' + INV_MAX + 'マス (同じ アイテムは 1個)';
   const box = $('#shopList'); box.innerHTML = '';
+  const q = ($('#shopQ').value || '').trim().toLowerCase().replace(/\s+/g, '');   // 🔍 アイテム検索 (2026-11-26 예준이 요청): 名前 · 効果 · 武器/마법으로 찾기
+  const hit = (x) => !q || (x.name + x.d + x.kind).toLowerCase().replace(/\s+/g, '').includes(q);
   const card = (x, sub, dis, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'shop-it'; b.disabled = dis;
     b.innerHTML = '<span class="ico"><img src="' + x.img + '" alt=""></span><span><b>' + x.name + '</b><span class="k" style="background:' + (x.kind === '魔法' ? '#8E4CC4' : '#2F6BD8') + '">' + x.kind + '</span><span class="dd">' + x.d + '</span><span class="pr">' + sub + '</span></span>';
     b.addEventListener('click', fn); box.appendChild(b); };
-  const bag = (S.gear || []).filter((g) => !g.unit);
+  const bag = (S.gear || []).filter((g) => !g.unit && hit(SHOP_BY[g.id]));
   if (bag.length) {
     const h = document.createElement('p'); h.className = 'shop-sec'; h.textContent = '🎒 バッグ (おして、もう一度 つける)'; box.appendChild(h);
     for (const g of bag) card(SHOP_BY[g.id], '装備するキャラをえらびます', false, () => { closeShop(); startGearEquip(g); });
     const h2 = document.createElement('p'); h2.className = 'shop-sec'; h2.textContent = '🛒 買う'; box.appendChild(h2);
   }
-  for (const x of SHOPI) {
+  const list = SHOPI.filter(hit);
+  if (!list.length) { const n = document.createElement('p'); n.className = 'shop-none'; n.textContent = '見つかりません'; box.appendChild(n); }
+  for (const x of list) {
     const can = S.gold >= x.price;
     card(x, '<i class="coin"></i> ' + x.price.toLocaleString() + (can ? '' : ' · お金が足りません'), !can, () => {
       if (S.gold < x.price) return;
@@ -3808,6 +3815,7 @@ const PRE_RELEASE = false;                                   // 2026-11-23 예�
 const SPEEDS = PRE_RELEASE ? [1, 2, 3, 50] : [1, 2, 3];
 $('#bShop').addEventListener('click', openShop);
 $('#bShopClose').addEventListener('click', closeShop);
+$('#shopQ').addEventListener('input', () => { if (S.shopOpen) renderShop(); });
 $('#bSpeed').addEventListener('click', () => { S.speed = SPEEDS[(SPEEDS.indexOf(S.speed) + 1) % SPEEDS.length] || 1; $('#bSpeed').textContent = '×' + S.speed; });
 $('#bCoachGo').addEventListener('click', () => { store.set('yj2ja.coach', true); $('#coach').hidden = true; S.paused = false; });
 const toField = (e) => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };

@@ -159,6 +159,8 @@ h1,h2,p{margin:0}
 .inv .sl:empty{background:var(--paper-2);border-style:dashed;box-shadow:none}
 .inv .sl:active{transform:translateY(2px);box-shadow:none}
 .inv .sl img{width:84%;height:84%;object-fit:contain;display:block}
+.shop-q{width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:8px 12px;border:2.5px solid var(--ink);border-radius:12px;background:var(--paper);color:var(--ink);margin-top:4px}
+.shop-none{font-size:14px;color:var(--muted);padding:12px 0}
 .shop-list{display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow:auto;margin:8px 0}
 .shop-it{display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:center;text-align:left;background:var(--paper);color:var(--ink);border:2.5px solid var(--ink);border-radius:14px;padding:8px;font:inherit}
 .shop-it .ico{width:54px;height:54px;display:grid;place-items:center;border-radius:12px;background:#F5E6B8;border:2px solid var(--ink)}
@@ -426,6 +428,7 @@ window.__LANG = (function () { try { var l = localStorage.getItem('yj.lang'); if
       <div class="ov-card">
         <h2>🛒 상점</h2>
         <p class="sub" id="shopGold"></p>
+        <input class="shop-q" id="shopQ" type="search" placeholder="🔍 템 검색 (이름 · 효과)" autocomplete="off">
         <div class="shop-list" id="shopList"></div>
         <div class="ov-btns"><button class="btn" id="bShopClose" type="button">닫기</button></div>
       </div>
@@ -2821,22 +2824,26 @@ function gearEquip(g, u) {                                    // 🛒 끼우기 
 }
 function openShop() {
   if (S.over || S.watching || S.choosing || S.equipping) return;
-  S.shopOpen = true; renderShop(); $('#shopOv').hidden = false;
+  S.shopOpen = true; $('#shopQ').value = ''; renderShop(); $('#shopOv').hidden = false;
 }
 function closeShop() { S.shopOpen = false; $('#shopOv').hidden = true; }
 function renderShop() {
   $('#shopGold').innerHTML = '<i class="coin"></i> ' + Math.floor(S.gold).toLocaleString() + ' · 캐릭터 하나에 🎒 ' + INV_MAX + '칸 (같은 템은 1개)';
   const box = $('#shopList'); box.innerHTML = '';
+  const q = ($('#shopQ').value || '').trim().toLowerCase().replace(/\s+/g, '');   // 🔍 템 검색 (2026-11-26 예준이 요청): 이름 · 효과 · 무기/마법으로 찾기
+  const hit = (x) => !q || (x.name + x.d + x.kind).toLowerCase().replace(/\s+/g, '').includes(q);
   const card = (x, sub, dis, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'shop-it'; b.disabled = dis;
     b.innerHTML = '<span class="ico"><img src="' + x.img + '" alt=""></span><span><b>' + x.name + '</b><span class="k" style="background:' + (x.kind === '마법' ? '#8E4CC4' : '#2F6BD8') + '">' + x.kind + '</span><span class="dd">' + x.d + '</span><span class="pr">' + sub + '</span></span>';
     b.addEventListener('click', fn); box.appendChild(b); };
-  const bag = (S.gear || []).filter((g) => !g.unit);
+  const bag = (S.gear || []).filter((g) => !g.unit && hit(SHOP_BY[g.id]));
   if (bag.length) {
     const h = document.createElement('p'); h.className = 'shop-sec'; h.textContent = '🎒 가방 (눌러서 다시 끼우기)'; box.appendChild(h);
     for (const g of bag) card(SHOP_BY[g.id], '끼울 캐릭터를 골라요', false, () => { closeShop(); startGearEquip(g); });
     const h2 = document.createElement('p'); h2.className = 'shop-sec'; h2.textContent = '🛒 사기'; box.appendChild(h2);
   }
-  for (const x of SHOPI) {
+  const list = SHOPI.filter(hit);
+  if (!list.length) { const n = document.createElement('p'); n.className = 'shop-none'; n.textContent = '찾는 템이 없어요'; box.appendChild(n); }
+  for (const x of list) {
     const can = S.gold >= x.price;
     card(x, '<i class="coin"></i> ' + x.price.toLocaleString() + (can ? '' : ' · 돈이 부족해요'), !can, () => {
       if (S.gold < x.price) return;
@@ -3807,6 +3814,7 @@ const PRE_RELEASE = false;                                   // 2026-11-23 예�
 const SPEEDS = PRE_RELEASE ? [1, 2, 3, 50] : [1, 2, 3];
 $('#bShop').addEventListener('click', openShop);
 $('#bShopClose').addEventListener('click', closeShop);
+$('#shopQ').addEventListener('input', () => { if (S.shopOpen) renderShop(); });
 $('#bSpeed').addEventListener('click', () => { S.speed = SPEEDS[(SPEEDS.indexOf(S.speed) + 1) % SPEEDS.length] || 1; $('#bSpeed').textContent = '×' + S.speed; });
 $('#bCoachGo').addEventListener('click', () => { store.set('yj2.coach', true); $('#coach').hidden = true; S.paused = false; });
 const toField = (e) => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
